@@ -59,9 +59,6 @@ function StatCard({ icon: Icon, label, value, color, suffix = '' }) {
         <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${colors.bg} transition-transform duration-300 group-hover:scale-110`}>
           <Icon size={24} className={colors.icon} strokeWidth={2} />
         </div>
-        <span className={`text-xs font-semibold ${color === 'success' ? 'text-green-600' : color === 'warning' ? 'text-amber-600' : 'text-gray-500'}`}>
-          {suffix}
-        </span>
       </div>
       <p className="text-4xl font-bold text-gray-900">{value}{suffix === '%' && '%'}</p>
       <p className="text-sm font-medium text-gray-500 mt-1">{label}</p>
@@ -146,7 +143,7 @@ export default function DashboardPage() {
                 </AreaChart>
               </ResponsiveContainer>
             </div>
-            
+
             {/* Presence by Section - Horizontal bars */}
             <div className="mt-6 pt-6 border-t border-gray-100">
               <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">Presença por Seção</h4>
@@ -155,9 +152,9 @@ export default function DashboardPage() {
                   <div key={section.nome} className="flex items-center gap-4">
                     <span className="w-20 text-sm font-medium text-gray-700">{section.nome}</span>
                     <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-[#007AFF] rounded-full transition-all duration-500" 
-                        style={{ width: `${section.presenca}%` }} 
+                      <div
+                        className="h-full bg-[#007AFF] rounded-full transition-all duration-500"
+                        style={{ width: `${section.presenca}%` }}
                       />
                     </div>
                     <span className="w-12 text-sm font-semibold text-gray-900 text-right">{section.presenca}%</span>

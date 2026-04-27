@@ -36,7 +36,7 @@ export default function Topbar({ title = 'Gestão Igreja', searchPlaceholder, on
   const [searchFocused, setSearchFocused] = useState(false)
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 glass">
+    <header className="sticky top-0 z-50 glass">
       <div className="max-w-7xl mx-auto px-6 py-3">
         <div className="flex items-center justify-between">
           {/* Logo */}
@@ -51,17 +51,16 @@ export default function Topbar({ title = 'Gestão Igreja', searchPlaceholder, on
           <nav className="flex items-center gap-1">
             {pageItems.slice(0, 4).map((item) => {
               const Icon = item.icon
-              const isActive = location.pathname.startsWith(item.to) || 
+              const isActive = location.pathname.startsWith(item.to) ||
                 (item.to === '/conta' && location.pathname === '/conta')
               return (
                 <Link
                   key={item.to}
                   to={item.to}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
-                    isActive
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${isActive
                       ? 'bg-gray-100 text-gray-900'
                       : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
-                  }`}
+                    }`}
                 >
                   <Icon size={16} />
                   <span className="hidden md:inline">{item.label}</span>
@@ -122,25 +121,25 @@ export default function Topbar({ title = 'Gestão Igreja', searchPlaceholder, on
               {menuOpen && (
                 <div className="absolute right-0 mt-2 w-56 bg-white/95 backdrop-blur-xl rounded-2xl border border-gray-100 shadow-lg overflow-hidden animate-slide-down">
                   <div className="p-2 flex flex-col gap-1">
-                    <Link 
-                      to="/conta" 
-                      onClick={() => setMenuOpen(false)} 
+                    <Link
+                      to="/conta"
+                      onClick={() => setMenuOpen(false)}
                       className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
                     >
                       <Pencil size={16} />
                       Editar Perfil
                     </Link>
-                    <Link 
-                      to="/configuracoes" 
-                      onClick={() => setMenuOpen(false)} 
+                    <Link
+                      to="/configuracoes"
+                      onClick={() => setMenuOpen(false)}
                       className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
                     >
                       <Settings size={16} />
                       Configurações
                     </Link>
                     <div className="h-px bg-gray-100 my-1" />
-                    <button 
-                      onClick={() => { setMenuOpen(false); logout?.(); }} 
+                    <button
+                      onClick={() => { setMenuOpen(false); logout?.(); }}
                       className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors"
                     >
                       <LogOut size={16} />

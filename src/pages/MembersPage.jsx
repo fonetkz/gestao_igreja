@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Search, Edit2, Plus, ClipboardList, History, Bell, Users2, MessageSquare, Check, X, Cake, CheckCircle, BellRing } from 'lucide-react'
+import { Search, Edit2, Plus, ClipboardList, History, Bell, Users2, MessageSquare, Check, X, Cake, CheckCircle, BellRing, Clock, XCircle, Music, ChevronUp, ChevronDown } from 'lucide-react'
 import Topbar from '../components/layout/Topbar'
 
 function Badge({ children, variant = 'default' }) {
@@ -96,6 +96,7 @@ export default function MembersPage() {
   const [alertas, setAlertas] = useState(mockAlertasIniciais)
   const [activeAlertTab, setActiveAlertTab] = useState('pendentes')
   const [alertSearch, setAlertSearch] = useState('')
+  const [sortConfig, setSortConfig] = useState({ key: 'nome', direction: 'asc' })
 
   const filteredMembers = mockMembers.filter(m => {
     if (statusFilter && m.status !== statusFilter) return false
@@ -107,7 +108,17 @@ export default function MembersPage() {
       if (!m.nome.toLowerCase().includes(term) && !m.telefone.toLowerCase().includes(term)) return false
     }
     return true
-  }).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
+  }).sort((a, b) => {
+    let valA = a[sortConfig.key] || ''
+    let valB = b[sortConfig.key] || ''
+    if (sortConfig.key === 'data_nascimento') {
+      valA = a.data_nascimento ? a.data_nascimento.split('/').slice(0, 2).reverse().join('') : ''
+      valB = b.data_nascimento ? b.data_nascimento.split('/').slice(0, 2).reverse().join('') : ''
+    }
+    if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1
+    if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1
+    return 0
+  })
 
   const getStatusVariant = (status) => {
     if (status === 'Ativo') return 'green'
@@ -121,16 +132,34 @@ export default function MembersPage() {
     setJustifyingAlert(null)
   }
 
-  const handleSaveEdicaoChamada = (chamadaId, novosRegistros) => {
+  const handleSaveEdicaoChamada = (chamadaId, novosRegistros, novoContexto) => {
     setHistorico(prev => prev.map(h => {
       if (h.id === chamadaId) {
         const presentes = novosRegistros.filter(r => r.presente).length
         const ausentes = novosRegistros.filter(r => !r.presente).length
-        return { ...h, registros: novosRegistros, presentes, ausentes }
+        return { ...h, tipo: novoContexto, contexto: novoContexto, registros: novosRegistros, presentes, ausentes }
       }
       return h
     }))
     setEditingHistory(null)
+    setEditingChamada(null)
+  }
+
+  const handleSort = (key) => {
+    let direction = 'asc'
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc'
+    }
+    setSortConfig({ key, direction })
+  }
+
+  const stats = {
+    total: mockMembers.length,
+    ativos: mockMembers.filter(m => m.status === 'Ativo').length,
+    licenca: mockMembers.filter(m => m.status === 'Em Licença').length,
+    inativos: mockMembers.filter(m => m.status === 'Inativo').length,
+    orquestra: mockMembers.filter(m => m.instrumento_voz && m.instrumento_voz !== '').length,
+    aniversariantes: mockMembers.filter(m => isAniversarioMes(m.data_nascimento)).length
   }
 
   return (
@@ -164,22 +193,57 @@ export default function MembersPage() {
 
         {activeTab === 'lista' && (
           <div className="space-y-4">
+            {/* Cards de Métricas */}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+              <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm group">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center mb-3 transition-transform duration-300 group-hover:scale-110"><Users2 size={20} /></div>
+                <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+                <p className="text-[11px] font-semibold text-gray-500 mt-1 uppercase tracking-wider">Total</p>
+              </div>
+              <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm group">
+                <div className="w-10 h-10 rounded-xl bg-green-50 text-green-600 flex items-center justify-center mb-3 transition-transform duration-300 group-hover:scale-110"><CheckCircle size={20} /></div>
+                <p className="text-2xl font-bold text-gray-900">{stats.ativos}</p>
+                <p className="text-[11px] font-semibold text-gray-500 mt-1 uppercase tracking-wider">Ativos</p>
+              </div>
+              <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm group">
+                <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center mb-3 transition-transform duration-300 group-hover:scale-110"><Clock size={20} /></div>
+                <p className="text-2xl font-bold text-gray-900">{stats.licenca}</p>
+                <p className="text-[11px] font-semibold text-gray-500 mt-1 uppercase tracking-wider">Em Licença</p>
+              </div>
+              <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm group">
+                <div className="w-10 h-10 rounded-xl bg-red-50 text-red-600 flex items-center justify-center mb-3 transition-transform duration-300 group-hover:scale-110"><XCircle size={20} /></div>
+                <p className="text-2xl font-bold text-gray-900">{stats.inativos}</p>
+                <p className="text-[11px] font-semibold text-gray-500 mt-1 uppercase tracking-wider">Inativos</p>
+              </div>
+              <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm group">
+                <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center mb-3 transition-transform duration-300 group-hover:scale-110"><Music size={20} /></div>
+                <p className="text-2xl font-bold text-gray-900">{stats.orquestra}</p>
+                <p className="text-[11px] font-semibold text-gray-500 mt-1 uppercase tracking-wider">Orquestra</p>
+              </div>
+              <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm group">
+                <div className="w-10 h-10 rounded-xl bg-pink-50 text-pink-600 flex items-center justify-center mb-3 transition-transform duration-300 group-hover:scale-110"><Cake size={20} /></div>
+                <p className="text-2xl font-bold text-gray-900">{stats.aniversariantes}</p>
+                <p className="text-[11px] font-semibold text-gray-500 mt-1 uppercase tracking-wider">Aniversários</p>
+              </div>
+            </div>
+
+            {/* Filtros Justificados */}
             <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
-              <div className="flex flex-wrap items-center gap-3">
-                <div className="relative flex-1 min-w-[200px] max-w-md">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
+                <div className="relative">
                   <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                   <input type="text" placeholder="Buscar..." value={searchText} onChange={(e) => setSearchText(e.target.value)} className="w-full pl-9 pr-4 py-2 bg-gray-50 border-0 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/30 focus:bg-white outline-none transition-all" />
                 </div>
-                <select value={vozFilter} onChange={(e) => setVozFilter(e.target.value)} className="px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm">
+                <select value={vozFilter} onChange={(e) => setVozFilter(e.target.value)} className="w-full px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm">
                   {voiceOptions.map(v => <option key={v} value={v}>{v || 'Todas as vozes'}</option>)}
                 </select>
-                <select value={instrumentoFilter} onChange={(e) => setInstrumentoFilter(e.target.value)} className="px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm">
-                  {instrumentOptions.map(v => <option key={v} value={v}>{v || 'Todos os instrumentos'}</option>)}
+                <select value={instrumentoFilter} onChange={(e) => setInstrumentoFilter(e.target.value)} className="w-full px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm">
+                  {instrumentOptions.map(v => <option key={v} value={v}>{v || 'Todos os instrum.'}</option>)}
                 </select>
-                <select value={funcaoFilter} onChange={(e) => setFuncaoFilter(e.target.value)} className="px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm">
+                <select value={funcaoFilter} onChange={(e) => setFuncaoFilter(e.target.value)} className="w-full px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm">
                   {functionOptions.map(v => <option key={v} value={v}>{v || 'Todas as funções'}</option>)}
                 </select>
-                <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm">
+                <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="w-full px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm">
                   {statusOptions.map(v => <option key={v} value={v}>{v || 'Todos os status'}</option>)}
                 </select>
               </div>
@@ -189,36 +253,57 @@ export default function MembersPage() {
               <table className="w-full">
                 <thead className="bg-gray-50 border-b border-gray-100">
                   <tr>
-                    <th className="text-left text-xs font-semibold text-gray-500 uppercase px-4 py-3">Integrante</th>
-                    <th className="text-left text-xs font-semibold text-gray-500 uppercase px-4 py-3">Contato</th>
-                    <th className="text-left text-xs font-semibold text-gray-500 uppercase px-4 py-3">Nascimento</th>
-                    <th className="text-left text-xs font-semibold text-gray-500 uppercase px-4 py-3">Voz</th>
-                    <th className="text-left text-xs font-semibold text-gray-500 uppercase px-4 py-3">Instrumento</th>
-                    <th className="text-left text-xs font-semibold text-gray-500 uppercase px-4 py-3">Função</th>
-                    <th className="text-left text-xs font-semibold text-gray-500 uppercase px-4 py-3">Status</th>
+                    <th className="text-left text-xs font-semibold text-gray-500 uppercase px-4 py-3 cursor-pointer hover:bg-gray-200 transition-colors select-none" onClick={() => handleSort('nome')}>
+                      <div className="flex items-center gap-1">Integrante {sortConfig.key === 'nome' && (sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />)}</div>
+                    </th>
+                    <th className="text-left text-xs font-semibold text-gray-500 uppercase px-4 py-3">
+                      Contato
+                    </th>
+                    <th className="text-left text-xs font-semibold text-gray-500 uppercase px-4 py-3 cursor-pointer hover:bg-gray-200 transition-colors select-none" onClick={() => handleSort('data_nascimento')}>
+                      <div className="flex items-center gap-1">Nascimento {sortConfig.key === 'data_nascimento' && (sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />)}</div>
+                    </th>
+                    <th className="text-left text-xs font-semibold text-gray-500 uppercase px-4 py-3 cursor-pointer hover:bg-gray-200 transition-colors select-none" onClick={() => handleSort('secao')}>
+                      <div className="flex items-center gap-1">Voz {sortConfig.key === 'secao' && (sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />)}</div>
+                    </th>
+                    <th className="text-left text-xs font-semibold text-gray-500 uppercase px-4 py-3 cursor-pointer hover:bg-gray-200 transition-colors select-none" onClick={() => handleSort('instrumento_voz')}>
+                      <div className="flex items-center gap-1">Instrumento {sortConfig.key === 'instrumento_voz' && (sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />)}</div>
+                    </th>
+                    <th className="text-left text-xs font-semibold text-gray-500 uppercase px-4 py-3 cursor-pointer hover:bg-gray-200 transition-colors select-none" onClick={() => handleSort('cargo')}>
+                      <div className="flex items-center gap-1">Função {sortConfig.key === 'cargo' && (sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />)}</div>
+                    </th>
+                    <th className="text-left text-xs font-semibold text-gray-500 uppercase px-4 py-3 cursor-pointer hover:bg-gray-200 transition-colors select-none" onClick={() => handleSort('status')}>
+                      <div className="flex items-center gap-1">Status {sortConfig.key === 'status' && (sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />)}</div>
+                    </th>
                     <th className="text-right text-xs font-semibold text-gray-500 uppercase px-4 py-3">Ações</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {filteredMembers.map(member => (
-                    <tr key={member.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3"><div className="flex items-center gap-3"><Avatar name={member.nome} size="sm" /><span className="font-medium">{member.nome}</span></div></td>
-                      <td className="px-4 py-3 text-sm text-gray-600">{member.telefone}</td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-sm text-gray-500">{formatarDataNascimento(member.data_nascimento)}</span>
-                          {isAniversarioMes(member.data_nascimento) && <Cake size={14} className="text-amber-400" />}
+                  {filteredMembers.length === 0 ? (
+                    <tr>
+                      <td colSpan="8" className="px-4 py-12 text-center">
+                        <div className="flex flex-col items-center justify-center">
+                          <Search size={40} className="text-gray-300 mb-3" />
+                          <p className="text-base font-semibold text-gray-700">Nenhum integrante encontrado</p>
+                          <p className="text-sm text-gray-500 mt-1">Tente ajustar os filtros ou o termo de busca.</p>
                         </div>
                       </td>
-                      <td className="px-4 py-3">{member.secao ? <Badge variant="blue">{member.secao}</Badge> : <span className="text-gray-400">—</span>}</td>
-                      <td className="px-4 py-3">{member.instrumento_voz ? <Badge variant="purple">{member.instrumento_voz}</Badge> : <span className="text-gray-400">—</span>}</td>
-                      <td className="px-4 py-3"><Badge variant="default">{member.cargo}</Badge></td>
-                      <td className="px-4 py-3"><Badge variant={getStatusVariant(member.status)}>{member.status}</Badge></td>
-                      <td className="px-4 py-3 text-right">
-                        <button onClick={() => { setEditingMember(member); setShowDrawer(true); }} className="p-2 rounded-lg hover:bg-gray-100 text-gray-400"><Edit2 size={16} /></button>
-                      </td>
                     </tr>
-                  ))}
+                  ) : (
+                    filteredMembers.map(member => (
+                      <tr key={member.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-3"><div className="flex items-center gap-3"><Avatar name={member.nome} size="sm" /><div className="flex items-center gap-1.5"><span className="font-medium">{member.nome}</span>{isAniversarioMes(member.data_nascimento) && <Cake size={14} className="text-amber-400" title="Aniversariante do Mês" />}</div></div></td>
+                        <td className="px-4 py-3 text-sm text-gray-600">{member.telefone}</td>
+                        <td className="px-4 py-3 text-sm text-gray-500">{formatarDataNascimento(member.data_nascimento)}</td>
+                        <td className="px-4 py-3">{member.secao ? <Badge variant="blue">{member.secao}</Badge> : <span className="text-gray-400">—</span>}</td>
+                        <td className="px-4 py-3">{member.instrumento_voz ? <Badge variant="purple">{member.instrumento_voz}</Badge> : <span className="text-gray-400">—</span>}</td>
+                        <td className="px-4 py-3"><Badge variant="default">{member.cargo}</Badge></td>
+                        <td className="px-4 py-3"><Badge variant={getStatusVariant(member.status)}>{member.status}</Badge></td>
+                        <td className="px-4 py-3 text-right">
+                          <button onClick={() => { setEditingMember(member); setShowDrawer(true); }} className="p-2 rounded-lg hover:bg-gray-100 text-gray-400"><Edit2 size={16} /></button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -584,7 +669,7 @@ function EdicaoChamadaForm({ chamada, members, onSave, onCancel }) {
 
 function MemberForm({ member, onSave, onCancel }) {
   const [form, setForm] = useState(member || { nome: '', telefone: '', data_nascimento: '', secao: '', instrumentos: [], cargos: [], status: 'Ativo' })
-  
+
   const formInstrumentos = form?.instrumentos || []
   const formCargos = form?.cargos || []
 
@@ -780,6 +865,7 @@ function EdicaoDrawer({ chamada, members, onSave, onClose }) {
     return map
   })
   const [search, setSearch] = useState('')
+  const [contexto, setContexto] = useState(chamada?.tipo || chamada?.contexto || 'Ensaio Geral')
 
   const filteredMembers = members
     .filter(m => !search || m.nome.toLowerCase().includes(search.toLowerCase()))
@@ -797,7 +883,7 @@ function EdicaoDrawer({ chamada, members, onSave, onClose }) {
       presente: presencas[m.id] !== false,
       justificativa: justificativas[m.id] || ''
     }))
-    onSave(chamada.id, registros)
+    onSave(chamada.id, registros, contexto)
   }
 
   const [dia, mes, ano] = chamada.data.split('/')
@@ -814,8 +900,8 @@ function EdicaoDrawer({ chamada, members, onSave, onClose }) {
         </div>
 
         <div className="flex-1 overflow-y-auto p-6 bg-[#F5F5F7]">
-          <div className="bg-white rounded-xl shadow-sm p-3 mb-3">
-            <div className="relative">
+          <div className="bg-white rounded-xl shadow-sm p-3 mb-3 flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
@@ -825,6 +911,16 @@ function EdicaoDrawer({ chamada, members, onSave, onClose }) {
                 className="w-full pl-9 pr-4 py-2 bg-gray-50 border-0 rounded-lg text-sm"
               />
             </div>
+            <select
+              value={contexto}
+              onChange={(e) => setContexto(e.target.value)}
+              className="px-3 py-2 bg-gray-50 border-0 rounded-lg text-sm sm:w-48 outline-none focus:ring-2 focus:ring-blue-500/30"
+            >
+              <option value="Ensaio Geral">Ensaio Geral</option>
+              <option value="Culto Dominical">Culto Dominical</option>
+              <option value="Culto de Celebração">Culto de Celebração</option>
+              <option value="Ensaio de Naipe">Ensaio de Naipe</option>
+            </select>
           </div>
 
           {filteredMembers.map(member => {
