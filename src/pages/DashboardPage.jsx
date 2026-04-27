@@ -1,63 +1,81 @@
 import React, { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Users, Calendar, TrendingUp, AlertTriangle, ArrowRight, CheckCircle2, Cake } from 'lucide-react'
-import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts'
+import { Users, TrendingUp, AlertTriangle, Cake, ArrowRight, CheckCircle2, Users2, TrendingDown } from 'lucide-react'
+import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart, BarChart, Bar } from 'recharts'
 import Topbar from '../components/layout/Topbar'
-import PageHeader from '../components/layout/PageHeader'
-import Card from '../components/ui/Card'
-import Select from '../components/ui/Select'
-import Badge from '../components/ui/Badge'
 import Avatar from '../components/ui/Avatar'
-import useMembersStore from '../store/membersStore'
 
-const safeParseJson = (jsonStr, defaultValue = []) => {
-  try {
-    if (!jsonStr) return defaultValue
-    const parsed = JSON.parse(jsonStr)
-    return Array.isArray(parsed) ? parsed : defaultValue
-  } catch {
-    return defaultValue
-  }
+// Mock Data para Dashboard
+const mockStats = {
+  membros: 48,
+  presenca: 88,
+  alertas: 2,
+  aniversariantes: 3
 }
 
-function StatCard({ icon: Icon, label, value, color, trend }) {
-  const colorClasses = {
-    primary: 'bg-slate-900 text-white',
-    success: 'bg-emerald-100 text-emerald-600',
-    warning: 'bg-amber-100 text-amber-600',
-    info: 'bg-blue-100 text-blue-600',
+// Dados do gráfico de frequência - últimos 6 meses
+const mockFrequencyData = [
+  { mes: 'Nov', presenca: 82 },
+  { mes: 'Dez', presenca: 78 },
+  { mes: 'Jan', presenca: 85 },
+  { mes: 'Fev', presenca: 91 },
+  { mes: 'Mar', presenca: 88 },
+  { mes: 'Abr', presenca: 88 },
+]
+
+// Presença por seção
+const mockSectionsData = [
+  { nome: 'Soprano', presenca: 92, membros: 12 },
+  { nome: 'Contralto', presenca: 85, membros: 8 },
+  { nome: 'Tenor', presenca: 88, membros: 10 },
+  { nome: 'Baixo', presenca: 86, membros: 8 },
+  { nome: 'Orquestra', presenca: 90, membros: 10 },
+]
+
+// Alertas de membros com falta
+const mockAlertas = [
+  { id: 1, nome: 'Marcos Silva', secao: 'Baixo', faltas: 3 },
+  { id: 2, nome: 'Juliana Costa', secao: 'Soprano', faltas: 3 },
+]
+
+// Aniversariantes do mês
+const mockAniversariantes = [
+  { id: 1, nome: 'Ana Paula Silva', secao: 'Soprano', dia: 5 },
+  { id: 2, nome: 'Pedro Santos', secao: 'Tenor', dia: 12 },
+  { id: 3, nome: 'Lucas Oliveira', secao: 'Baixo', dia: 28 },
+]
+
+function StatCard({ icon: Icon, label, value, color, suffix = '' }) {
+  const colorMap = {
+    primary: { bg: 'bg-gray-900', icon: 'text-white' },
+    success: { bg: 'bg-green-100', icon: 'text-green-600' },
+    warning: { bg: 'bg-amber-100', icon: 'text-amber-600' },
+    info: { bg: 'bg-blue-100', icon: 'text-blue-600' },
   }
+  const colors = colorMap[color]
 
   return (
-    <Card hover padding="large" className="animate-slide-up relative overflow-hidden group">
-      <div className="flex flex-col h-full justify-between gap-4">
-        <div className="flex items-start justify-between">
-          <div className={`p-3 rounded-xl transition-transform duration-300 group-hover:scale-110 ${colorClasses[color]}`}>
-            <Icon size={24} strokeWidth={2.5} />
-          </div>
-          {trend && (
-            <Badge className={trend.includes('-') ? 'badge-danger' : 'badge-success'}>
-              <TrendingUp size={12} className={trend.includes('-') ? 'rotate-180' : ''} />
-              <span>{trend}</span>
-            </Badge>
-          )}
+    <div className="metric-card animate-slide-up group">
+      <div className="flex items-start justify-between mb-4">
+        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${colors.bg} transition-transform duration-300 group-hover:scale-110`}>
+          <Icon size={24} className={colors.icon} strokeWidth={2} />
         </div>
-        <div>
-          <p className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">{value}</p>
-          <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-1.5">{label}</p>
-        </div>
+        <span className={`text-xs font-semibold ${color === 'success' ? 'text-green-600' : color === 'warning' ? 'text-amber-600' : 'text-gray-500'}`}>
+          {suffix}
+        </span>
       </div>
-    </Card>
+      <p className="text-4xl font-bold text-gray-900">{value}{suffix === '%' && '%'}</p>
+      <p className="text-sm font-medium text-gray-500 mt-1">{label}</p>
+    </div>
   )
 }
 
 function CustomTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null
   return (
-    <div className="bg-slate-900 shadow-lg rounded-lg border border-slate-700 px-3 py-2 text-white">
-      <p className="text-xs font-bold text-slate-400 mb-0.5 uppercase tracking-wide">{label}</p>
-      <p className="text-sm font-bold flex items-center gap-2">
-        <span className="w-2 h-2 rounded-full bg-blue-400" />
+    <div className="bg-gray-900 shadow-lg rounded-xl px-3 py-2">
+      <p className="text-xs font-medium text-gray-400 mb-0.5">{label}</p>
+      <p className="text-sm font-semibold text-white flex items-center gap-2">
+        <span className="w-2 h-2 rounded-full bg-[#007AFF]" />
         {payload[0].value}% presença
       </p>
     </div>
@@ -65,292 +83,151 @@ function CustomTooltip({ active, payload, label }) {
 }
 
 export default function DashboardPage() {
-  const allMembers = useMembersStore(s => s.members)
-  const attendance = useMembersStore(s => s.attendance)
-  const navigate = useNavigate()
-  const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7))
+  const [selectedMonth, setSelectedMonth] = useState('2026-04')
 
-  // Gera as opções dos últimos 12 meses para o Select customizado
-  const monthOptions = useMemo(() => {
-    const options = []
-    const today = new Date()
-    for (let i = 0; i < 12; i++) {
-      const d = new Date(today.getFullYear(), today.getMonth() - i, 1)
-      const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-      const label = d.toLocaleString('pt-BR', { month: 'long', year: 'numeric' })
-      options.push({
-        value,
-        label: label.charAt(0).toUpperCase() + label.slice(1) // Primeira letra maiúscula
-      })
-    }
-    return options
-  }, [])
-
-  const { monthlyData, overallRate, problematicMembers, birthdaysThisMonth, attendanceBySection } = useMemo(() => {
-    const [year, month] = selectedMonth.split('-').map(Number)
-
-    // Aniversariantes do mês selecionado
-    const birthdays = allMembers.filter(member => {
-      if (!member.data_nascimento) return false
-      const birthDate = new Date(member.data_nascimento)
-      return birthDate.getMonth() + 1 === month
-    }).sort((a, b) => new Date(a.data_nascimento).getDate() - new Date(b.data_nascimento).getDate())
-
-    // Dados de presença para o ano selecionado (para o gráfico)
-    const yearData = Array.from({ length: 12 }, (_, i) => ({
-      name: new Date(year, i).toLocaleString('pt-BR', { month: 'short' }).replace('.', ''),
-      presenca: 0
-    }))
-
-    const callsInYear = attendance.filter(c => c.data && c.data.startsWith(String(year)))
-    const monthlyRates = {} // { '01': { total: 100, present: 80 }, ... }
-
-    callsInYear.forEach(call => {
-      const callMonth = call.data.substring(5, 7)
-      if (!monthlyRates[callMonth]) monthlyRates[callMonth] = { total: 0, present: 0 }
-      const registros = safeParseJson(call.registros_json)
-      registros.forEach(reg => {
-        monthlyRates[callMonth].total++
-        if (reg.presente) monthlyRates[callMonth].present++
-      })
-    })
-
-    Object.entries(monthlyRates).forEach(([m, data]) => {
-      const monthIndex = parseInt(m, 10) - 1
-      if (data.total > 0) {
-        yearData[monthIndex].presenca = Math.round((data.present / data.total) * 100)
-      }
-    })
-
-    // Presença por naipe (geral, não por mês)
-    const sections = ['Baixo', 'Soprano', 'Tenor', 'Contralto']
-    const attendanceBySectionData = sections.map(secao => {
-      const membersInSection = allMembers.filter(m => m.secao === secao)
-      const total = membersInSection.length
-      if (total === 0) return { name: secao, rate: 0, total: 0 }
-      const withFaltas = membersInSection.filter(m => m.faltas_mes_atual >= 1).length
-      const rate = total > 0 ? Math.round(((total - withFaltas) / total) * 100) : 0
-      return { name: secao, rate, total }
-    })
-
-    // Alertas e taxa de presença para o mês selecionado
-    const callsInMonth = attendance.filter(c => c.data && c.data.startsWith(selectedMonth))
-    const memberAbsences = {}
-    let totalRecords = 0
-    let presentRecords = 0
-
-    callsInMonth.forEach(call => {
-      const registros = safeParseJson(call.registros_json)
-      registros.forEach(r => {
-        totalRecords++
-        if (r.presente) presentRecords++
-        else {
-          if (!memberAbsences[r.membro_id]) memberAbsences[r.membro_id] = 0
-          memberAbsences[r.membro_id]++
-        }
-      })
-    })
-
-    const problematic = Object.entries(memberAbsences)
-      .filter(([mId, count]) => count >= 3)
-      .map(([mId, count]) => ({ ...allMembers.find(m => String(m.id) === mId), faltas_mes_atual: count }))
-      .sort((a, b) => b.faltas_mes_atual - a.faltas_mes_atual)
-
-    const rate = totalRecords > 0 ? Math.round((presentRecords / totalRecords) * 100) : 0
-
-    return { monthlyData: yearData, overallRate: rate, problematicMembers: problematic, birthdaysThisMonth: birthdays, attendanceBySection: attendanceBySectionData }
-
-  }, [allMembers, attendance, selectedMonth])
-
-  const formatBirthDate = (dateStr) => {
-    if (!dateStr) return ''
-    const date = new Date(dateStr)
-    return date.getDate()
-  }
+  const monthOptions = [
+    { value: '2026-04', label: 'Abril de 2026' },
+    { value: '2026-03', label: 'Março de 2026' },
+    { value: '2026-02', label: 'Fevereiro de 2026' },
+    { value: '2026-01', label: 'Janeiro de 2026' },
+    { value: '2025-12', label: 'Dezembro de 2025' },
+    { value: '2025-11', label: 'Novembro de 2025' },
+  ]
 
   return (
     <div className="min-h-screen pb-12">
       <Topbar title="Gestão Igreja" />
 
-      <div className="px-4 sm:px-8 max-w-7xl mx-auto mt-8">
-        <div className="relative z-50">
-          <PageHeader
-            label="Visão Geral"
-            title="Dashboard"
-            subtitle="Acompanhe as métricas essenciais e o desempenho da sua orquestra."
+      <div className="px-8 max-w-7xl mx-auto mt-8">
+        {/* Page Header */}
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-3xl font-semibold text-gray-900">Dashboard</h1>
+            <p className="text-gray-500 mt-1">Acompanhe as métricas essenciais e o desempenho da sua orquestra.</p>
+          </div>
+          <select
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(e.target.value)}
+            className="select-apple w-auto"
           >
-            <div className="w-full sm:w-48">
-              <Select
-                options={monthOptions}
-                value={selectedMonth}
-                onChange={setSelectedMonth}
-              />
-            </div>
-          </PageHeader>
+            {monthOptions.map(opt => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-10 relative z-10">
-          <StatCard
-            icon={Users}
-            label="Membros"
-            value={allMembers.length}
-            color="primary"
-          />
-          <StatCard
-            icon={TrendingUp}
-            label="Presença"
-            value={`${overallRate}%`}
-            color="success"
-          />
-          <StatCard
-            icon={AlertTriangle}
-            label="Alertas Críticos"
-            value={problematicMembers.length}
-            color="warning"
-          />
-          <StatCard
-            icon={Cake}
-            label="Aniversariantes"
-            value={birthdaysThisMonth.length}
-            color="info"
-          />
+        {/* Stats Grid - 4 columns */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <StatCard icon={Users} label="Membros Ativos" value={mockStats.membros} color="primary" />
+          <StatCard icon={TrendingUp} label="Presença Média" value={mockStats.presenca} color="success" suffix="%" />
+          <StatCard icon={AlertTriangle} label="Alertas Críticos" value={mockStats.alertas} color="warning" />
+          <StatCard icon={Cake} label="Aniversariantes" value={mockStats.aniversariantes} color="info" />
         </div>
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {/* Frequência + Presença por Seção */}
-          <Card padding="small" className="flex flex-col">
-            <div className="mb-2 pb-2 border-b border-slate-200">
-              <h3 className="heading-4 text-slate-900 dark:text-white">Frequência Geral</h3>
-            </div>
-            <div className="h-[100px]">
+        {/* Charts Area - Split 2 columns */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Frequency Chart - 2 columns */}
+          <div className="apple-card p-6 lg:col-span-2">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Frequência Geral</h3>
+            <div className="h-[200px]">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={monthlyData} margin={{ top: 5, right: 5, left: -15, bottom: 0 }}>
+                <AreaChart data={mockFrequencyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <defs>
                     <linearGradient id="colorPresenca" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.15} />
-                      <stop offset="95%" stopColor="#3B82F6" stopOpacity={0} />
+                      <stop offset="5%" stopColor="#007AFF" stopOpacity={0.2} />
+                      <stop offset="95%" stopColor="#007AFF" stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="4 4" stroke="#E2E8F0" vertical={false} strokeOpacity={0.6} />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 10, fontWeight: 600 }} dy={4} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 10 }} domain={[0, 100]} tickFormatter={(v) => `${v}%`} />
-                  <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#94A3B8', strokeWidth: 1 }} />
-                  <Area type="monotone" dataKey="presenca" stroke="#3B82F6" strokeWidth={2} fill="url(#colorPresenca)" />
+                  <CartesianGrid strokeDasharray="4 4" stroke="#E5E5EA" vertical={false} />
+                  <XAxis dataKey="mes" axisLine={false} tickLine={false} tick={{ fill: '#8E8E93', fontSize: 11, fontWeight: 500 }} dy={8} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fill: '#8E8E93', fontSize: 11 }} domain={[0, 100]} tickFormatter={(v) => `${v}%`} />
+                  <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#C7C7CC', strokeWidth: 1 }} />
+                  <Area type="monotone" dataKey="presenca" stroke="#007AFF" strokeWidth={2.5} fill="url(#colorPresenca)" />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
-            <h4 className="heading-4 text-slate-900 dark:text-white mt-4 mb-2">Presença por Seção</h4>
-            <div className="grid grid-cols-4 gap-2">
-              {attendanceBySection.map((section) => (
-                <div key={section.name} className="text-center p-2 rounded-lg bg-slate-50 dark:bg-slate-800">
-                  <p className="text-lg font-bold text-slate-900 dark:text-white">{section.rate}%</p>
-                  <p className="text-[9px] font-semibold text-slate-500 dark:text-slate-400">{section.name}</p>
-                </div>
-              ))}
-            </div>
-          </Card>
-
-          {/* Alert Panel */}
-          <Card padding="small" className="flex flex-col bg-gradient-to-b from-white to-slate-50/30 dark:from-slate-800 dark:to-slate-800/50 h-full">
-            <div className="flex items-center gap-2 mb-2 pb-2 border-b border-slate-200 dark:border-slate-700 shrink-0">
-              <div className="p-1.5 rounded-lg bg-red-100 text-red-600">
-                <AlertTriangle size={16} strokeWidth={2.5} />
-              </div>
-              <div className="flex-1">
-                <h3 className="heading-4 text-slate-900 dark:text-white">Atenção</h3>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wide mt-0.5">
-                  3+ faltas
-                </p>
-              </div>
-            </div>
-
-            {problematicMembers.length === 0 ? (
-              <div className="flex-1 flex flex-col items-center justify-center text-center py-4">
-                <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center mb-2">
-                  <CheckCircle2 size={20} className="text-emerald-600" strokeWidth={2} />
-                </div>
-                <p className="text-sm font-bold text-slate-900 dark:text-white">Tudo certo!</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Sem alertas.</p>
-              </div>
-            ) : (
-              <div className="space-y-2 flex-1">
-                {problematicMembers.slice(0, 3).map((member) => (
-                  <div
-                    key={member.id}
-                    className="flex items-center gap-2 p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800
-                                 hover:border-red-300 dark:hover:border-red-700/50 hover:bg-red-50/50 dark:hover:bg-red-900/20 transition-all cursor-pointer group"
-                    onClick={() => navigate('/membros')}
-                  >
-                    <Avatar name={member.nome} initials={member.iniciais} size="sm" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-bold text-slate-900 dark:text-white truncate">{member.nome}</p>
-                      <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400">{member.secao}</p>
+            
+            {/* Presence by Section - Horizontal bars */}
+            <div className="mt-6 pt-6 border-t border-gray-100">
+              <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">Presença por Seção</h4>
+              <div className="space-y-3">
+                {mockSectionsData.map((section) => (
+                  <div key={section.nome} className="flex items-center gap-4">
+                    <span className="w-20 text-sm font-medium text-gray-700">{section.nome}</span>
+                    <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-[#007AFF] rounded-full transition-all duration-500" 
+                        style={{ width: `${section.presenca}%` }} 
+                      />
                     </div>
-                    <Badge className="badge-danger whitespace-nowrap text-[10px]">{member.faltas_mes_atual}</Badge>
+                    <span className="w-12 text-sm font-semibold text-gray-900 text-right">{section.presenca}%</span>
+                    <span className="w-8 text-xs text-gray-400">{section.membros}</span>
                   </div>
                 ))}
               </div>
-            )}
-
-            {problematicMembers.length > 0 && (
-              <button onClick={() => navigate('/membros')} className="w-full mt-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-xs font-bold text-slate-900 dark:text-white transition-colors flex items-center justify-center gap-1 group">
-                Ver Todos
-                <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-              </button>
-            )}
-          </Card>
-
-          {/* Birthday Panel */}
-          <Card padding="small" className="flex flex-col bg-gradient-to-b from-white to-slate-50/30 dark:from-slate-800 dark:to-slate-800/50 h-full">
-            <div className="flex items-center gap-2 mb-2 pb-2 border-b border-slate-200 dark:border-slate-700 shrink-0">
-              <div className="p-1.5 rounded-lg bg-pink-100 text-pink-600">
-                <Cake size={16} strokeWidth={2.5} />
-              </div>
-              <div className="flex-1">
-                <h3 className="heading-4 text-slate-900 dark:text-white">Aniversariantes</h3>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wide mt-0.5">
-                  Neste Mês
-                </p>
-              </div>
             </div>
+          </div>
 
-            {birthdaysThisMonth.length === 0 ? (
-              <div className="flex-1 flex flex-col items-center justify-center text-center py-4">
-                <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-2">
-                  <Cake size={20} className="text-slate-400" strokeWidth={2} />
+          {/* Right Column - Alerts & Birthdays */}
+          <div className="space-y-6">
+            {/* Alerts Card */}
+            <div className="apple-card p-5">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center">
+                  <AlertTriangle size={20} className="text-red-500" strokeWidth={2} />
                 </div>
-                <p className="text-sm font-bold text-slate-900 dark:text-white">Nenhum</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Esta semana.</p>
+                <div>
+                  <h3 className="font-semibold text-gray-900">Atenção</h3>
+                  <p className="text-xs text-gray-500 font-medium">3+ faltas no mês</p>
+                </div>
               </div>
-            ) : (
-              <div className="space-y-2 flex-1">
-                {birthdaysThisMonth.slice(0, 3).map((member) => (
+
+              <div className="space-y-3">
+                {mockAlertas.map((alerta) => (
                   <div
-                    key={member.id}
-                    className="flex items-center gap-2 p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800
-                                 hover:border-pink-300 dark:hover:border-pink-700/50 hover:bg-pink-50/50 dark:hover:bg-pink-900/20 transition-all cursor-pointer group"
-                    onClick={() => navigate('/membros')}
+                    key={alerta.id}
+                    className="flex items-center gap-3 p-3 rounded-xl bg-red-50 border border-red-100"
                   >
-                    <Avatar name={member.nome} initials={member.iniciais} size="sm" />
+                    <Avatar name={alerta.nome} size="sm" />
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-bold text-slate-900 dark:text-white truncate">{member.nome}</p>
-                      <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400">{member.secao}</p>
+                      <p className="text-sm font-semibold text-gray-900">{alerta.nome}</p>
+                      <p className="text-xs text-gray-500">{alerta.secao}</p>
                     </div>
-                    <Badge className="badge-secondary whitespace-nowrap text-[10px]">{formatBirthDate(member.data_nascimento)}</Badge>
+                    <span className="badge-apple bg-red-100 text-red-700">{alerta.faltas} faltas</span>
                   </div>
                 ))}
               </div>
-            )}
+            </div>
 
-            {birthdaysThisMonth.length > 0 && (
-              <button onClick={() => navigate('/membros')} className="w-full mt-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-xs font-bold text-slate-900 dark:text-white transition-colors flex items-center justify-center gap-1 group">
-                Ver Todos
-                <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-              </button>
-            )}
-          </Card>
+            {/* Birthdays Card */}
+            <div className="apple-card p-5">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-pink-100 flex items-center justify-center">
+                  <Cake size={20} className="text-pink-500" strokeWidth={2} />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900">Aniversariantes</h3>
+                  <p className="text-xs text-gray-500 font-medium">Neste mês</p>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                {mockAniversariantes.map((aniv) => (
+                  <div
+                    key={aniv.id}
+                    className="flex items-center gap-3 p-3 rounded-xl bg-pink-50 border border-pink-100"
+                  >
+                    <Avatar name={aniv.nome} size="sm" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-900">{aniv.nome}</p>
+                      <p className="text-xs text-gray-500">{aniv.secao}</p>
+                    </div>
+                    <span className="text-lg font-bold text-pink-600">{aniv.dia}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
