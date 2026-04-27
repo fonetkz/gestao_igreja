@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Sacred Gallery — Sistema de gestão de orquestra e coral de igreja" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+    rel="stylesheet" />
+  <title>Sacred Gallery — Orchestra Management</title>
+  <script>
+    // Previne o FOUC aplicando o dark mode antes do React carregar
+    try {
+      if (localStorage.getItem('choir_deck_theme') === 'dark' || (!('choir_deck_theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    } catch (e) { }
+  </script>
+  <script type="module" crossorigin src="/assets/index-DQ8xK184.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-Dx2qrjAm.css">
+</head>
+
+<body class="bg-surface dark:bg-slate-900 text-slate-900 dark:text-slate-100 transition-colors duration-300">
+  <div id="root"></div>
+</body>
+
+</html>

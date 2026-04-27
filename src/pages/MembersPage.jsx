@@ -72,6 +72,7 @@ export default function MembersPage() {
   const [statusFilter, setStatusFilter] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const [editingMember, setEditingMember] = useState(null)
+  const [editModalOpen, setEditModalOpen] = useState(false)
   const itemsPerPage = 10
 
   const monthOptions = [{ value: '01', label: 'Jan' }, { value: '02', label: 'Fev' }, { value: '03', label: 'Mar' }, { value: '04', label: 'Abr' }, { value: '05', label: 'Mai' }, { value: '06', label: 'Jun' }, { value: '07', label: 'Jul' }, { value: '08', label: 'Ago' }, { value: '09', label: 'Set' }, { value: '10', label: 'Out' }, { value: '11', label: 'Nov' }, { value: '12', label: 'Dez' }]
@@ -174,55 +175,76 @@ export default function MembersPage() {
   const currentMonth = String(new Date().getMonth() + 1).padStart(2, '0')
   const birthdayCount = members.filter(m => { if (!m.data_nascimento) return false; const month = m.data_nascimento.split('-')[1]; return month === currentMonth; }).length
 
-  const renderForm = () => (
+  const renderForm = (isEdit = false) => (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Input label="Nome Completo" placeholder="Digite o nome completo" value={form.nome} onChange={(e) => setForm(f => ({ ...f, nome: e.target.value }))} error={errors.nome} />
-        <DatePicker label="Data de Nascimento" value={form.data_nascimento} onChange={(e) => setForm(f => ({ ...f, data_nascimento: e.target.value }))} />
+      <div className="grid grid-cols-3 gap-4">
+        <Input label="Nome" value={form.nome} onChange={(e) => setForm(f => ({ ...f, nome: e.target.value }))} error={errors.nome} placeholder="Nome completo" />
+        <Input label="Telefone" value={form.telefone} onChange={(e) => setForm(f => ({ ...f, telefone: e.target.value }))} placeholder="(00) 00000-0000" />
+        <DatePicker label="Nascimento" value={form.data_nascimento} onChange={(e) => setForm(f => ({ ...f, data_nascimento: e.target.value }))} />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="space-y-2">
-          <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Voz do Coral</label>
-          <Select options={[{ value: '', label: 'Selecione...' }, ...voiceOptions]} value="" onChange={(v) => v && !form.vozes.includes(v) && setForm(f => ({ ...f, vozes: [...f.vozes, v] }))} />
+      <div className="grid grid-cols-3 gap-4">
+        <div>
+          <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">Voz do Coral</label>
+          <Select options={[{ value: '', label: 'Adicionar...' }, ...voiceOptions]} value="" onChange={(v) => v && !form.vozes.includes(v) && setForm(f => ({ ...f, vozes: [...f.vozes, v] }))} size="sm" className="mb-2" />
           {form.vozes.length > 0 && (
             <div className="flex flex-wrap gap-2">
-              {form.vozes.map(v => <span key={v} className="px-3 py-1.5 bg-pink-100 dark:bg-pink-900/40 text-pink-700 dark:text-pink-300 rounded-lg text-xs font-semibold flex items-center gap-1"><button type="button" onClick={() => setForm(f => ({ ...f, vozes: f.vozes.filter(x => x !== v) }))} className="hover:opacity-70">×</button> {v}</span>)}
+              {form.vozes.map(v => (
+                <span key={v} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-pink-100 to-pink-200 dark:from-pink-900/50 dark:to-pink-800/50 text-pink-700 dark:text-pink-300 rounded-xl text-xs font-semibold shadow-sm">
+                  {v}
+                  <button type="button" onClick={() => setForm(f => ({ ...f, vozes: f.vozes.filter(x => x !== v) }))} className="hover:opacity-70 ml-0.5">×</button>
+                </span>
+              ))}
             </div>
           )}
         </div>
-        <div className="space-y-2">
-          <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Instrumento</label>
-          <Select options={[{ value: '', label: 'Selecione...' }, ...instrumentOptions]} value="" onChange={(v) => v && !form.instrumentos.includes(v) && setForm(f => ({ ...f, instrumentos: [...f.instrumentos, v] }))} />
+
+        <div>
+          <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">Instrumento</label>
+          <Select options={[{ value: '', label: 'Adicionar...' }, ...instrumentOptions]} value="" onChange={(v) => v && !form.instrumentos.includes(v) && setForm(f => ({ ...f, instrumentos: [...f.instrumentos, v] }))} size="sm" className="mb-2" />
           {form.instrumentos.length > 0 && (
             <div className="flex flex-wrap gap-2">
-              {form.instrumentos.map(i => <span key={i} className="px-3 py-1.5 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 rounded-lg text-xs font-semibold flex items-center gap-1"><button type="button" onClick={() => setForm(f => ({ ...f, instrumentos: f.instrumentos.filter(x => x !== i) }))} className="hover:opacity-70">×</button> {i}</span>)}
+              {form.instrumentos.map(i => (
+                <span key={i} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-violet-100 to-violet-200 dark:from-violet-900/50 dark:to-violet-800/50 text-violet-700 dark:text-violet-300 rounded-xl text-xs font-semibold shadow-sm">
+                  {i}
+                  <button type="button" onClick={() => setForm(f => ({ ...f, instrumentos: f.instrumentos.filter(x => x !== i) }))} className="hover:opacity-70 ml-0.5">×</button>
+                </span>
+              ))}
             </div>
           )}
         </div>
-        <div className="space-y-2">
-          <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Cargo / Função</label>
-          <Select options={[{ value: '', label: 'Selecione...' }, ...positions]} value="" onChange={(v) => v && !form.cargos.includes(v) && setForm(f => ({ ...f, cargos: [...f.cargos, v] }))} />
+
+        <div>
+          <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">Função</label>
+          <Select options={[{ value: '', label: 'Adicionar...' }, ...positions]} value="" onChange={(v) => v && !form.cargos.includes(v) && setForm(f => ({ ...f, cargos: [...f.cargos, v] }))} size="sm" className="mb-2" />
           {form.cargos.length > 0 && (
             <div className="flex flex-wrap gap-2">
-              {form.cargos.map(c => <span key={c} className="px-3 py-1.5 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 rounded-lg text-xs font-semibold flex items-center gap-1"><button type="button" onClick={() => setForm(f => ({ ...f, cargos: f.cargos.filter(x => x !== c) }))} className="hover:opacity-70">×</button> {c}</span>)}
+              {form.cargos.map(c => (
+                <span key={c} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-blue-100 to-blue-200 dark:from-blue-900/50 dark:to-blue-800/50 text-blue-700 dark:text-blue-300 rounded-xl text-xs font-semibold shadow-sm">
+                  {c}
+                  <button type="button" onClick={() => setForm(f => ({ ...f, cargos: f.cargos.filter(x => x !== c) }))} className="hover:opacity-70 ml-0.5">×</button>
+                </span>
+              ))}
             </div>
           )}
         </div>
+      </div>
+
+      <div className="pt-2">
+        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-3">Status</label>
+        <RadioGroup options={statuses} value={form.status} onValueChange={(v) => setForm(f => ({ ...f, status: v }))} />
       </div>
 
       {(errors.music || errors.cargos) && (
-        <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 rounded-xl">
-          {errors.music && <p className="text-xs font-semibold text-red-600 dark:text-red-400">{errors.music}</p>}
-          {errors.cargos && <p className="text-xs font-semibold text-red-600 dark:text-red-400">{errors.cargos}</p>}
+        <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 rounded-2xl">
+          {errors.music && <p className="text-sm font-semibold text-red-600 dark:text-red-400">{errors.music}</p>}
+          {errors.cargos && <p className="text-sm font-semibold text-red-600 dark:text-red-400">{errors.cargos}</p>}
         </div>
       )}
 
-      <RadioGroup options={statuses} value={form.status} onValueChange={(v) => setForm(f => ({ ...f, status: v }))} />
-
-      <div className="flex gap-3 pt-4">
-        <Button type="submit" className="flex-1 h-12">Cadastrar Membro</Button>
-        <Button type="button" variant="outline" onClick={() => { setActiveView('lista'); setForm({ nome: '', instrumentos: [], vozes: [], cargos: [], telefone: '', data_nascimento: '', status: 'Ativo' }); setErrors({}); }}>Cancelar</Button>
+      <div className="flex gap-3 pt-4 border-t border-slate-100 dark:border-slate-700">
+        <Button type="submit" variant="primary" icon={UserPlus} className="flex-1 h-12 text-base font-semibold">Cadastrar Membro</Button>
+        <Button type="button" variant="ghost" onClick={() => { setActiveView('lista'); setForm({ nome: '', instrumentos: [], vozes: [], cargos: [], telefone: '', data_nascimento: '', status: 'Ativo' }); setErrors({}); }} className="flex-1 h-12 text-base font-semibold">Cancelar</Button>
       </div>
     </form>
   )
@@ -367,7 +389,7 @@ export default function MembersPage() {
                             </span>
                           </td>
                           <td className="px-5 py-4">
-                            <button onClick={() => { setForm({ nome: member.nome, instrumentos: member.secao?.split(', ') || [], vozes: member.instrumento_voz?.split(', ') || [], cargos: member.cargo?.split(', ') || [], telefone: member.telefone || '', data_nascimento: member.data_nascimento || '', status: member.status }); setActiveView('cadastrar') }} className="p-2 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors">
+                            <button onClick={() => { setEditingMember(member); setEditModalOpen(true); setForm({ nome: member.nome, telefone: member.telefone || '', data_nascimento: member.data_nascimento || '', status: member.status, instrumentos: member.secao?.split(', ') || [], vozes: member.instrumento_voz?.split(', ') || [], cargos: member.cargo?.split(', ') || [] }) }} className="p-2 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors">
                               <Pencil size={16} />
                             </button>
                           </td>
@@ -572,6 +594,83 @@ export default function MembersPage() {
               Confirmar
             </Button>
           </div>
+        </Modal>
+
+        {/* Edit Modal */}
+        <Modal open={editModalOpen} onOpenChange={setEditModalOpen} title="Editar Membro">
+          {editingMember && (
+            <form onSubmit={(e) => { e.preventDefault(); handleUpdateMember(editingMember.id); setEditModalOpen(false); }} className="space-y-6">
+              <div className="grid grid-cols-3 gap-4">
+                <Input label="Nome" value={form.nome} onChange={(e) => setForm(f => ({ ...f, nome: e.target.value }))} error={errors.nome} placeholder="Nome completo" />
+                <Input label="Telefone" value={form.telefone} onChange={(e) => setForm(f => ({ ...f, telefone: e.target.value }))} placeholder="(00) 00000-0000" />
+                <DatePicker label="Nascimento" value={form.data_nascimento} onChange={(e) => setForm(f => ({ ...f, data_nascimento: e.target.value }))} />
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">Voz do Coral</label>
+                  <Select options={[{ value: '', label: 'Adicionar...' }, ...voiceOptions]} value="" onChange={(v) => v && !form.vozes.includes(v) && setForm(f => ({ ...f, vozes: [...f.vozes, v] }))} size="sm" className="mb-2" />
+                  {form.vozes.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {form.vozes.map(v => (
+                        <span key={v} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-pink-100 to-pink-200 dark:from-pink-900/50 dark:to-pink-800/50 text-pink-700 dark:text-pink-300 rounded-xl text-xs font-semibold shadow-sm">
+                          {v}
+                          <button type="button" onClick={() => setForm(f => ({ ...f, vozes: f.vozes.filter(x => x !== v) }))} className="hover:opacity-70 ml-0.5">×</button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">Instrumento</label>
+                  <Select options={[{ value: '', label: 'Adicionar...' }, ...instrumentOptions]} value="" onChange={(v) => v && !form.instrumentos.includes(v) && setForm(f => ({ ...f, instrumentos: [...f.instrumentos, v] }))} size="sm" className="mb-2" />
+                  {form.instrumentos.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {form.instrumentos.map(i => (
+                        <span key={i} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-violet-100 to-violet-200 dark:from-violet-900/50 dark:to-violet-800/50 text-violet-700 dark:text-violet-300 rounded-xl text-xs font-semibold shadow-sm">
+                          {i}
+                          <button type="button" onClick={() => setForm(f => ({ ...f, instrumentos: f.instrumentos.filter(x => x !== i) }))} className="hover:opacity-70 ml-0.5">×</button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">Função</label>
+                  <Select options={[{ value: '', label: 'Adicionar...' }, ...positions]} value="" onChange={(v) => v && !form.cargos.includes(v) && setForm(f => ({ ...f, cargos: [...f.cargos, v] }))} size="sm" className="mb-2" />
+                  {form.cargos.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {form.cargos.map(c => (
+                        <span key={c} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-blue-100 to-blue-200 dark:from-blue-900/50 dark:to-blue-800/50 text-blue-700 dark:text-blue-300 rounded-xl text-xs font-semibold shadow-sm">
+                          {c}
+                          <button type="button" onClick={() => setForm(f => ({ ...f, cargos: f.cargos.filter(x => x !== c) }))} className="hover:opacity-70 ml-0.5">×</button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-3">Status</label>
+                <RadioGroup options={statuses} value={form.status} onValueChange={(v) => setForm(f => ({ ...f, status: v }))} />
+              </div>
+
+              {(errors.music || errors.cargos) && (
+                <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 rounded-2xl">
+                  {errors.music && <p className="text-sm font-semibold text-red-600 dark:text-red-400">{errors.music}</p>}
+                  {errors.cargos && <p className="text-sm font-semibold text-red-600 dark:text-red-400">{errors.cargos}</p>}
+                </div>
+              )}
+
+              <div className="flex gap-3 pt-4 border-t border-slate-100 dark:border-slate-700">
+                <Button type="button" variant="ghost" onClick={() => setEditModalOpen(false)} className="flex-1 h-12 text-base font-semibold">Cancelar</Button>
+                <Button type="submit" variant="primary" icon={Save} className="flex-1 h-12 text-base font-semibold">Salvar Alterações</Button>
+              </div>
+            </form>
+          )}
         </Modal>
       </div>
     </div>
