@@ -1,10 +1,9 @@
 import React, { useEffect } from 'react'
 import { X } from 'lucide-react'
 
-export default function Modal({ open, onOpenChange, title, children }) {
-  // Prevent body scroll when modal is open
+export default function Modal({ isOpen, onClose, title, children, size = 'lg' }) {
   useEffect(() => {
-    if (open) {
+    if (isOpen) {
       document.body.style.overflow = 'hidden'
     } else {
       document.body.style.overflow = 'unset'
@@ -12,27 +11,34 @@ export default function Modal({ open, onOpenChange, title, children }) {
     return () => {
       document.body.style.overflow = 'unset'
     }
-  }, [open])
+  }, [isOpen])
 
-  if (!open) return null
+  if (!isOpen) return null
+
+  const sizeClasses = {
+    sm: 'max-w-md',
+    md: 'max-w-lg',
+    lg: 'max-w-2xl',
+    xl: 'max-w-4xl',
+  }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 animate-fade-in">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in">
       <div
-        className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity"
-        onClick={() => onOpenChange(false)}
+        className="absolute inset-0 bg-gray-900/30 backdrop-blur-sm"
+        onClick={onClose}
       />
-      <div className="relative bg-white dark:bg-slate-900 rounded-3xl shadow-2xl w-full max-w-3xl overflow-hidden animate-scale-in border border-slate-200 dark:border-slate-700 transition-colors duration-300">
-        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
-          <h2 className="heading-3 dark:text-white">{title}</h2>
+      <div className={`relative bg-white rounded-3xl shadow-2xl w-full ${sizeClasses[size]} overflow-hidden animate-scale-in border border-gray-100`}>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gray-50">
+          <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
           <button
-            onClick={() => onOpenChange(false)}
-            className="p-2 text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-slate-800 rounded-xl transition-colors"
+            onClick={onClose}
+            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-colors"
           >
             <X size={20} />
           </button>
         </div>
-        <div className="p-6">
+        <div className="p-6 max-h-[70vh] overflow-y-auto">
           {children}
         </div>
       </div>
