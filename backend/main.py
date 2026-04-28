@@ -436,7 +436,7 @@ def esqueci_senha(
         # Cria a configuração se não existe
         cfg = Configuracao(
             key="auth_settings", 
-            value_json=json.dumps({"user": {"email": "adm@ia.com"}, "passwordHash": "adm123"})
+            valor_json=json.dumps({"user": {"email": "adm@ia.com"}, "passwordHash": "adm123"})
         )
         session.add(cfg)
         session.commit()

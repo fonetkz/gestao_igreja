@@ -1,69 +1,72 @@
-import React, { useState, useMemo } from 'react'
-import { Plus, X, Search, Music, Trash2, Save, Check, BookOpen, ChevronUp, ChevronDown, GripVertical, Clock } from 'lucide-react'
+import React, { useState, useMemo, useEffect } from 'react'
+import { Plus, Search, Music, Trash2, Save, Check, BookOpen, ChevronUp, ChevronDown, GripVertical, Clock, Calendar, Loader2 } from 'lucide-react'
 import Topbar from '../components/layout/Topbar'
 import Modal from '../components/ui/Modal'
+import useHymnsStore from '../store/hymnsStore'
+import useSettingsStore from '../store/settingsStore'
 
+// ─── HymnResultItem ──────────────────────────────────────────────────────────
 function HymnResultItem({ hymn, onAdd, isAdded }) {
+  const daysSince = useHymnsStore((s) => s.daysSinceLastUsed)(hymn.id)
   return (
     <button
       onClick={() => !isAdded && onAdd(hymn)}
       disabled={isAdded}
-      className={`w-full flex items-center justify-between p-3 rounded-xl transition-all group text-left border border-blue-100 hover:border-blue-200 hover:bg-blue-50/50 ${
-        isAdded ? 'opacity-60 cursor-not-allowed bg-gray-50 border-gray-100' : ''
-      }`}
+      className={`w-full flex items-center justify-between p-3 rounded-xl transition-all group text-left border
+        ${isAdded
+          ? 'opacity-60 cursor-not-allowed bg-gray-50 dark:bg-gray-700/30 border-gray-100 dark:border-gray-700'
+          : 'border-blue-100 dark:border-blue-900/40 hover:border-blue-300 dark:hover:border-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/10'
+        }`}
     >
       <div className="flex-1 min-w-0">
-        <p className="font-semibold text-blue-900">
+        <p className="font-semibold text-gray-900 dark:text-white">
           <span className="text-[#007AFF]">#{hymn.numero}</span> — {hymn.titulo}
         </p>
         <div className="flex items-center gap-2 mt-1">
-          {hymn.ultimo_uso ? (
-            <span className="text-xs text-blue-500 flex items-center gap-1">
-              <Clock size={10} />
-              Último uso: {hymn.ultimo_uso}
+          {daysSince !== null ? (
+            <span className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+              <Clock size={10} /> {daysSince}d atrás
             </span>
           ) : (
-            <span className="text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full font-medium">
+            <span className="text-xs text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-2 py-0.5 rounded-full font-medium">
               Nunca tocado
             </span>
           )}
+          {hymn.tonalidade && (
+            <span className="text-xs text-gray-400 dark:text-gray-500">Tom: {hymn.tonalidade}</span>
+          )}
         </div>
       </div>
-      <div className={`w-8 h-8 rounded-full flex items-center justify-center ml-3 transition-colors ${
-        isAdded ? 'bg-gray-200' : 'bg-blue-100 group-hover:bg-[#007AFF]'
-      }`}>
+      <div className={`w-8 h-8 rounded-full flex items-center justify-center ml-3 transition-colors ${isAdded ? 'bg-gray-200 dark:bg-gray-600' : 'bg-blue-100 dark:bg-blue-900/30 group-hover:bg-[#007AFF]'}`}>
         <Plus size={16} className={isAdded ? 'text-gray-400' : 'text-blue-600 group-hover:text-white'} />
       </div>
     </button>
   )
 }
 
-function ProgrammedHymnItem({ hymn, index, onRemove, onMove, total, isFirst, isLast }) {
+// ─── ProgrammedHymnItem ──────────────────────────────────────────────────────
+function ProgrammedHymnItem({ hymn, index, onRemove, onMove, isFirst, isLast }) {
   return (
-    <div className="flex items-center gap-3 p-4 bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-all">
-      <div className="flex flex-col items-center gap-0.5 cursor-grab">
-        <button disabled={isFirst} onClick={() => onMove(index, -1)} className="p-1 text-gray-300 hover:text-gray-500 disabled:opacity-30">
+    <div className="flex items-center gap-3 p-4 bg-white dark:bg-[#2C2C2E] rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-all">
+      <div className="flex flex-col items-center gap-0.5">
+        <button disabled={isFirst} onClick={() => onMove(index, -1)} className="p-1 text-gray-300 dark:text-gray-600 hover:text-gray-500 dark:hover:text-gray-300 disabled:opacity-30">
           <ChevronUp size={16} />
         </button>
-        <GripVertical size={14} className="text-gray-300" />
-        <button disabled={isLast} onClick={() => onMove(index, 1)} className="p-1 text-gray-300 hover:text-gray-500 disabled:opacity-30">
+        <GripVertical size={14} className="text-gray-300 dark:text-gray-600" />
+        <button disabled={isLast} onClick={() => onMove(index, 1)} className="p-1 text-gray-300 dark:text-gray-600 hover:text-gray-500 dark:hover:text-gray-300 disabled:opacity-30">
           <ChevronDown size={16} />
         </button>
       </div>
-      
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <span className="text-[#007AFF] font-bold">#{hymn.numero}</span>
-          <span className="font-semibold text-gray-900 truncate">{hymn.titulo}</span>
+          <span className="font-semibold text-gray-900 dark:text-white truncate">{hymn.titulo}</span>
         </div>
-        {hymn.regente && (
-          <p className="text-xs text-gray-500 mt-0.5">Regente: {hymn.regente}</p>
-        )}
+        {hymn.tonalidade && <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Tom: {hymn.tonalidade}</p>}
       </div>
-
       <button
         onClick={() => onRemove(hymn.id)}
-        className="p-2 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors"
+        className="p-2 rounded-lg text-gray-300 dark:text-gray-600 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
       >
         <Trash2 size={16} />
       </button>
@@ -71,333 +74,249 @@ function ProgrammedHymnItem({ hymn, index, onRemove, onMove, total, isFirst, isL
   )
 }
 
+// ─── NewHymnModal ────────────────────────────────────────────────────────────
 function NewHymnModal({ isOpen, onClose, onSave }) {
-  const [form, setForm] = useState({ numero: '', titulo: '', tom: '' })
+  const [form, setForm] = useState({ numero: '', titulo: '', tonalidade: '' })
   const [errors, setErrors] = useState({})
 
   const handleSubmit = (e) => {
     e.preventDefault()
     const newErrors = {}
-    if (!form.numero.trim()) newErrors.numero = 'Número é obrigatório'
-    if (!form.titulo.trim()) newErrors.titulo = 'Título é obrigatório'
-    
-    if (Object.keys(newErrors).length) {
-      setErrors(newErrors)
-      return
-    }
-    
+    if (!form.numero.trim()) newErrors.numero = 'Número obrigatório'
+    if (!form.titulo.trim()) newErrors.titulo = 'Título obrigatório'
+    if (Object.keys(newErrors).length) { setErrors(newErrors); return }
     onSave(form)
-    setForm({ numero: '', titulo: '', tom: '' })
+    setForm({ numero: '', titulo: '', tonalidade: '' })
+    setErrors({})
     onClose()
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Cadastrar Hino" size="md">
+    <Modal isOpen={isOpen} onClose={onClose} title="Cadastrar Novo Hino" size="md">
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Número</label>
-          <input
-            type="text"
-            value={form.numero}
-            onChange={(e) => setForm(f => ({ ...f, numero: e.target.value }))}
-            placeholder="Ex: 001"
-            className={`input-apple ${errors.numero ? 'border-red-300' : ''}`}
-          />
-          {errors.numero && <span className="text-xs text-red-500 mt-1">{errors.numero}</span>}
+          <label className="label-uppercase mb-2 block">Número</label>
+          <input type="text" value={form.numero} onChange={(e) => setForm(f => ({ ...f, numero: e.target.value }))} placeholder="Ex: 001" className={`input-apple ${errors.numero ? 'ring-2 ring-red-400' : ''}`} />
+          {errors.numero && <span className="text-xs text-red-500 mt-1 block">{errors.numero}</span>}
         </div>
-
         <div>
-          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Título</label>
-          <input
-            type="text"
-            value={form.titulo}
-            onChange={(e) => setForm(f => ({ ...f, titulo: e.target.value }))}
-            placeholder="Nome do hino"
-            className={`input-apple ${errors.titulo ? 'border-red-300' : ''}`}
-          />
-          {errors.titulo && <span className="text-xs text-red-500 mt-1">{errors.titulo}</span>}
+          <label className="label-uppercase mb-2 block">Título</label>
+          <input type="text" value={form.titulo} onChange={(e) => setForm(f => ({ ...f, titulo: e.target.value }))} placeholder="Nome do hino" className={`input-apple ${errors.titulo ? 'ring-2 ring-red-400' : ''}`} />
+          {errors.titulo && <span className="text-xs text-red-500 mt-1 block">{errors.titulo}</span>}
         </div>
-
         <div>
-          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Tom</label>
-          <input
-            type="text"
-            value={form.tom}
-            onChange={(e) => setForm(f => ({ ...f, tom: e.target.value }))}
-            placeholder="Ex: Dó Maior"
-            className="input-apple"
-          />
+          <label className="label-uppercase mb-2 block">Tonalidade</label>
+          <input type="text" value={form.tonalidade} onChange={(e) => setForm(f => ({ ...f, tonalidade: e.target.value }))} placeholder="Ex: Dó Maior" className="input-apple" />
         </div>
-
-        <div className="flex gap-3 pt-4">
-          <button type="button" onClick={onClose} className="btn-apple-secondary flex-1">
-            Cancelar
-          </button>
-          <button type="submit" className="btn-apple-primary flex-1">
-            Salvar
-          </button>
+        <div className="flex gap-3 pt-2">
+          <button type="button" onClick={onClose} className="btn-apple-secondary flex-1">Cancelar</button>
+          <button type="submit" className="btn-apple-primary flex-1">Salvar Hino</button>
         </div>
       </form>
     </Modal>
   )
 }
 
-export default function ProgrammingPage() {
-  const [activeTab, setActiveTab] = useState('programar')
-  const [confirmed, setConfirmed] = useState(false)
+// ─── HistoricoTab ─────────────────────────────────────────────────────────────
+function HistoricoTab() {
+  const programHistory = useHymnsStore((s) => s.programHistory)
+  const fetchProgramHistory = useHymnsStore((s) => s.fetchProgramHistory)
+  const getHymnById = useHymnsStore((s) => s.getHymnById)
 
-  const tabs = [
-    { id: 'programar', label: 'Nova Programação', icon: Music },
-    { id: 'historico', label: 'Histórico', icon: BookOpen },
-  ]
+  useEffect(() => { fetchProgramHistory() }, [])
 
-  return (
-    <div className="min-h-screen pb-12">
-      <Topbar title="Choir Deck" />
-
-      <div className="px-8 max-w-7xl mx-auto mt-8">
-        {/* Page Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-3xl font-semibold text-gray-900">Nova Programação</h1>
-            <p className="text-gray-500 mt-1">Monte a ordem do culto agora.</p>
+  if (programHistory.length === 0) {
+    return (
+      <div className="apple-card p-8">
+        <div className="empty-state">
+          <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-4">
+            <BookOpen size={32} className="text-gray-300 dark:text-gray-500" />
           </div>
-        </div>
-
-        {/* Tabs */}
-        <div className="flex gap-1 mb-6 bg-gray-100 p-1 rounded-xl w-fit">
-          {tabs.map(tab => {
-            const Icon = tab.icon
-            const isActive = activeTab === tab.id
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  isActive ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'
-                }`}
-              >
-                <Icon size={16} />
-                {tab.label}
-              </button>
-            )
-          })}
-        </div>
-
-        {/* Content */}
-        <div className="animate-fade-in">
-          {activeTab === 'programar' && (
-            <ProgramacaoForm setConfirmed={setConfirmed} confirmed={confirmed} />
-          )}
-          {activeTab === 'historico' && (
-            <div className="apple-card p-8">
-              <div className="flex flex-col items-center justify-center py-16 text-center">
-                <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mb-4">
-                  <BookOpen size={32} className="text-gray-300" />
-                </div>
-                <h3 className="font-semibold text-gray-900 mb-1">Histórico vazio</h3>
-                <p className="text-sm text-gray-500">O histórico de programações aparecerá aqui.</p>
-              </div>
-            </div>
-          )}
+          <h3 className="font-semibold text-gray-900 dark:text-white mb-1">Nenhuma programação salva</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400">As programações confirmadas aparecerão aqui.</p>
         </div>
       </div>
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      {programHistory.map((prog) => {
+        const hinos = Array.isArray(prog.hinos_json) ? prog.hinos_json : []
+        return (
+          <div key={prog.id} className="apple-card p-5">
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <Calendar size={16} className="text-[#007AFF]" />
+                  <span className="font-semibold text-gray-900 dark:text-white">{prog.data}</span>
+                  <span className="badge-info">{prog.tipo_culto || prog.contexto}</span>
+                </div>
+                {prog.responsavel && (
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Responsável: {prog.responsavel}</p>
+                )}
+              </div>
+              <span className="text-sm font-semibold text-gray-500 dark:text-gray-400">
+                {hinos.length} {hinos.length === 1 ? 'hino' : 'hinos'}
+              </span>
+            </div>
+
+            <div className="space-y-2">
+              {hinos.map((hymnId, idx) => {
+                const hymn = getHymnById(hymnId)
+                if (!hymn) return null
+                return (
+                  <div key={hymnId} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/40 rounded-xl">
+                    <span className="w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center text-xs font-bold text-gray-600 dark:text-gray-300">
+                      {idx + 1}
+                    </span>
+                    <span className="text-[#007AFF] font-semibold text-sm">#{hymn.numero}</span>
+                    <span className="text-sm font-medium text-gray-900 dark:text-white flex-1">{hymn.titulo}</span>
+                    {hymn.tonalidade && <span className="text-xs text-gray-400 dark:text-gray-500">Tom: {hymn.tonalidade}</span>}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )
+      })}
     </div>
   )
 }
 
-function ProgramacaoForm({ setConfirmed, confirmed }) {
-  // Mock Data
-  const mockHymns = [
-    { id: 1, numero: '001', titulo: 'Grande Deus', ultimo_uso: '12 Mar 2026', regente: 'Márcio' },
-    { id: 2, numero: '002', titulo: 'Santo, Santo, Santo', ultimo_uso: '05 Mar 2026', regente: 'Pedro' },
-    { id: 3, numero: '003', titulo: 'Amazing Grace', ultimo_uso: null, regente: null },
-    { id: 4, numero: '004', titulo: 'Creio em Ti', ultimo_uso: '28 Fev 2026', regente: 'Ana' },
-  ]
-
-  const mockProgram = [
-    { id: 1, numero: '001', titulo: 'Grande Deus', regente: 'Márcio' },
-    { id: 2, numero: '003', titulo: 'Amazing Grace', regente: null },
-  ]
+// ─── ProgramacaoForm ─────────────────────────────────────────────────────────
+function ProgramacaoForm() {
+  const hymns = useHymnsStore((s) => s.hymns)
+  const todayProgram = useHymnsStore((s) => s.todayProgram)
+  const addToTodayProgram = useHymnsStore((s) => s.addToTodayProgram)
+  const removeFromTodayProgram = useHymnsStore((s) => s.removeFromTodayProgram)
+  const reorderTodayProgram = useHymnsStore((s) => s.reorderTodayProgram)
+  const confirmTodayProgram = useHymnsStore((s) => s.confirmTodayProgram)
+  const addHymn = useHymnsStore((s) => s.addHymn)
+  const searchHymns = useHymnsStore((s) => s.searchHymns)
+  const meetingTypes = useSettingsStore((s) => s.meetingTypes)
 
   const [searchTerm, setSearchTerm] = useState('')
-  const [serviceDate, setServiceDate] = useState('2026-04-26')
-  const [serviceType, setServiceType] = useState('Culto Dominical Matutino')
-  const [todayProgram, setTodayProgram] = useState(mockProgram.map(h => h.id))
+  const [serviceDate, setServiceDate] = useState(new Date().toISOString().split('T')[0])
+  const [serviceType, setServiceType] = useState('')
+  const [responsavel, setResponsavel] = useState('')
   const [showNewHymnModal, setShowNewHymnModal] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
 
-  const filteredHymns = useMemo(() => {
-    if (!searchTerm.trim()) return mockHymns
-    const term = searchTerm.toLowerCase()
-    return mockHymns.filter(h => 
-      h.titulo.toLowerCase().includes(term) || 
-      h.numero.toLowerCase().includes(term)
-    )
-  }, [searchTerm])
+  const filteredHymns = useMemo(() => searchHymns(searchTerm), [hymns, searchTerm])
+  const programHymns = useMemo(() => todayProgram.map(id => hymns.find(h => h.id === id)).filter(Boolean), [todayProgram, hymns])
 
-  const programHymns = useMemo(() => {
-    return todayProgram.map(id => mockProgram.find(h => h.id === id)).filter(Boolean)
-  }, [todayProgram])
-
-  const handleAddHymn = (hymn) => {
-    if (!todayProgram.includes(hymn.id)) {
-      setTodayProgram([...todayProgram, hymn.id])
-    }
-  }
-
-  const handleRemove = (id) => {
-    setTodayProgram(todayProgram.filter(pid => pid !== id))
-  }
-
+  const handleAddHymn = (hymn) => addToTodayProgram(hymn.id)
+  const handleRemove = (id) => removeFromTodayProgram(id)
   const handleMove = (idx, dir) => {
     const arr = [...todayProgram]
     const newIdx = idx + dir
-    if (newIdx < 0 || newIdx >= arr.length) return;
-    [arr[idx], arr[newIdx]] = [arr[newIdx], arr[idx]]
-    setTodayProgram(arr)
+    if (newIdx < 0 || newIdx >= arr.length) return
+    ;[arr[idx], arr[newIdx]] = [arr[newIdx], arr[idx]]
+    reorderTodayProgram(arr)
   }
 
-  const handleSaveNewHymn = (form) => {
-    const newHymn = {
-      id: Date.now(),
-      numero: form.numero,
-      titulo: form.titulo,
-      ultimo_uso: null,
-      regente: null,
+  const handleSaveNewHymn = async (form) => {
+    const newHymn = await addHymn(form)
+    if (newHymn) addToTodayProgram(newHymn.id)
+  }
+
+  const handleConfirm = async () => {
+    if (!serviceDate || todayProgram.length === 0) return
+    setSaving(true)
+    try {
+      await confirmTodayProgram(serviceDate, serviceType || 'Culto Dominical', responsavel)
+      setSaved(true)
+      setTimeout(() => setSaved(false), 3000)
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setSaving(false)
     }
-    mockHymns.push(newHymn)
-    handleAddHymn(newHymn)
-  }
-
-  const handleConfirm = () => {
-    setConfirmed(true)
-    setTimeout(() => setConfirmed(false), 3000)
   }
 
   return (
     <>
       <div className="space-y-6">
-        {/* Header Card - Compact */}
+        {/* Header Card */}
         <div className="apple-card p-4">
-          <div className="flex items-center gap-6">
+          <div className="flex flex-wrap items-end gap-4">
             <div className="flex items-center gap-2">
-              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Data</label>
-              <input
-                type="date"
-                value={serviceDate}
-                onChange={(e) => setServiceDate(e.target.value)}
-                className="input-apple w-auto"
-                style={{ colorScheme: 'light' }}
-              />
+              <label className="label-uppercase">Data</label>
+              <input type="date" value={serviceDate} onChange={(e) => setServiceDate(e.target.value)} className="input-apple w-auto" style={{ colorScheme: 'light' }} />
+            </div>
+            <div className="flex items-center gap-2 flex-1 min-w-[220px]">
+              <label className="label-uppercase">Tipo de Culto</label>
+              <select value={serviceType} onChange={(e) => setServiceType(e.target.value)} className="select-apple flex-1">
+                <option value="">Selecionar...</option>
+                {meetingTypes.map((t) => <option key={t.id} value={t.label}>{t.label}</option>)}
+              </select>
             </div>
             <div className="flex items-center gap-2">
-              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Contexto</label>
-              <select
-                value={serviceType}
-                onChange={(e) => setServiceType(e.target.value)}
-                className="select-apple w-auto min-w-[220px]"
-              >
-                <option value="Culto Dominical Matutino">Culto Dominical Matutino</option>
-                <option value="Culto Dominical Vespertino">Culto Dominical Vespertino</option>
-                <option value="Ensaio Geral">Ensaio Geral</option>
-                <option value="Ensaio de Seção">Ensaio de Seção</option>
-              </select>
+              <label className="label-uppercase">Responsável</label>
+              <input type="text" value={responsavel} onChange={(e) => setResponsavel(e.target.value)} placeholder="Nome do responsável" className="input-apple w-48" />
             </div>
           </div>
         </div>
 
         {/* Main Grid */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-          {/* Left Column - Acervo (5 cols) */}
+          {/* Left — Acervo */}
           <div className="md:col-span-5 space-y-4">
             <div className="apple-card p-4">
-              <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <Music size={18} className="text-[#007AFF]" />
-                Acervo de Hinos
+              <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                <Music size={18} className="text-[#007AFF]" /> Acervo de Hinos
               </h3>
-              
-              {/* Search */}
-              <div className="relative mb-4">
+              <div className="relative mb-3">
                 <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Buscar por número ou título..."
-                  className="input-apple pl-9"
-                />
+                <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Buscar por número ou título..." className="input-apple pl-9" />
               </div>
-
-              {/* New hymn button */}
-              <button 
-                onClick={() => setShowNewHymnModal(true)}
-                className="w-full mb-4 text-sm font-medium text-[#007AFF] hover:text-[#0062CC] flex items-center justify-center gap-1 py-2 rounded-xl border border-dashed border-[#007AFF]/30 hover:border-[#007AFF] hover:bg-blue-50 transition-colors"
-              >
-                <Plus size={16} />
-                Novo Hino
+              <button onClick={() => setShowNewHymnModal(true)} className="w-full mb-3 text-sm font-medium text-[#007AFF] hover:text-[#0062CC] flex items-center justify-center gap-1 py-2 rounded-xl border border-dashed border-[#007AFF]/30 hover:border-[#007AFF] hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors">
+                <Plus size={16} /> Novo Hino
               </button>
-
-              {/* Results List */}
-              <div className="space-y-1 max-h-[500px] overflow-y-auto pr-1">
-                {filteredHymns.map(hymn => (
-                  <HymnResultItem 
-                    key={hymn.id} 
-                    hymn={hymn} 
-                    onAdd={handleAddHymn}
-                    isAdded={todayProgram.includes(hymn.id)}
-                  />
-                ))}
+              <div className="space-y-1 max-h-[480px] overflow-y-auto pr-1">
+                {filteredHymns.length === 0 ? (
+                  <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-8">Nenhum hino encontrado</p>
+                ) : (
+                  filteredHymns.map((hymn) => (
+                    <HymnResultItem key={hymn.id} hymn={hymn} onAdd={handleAddHymn} isAdded={todayProgram.includes(hymn.id)} />
+                  ))
+                )}
               </div>
             </div>
           </div>
 
-          {/* Right Column - Order (7 cols) */}
+          {/* Right — Ordem do Culto */}
           <div className="md:col-span-7">
-            <div className="apple-card p-4 bg-gray-50/30 min-h-[600px]">
+            <div className="apple-card p-4 min-h-[400px]">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                  <Music size={18} className="text-purple-500" />
-                  Ordem do Culto
+                <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                  <Music size={18} className="text-purple-500" /> Ordem do Culto
                 </h3>
-                <span className="badge-apple bg-purple-100 text-purple-700">
-                  {todayProgram.length} {todayProgram.length === 1 ? 'Hino' : 'Hinos'}
-                </span>
+                <span className="badge-info">{todayProgram.length} {todayProgram.length === 1 ? 'Hino' : 'Hinos'}</span>
               </div>
 
               {todayProgram.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-20 text-center">
-                  <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mb-4">
-                    <Music size={32} className="text-gray-300" />
+                <div className="empty-state">
+                  <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-4">
+                    <Music size={32} className="text-gray-300 dark:text-gray-500" />
                   </div>
-                  <p className="font-semibold text-gray-900 mb-1">Nenhum hino adicionado</p>
-                  <p className="text-sm text-gray-500">Busque hinos ao lado para começar</p>
+                  <p className="font-semibold text-gray-900 dark:text-white mb-1">Nenhum hino adicionado</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Busque hinos ao lado para começar</p>
                 </div>
               ) : (
                 <div className="space-y-3">
                   {programHymns.map((hymn, idx) => hymn && (
-                    <ProgrammedHymnItem
-                      key={hymn.id}
-                      hymn={hymn}
-                      index={idx}
-                      total={todayProgram.length}
-                      onRemove={handleRemove}
-                      onMove={handleMove}
-                      isFirst={idx === 0}
-                      isLast={idx === todayProgram.length - 1}
-                    />
+                    <ProgrammedHymnItem key={hymn.id} hymn={hymn} index={idx} total={todayProgram.length} onRemove={handleRemove} onMove={handleMove} isFirst={idx === 0} isLast={idx === todayProgram.length - 1} />
                   ))}
                 </div>
               )}
 
-              {/* Save Button */}
               {todayProgram.length > 0 && (
-                <div className="mt-6 pt-4 border-t border-gray-200 flex justify-end">
-                  <button
-                    onClick={handleConfirm}
-                    disabled={confirmed}
-                    className="btn-apple-primary px-8"
-                  >
-                    {confirmed ? <><Check size={18} /> Salvo!</> : <><Save size={18} /> Salvar Programação</>}
+                <div className="mt-6 pt-4 border-t border-gray-100 dark:border-gray-700 flex justify-end">
+                  <button onClick={handleConfirm} disabled={saving || saved} className="btn-apple-primary px-8">
+                    {saving ? <><Loader2 size={18} className="animate-spin" /> Salvando...</> : saved ? <><Check size={18} /> Salvo!</> : <><Save size={18} /> Salvar Programação</>}
                   </button>
                 </div>
               )}
@@ -406,12 +325,55 @@ function ProgramacaoForm({ setConfirmed, confirmed }) {
         </div>
       </div>
 
-      {/* New Hymn Modal */}
-      <NewHymnModal
-        isOpen={showNewHymnModal}
-        onClose={() => setShowNewHymnModal(false)}
-        onSave={handleSaveNewHymn}
-      />
+      <NewHymnModal isOpen={showNewHymnModal} onClose={() => setShowNewHymnModal(false)} onSave={handleSaveNewHymn} />
     </>
+  )
+}
+
+// ─── Page ────────────────────────────────────────────────────────────────────
+export default function ProgrammingPage() {
+  const [activeTab, setActiveTab] = useState('programar')
+  const fetchHymns = useHymnsStore((s) => s.fetchHymns)
+  const fetchProgramHistory = useHymnsStore((s) => s.fetchProgramHistory)
+
+  useEffect(() => {
+    fetchHymns()
+    fetchProgramHistory()
+  }, [])
+
+  const tabs = [
+    { id: 'programar', label: 'Nova Programação', icon: Music },
+    { id: 'historico', label: 'Histórico', icon: BookOpen },
+  ]
+
+  return (
+    <div className="min-h-screen pb-12 bg-[#F5F5F7] dark:bg-[#1C1C1E]">
+      <Topbar title="Gestão Igreja" />
+      <div className="px-8 max-w-7xl mx-auto mt-8">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-3xl font-semibold text-gray-900 dark:text-white">Programação</h1>
+            <p className="text-gray-500 dark:text-gray-400 mt-1">Monte e gerencie a ordem do culto.</p>
+          </div>
+        </div>
+
+        <div className="flex gap-1 mb-6 bg-gray-100 dark:bg-gray-800 p-1 rounded-xl w-fit">
+          {tabs.map((tab) => {
+            const Icon = tab.icon
+            const isActive = activeTab === tab.id
+            return (
+              <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${isActive ? 'bg-white dark:bg-[#2C2C2E] text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}>
+                <Icon size={16} /> {tab.label}
+              </button>
+            )
+          })}
+        </div>
+
+        <div className="animate-fade-in">
+          {activeTab === 'programar' && <ProgramacaoForm />}
+          {activeTab === 'historico' && <HistoricoTab />}
+        </div>
+      </div>
+    </div>
   )
 }

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { Link, useLocation } from 'react-router-dom'
-import { Bell, LayoutDashboard, Search, ChevronDown, X, Users, Music, LogOut, Pencil, Settings } from 'lucide-react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { Bell, LayoutDashboard, Search, ChevronDown, Users, Music, LogOut, Pencil, Settings, Sun, Moon } from 'lucide-react'
 import Avatar from '../ui/Avatar'
 import useAuthStore from '../../store/authStore'
 
@@ -9,18 +9,33 @@ const pageItems = [
   { to: '/membros', label: 'Membros', icon: Users },
   { to: '/programacao', label: 'Programação', icon: Music },
   { to: '/configuracoes', label: 'Configurações', icon: Settings },
-  { to: '/conta', label: 'Conta', icon: Settings },
 ]
 
 export default function Topbar({ title = 'Gestão Igreja', searchPlaceholder, onSearch }) {
   const user = useAuthStore((s) => s.user)
   const logout = useAuthStore((s) => s.logout)
+  const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef(null)
   const location = useLocation()
 
-  const handleMenuClick = () => {
-    setMenuOpen(!menuOpen)
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    try {
+      return localStorage.getItem('choir_deck_theme') === 'dark'
+    } catch { return false }
+  })
+
+  const toggleDarkMode = () => {
+    const next = !isDarkMode
+    setIsDarkMode(next)
+    const root = document.documentElement
+    if (next) {
+      root.classList.add('dark')
+      localStorage.setItem('choir_deck_theme', 'dark')
+    } else {
+      root.classList.remove('dark')
+      localStorage.setItem('choir_deck_theme', 'light')
+    }
   }
 
   useEffect(() => {
@@ -33,7 +48,11 @@ export default function Topbar({ title = 'Gestão Igreja', searchPlaceholder, on
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  const [searchFocused, setSearchFocused] = useState(false)
+  const handleLogout = () => {
+    setMenuOpen(false)
+    logout()
+    navigate('/login')
+  }
 
   return (
     <header className="sticky top-0 z-50 glass">
@@ -41,25 +60,24 @@ export default function Topbar({ title = 'Gestão Igreja', searchPlaceholder, on
         <div className="flex items-center justify-between">
           {/* Logo */}
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl bg-[#007AFF] flex items-center justify-center">
-              <LayoutDashboard size={16} className="text-white" />
+            <div className="w-8 h-8 rounded-xl bg-[#007AFF] flex items-center justify-center shadow-lg shadow-blue-500/20">
+              <Music size={16} className="text-white" />
             </div>
-            <h2 className="text-lg font-semibold text-gray-900 hidden sm:block">{title}</h2>
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white hidden sm:block">{title}</h2>
           </div>
 
           {/* Center Navigation */}
           <nav className="flex items-center gap-1">
-            {pageItems.slice(0, 4).map((item) => {
+            {pageItems.map((item) => {
               const Icon = item.icon
-              const isActive = location.pathname.startsWith(item.to) ||
-                (item.to === '/conta' && location.pathname === '/conta')
+              const isActive = location.pathname.startsWith(item.to)
               return (
                 <Link
                   key={item.to}
                   to={item.to}
                   className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${isActive
-                      ? 'bg-gray-100 text-gray-900'
-                      : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
+                      ? 'bg-gray-100 dark:bg-gray-700/50 text-gray-900 dark:text-white'
+                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700/30'
                     }`}
                 >
                   <Icon size={16} />
@@ -79,52 +97,51 @@ export default function Topbar({ title = 'Gestão Igreja', searchPlaceholder, on
                   type="text"
                   placeholder={searchPlaceholder}
                   onChange={(e) => onSearch?.(e.target.value)}
-                  onFocus={() => setSearchFocused(true)}
-                  onBlur={() => setSearchFocused(false)}
-                  className="w-64 pl-9 pr-4 py-2 bg-gray-100 border-0 rounded-xl text-sm text-gray-900 placeholder:text-gray-400 focus:bg-white focus:ring-2 focus:ring-blue-500/30 focus:outline-none transition-all"
+                  className="w-64 pl-9 pr-4 py-2 bg-gray-100 dark:bg-[#3A3A3C] border-0 rounded-xl text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 focus:bg-white dark:focus:bg-[#48484A] focus:ring-2 focus:ring-blue-500/30 focus:outline-none transition-all"
                 />
               </div>
             )}
 
+            {/* Dark Mode Toggle */}
+            <button
+              onClick={toggleDarkMode}
+              className="p-2.5 rounded-xl text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-all duration-200"
+              title={isDarkMode ? 'Modo Claro' : 'Modo Escuro'}
+            >
+              {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
+            </button>
+
             {/* Notifications */}
             <Link
               to="/membros?view=alertas"
-              className="p-2.5 rounded-xl text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-all duration-200"
+              className="p-2.5 rounded-xl text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-all duration-200"
             >
               <Bell size={18} />
             </Link>
 
-            {/* Settings */}
-            <Link
-              to="/configuracoes"
-              className="p-2.5 rounded-xl text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-all duration-200"
-            >
-              <Settings size={18} />
-            </Link>
-
-            <div className="w-px h-5 bg-gray-200 mx-1" />
+            <div className="w-px h-5 bg-gray-200 dark:bg-gray-700 mx-1" />
 
             {/* User Menu */}
             <div className="relative" ref={menuRef}>
               <button
-                onClick={handleMenuClick}
-                className="flex items-center gap-2 p-1.5 pr-3 rounded-xl hover:bg-gray-100 transition-all duration-200"
+                onClick={() => setMenuOpen(!menuOpen)}
+                className="flex items-center gap-2 p-1.5 pr-3 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-all duration-200"
               >
                 <Avatar name={user?.name || 'Admin'} size="sm" />
                 <div className="hidden sm:block text-left">
-                  <p className="text-sm font-semibold text-gray-900 leading-none">{user?.name || 'Admin'}</p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white leading-none">{user?.name || 'Admin'}</p>
                 </div>
                 <ChevronDown size={14} className={`text-gray-400 transition-transform duration-200 ${menuOpen ? 'rotate-180' : ''}`} />
               </button>
 
               {/* Dropdown */}
               {menuOpen && (
-                <div className="absolute right-0 mt-2 w-56 bg-white/95 backdrop-blur-xl rounded-2xl border border-gray-100 shadow-lg overflow-hidden animate-slide-down">
+                <div className="absolute right-0 mt-2 w-56 bg-white/95 dark:bg-[#2C2C2E]/95 backdrop-blur-xl rounded-2xl border border-gray-100 dark:border-gray-700/50 shadow-lg overflow-hidden animate-slide-down">
                   <div className="p-2 flex flex-col gap-1">
                     <Link
                       to="/conta"
                       onClick={() => setMenuOpen(false)}
-                      className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                      className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
                     >
                       <Pencil size={16} />
                       Editar Perfil
@@ -132,15 +149,15 @@ export default function Topbar({ title = 'Gestão Igreja', searchPlaceholder, on
                     <Link
                       to="/configuracoes"
                       onClick={() => setMenuOpen(false)}
-                      className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                      className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
                     >
                       <Settings size={16} />
                       Configurações
                     </Link>
-                    <div className="h-px bg-gray-100 my-1" />
+                    <div className="h-px bg-gray-100 dark:bg-gray-700 my-1" />
                     <button
-                      onClick={() => { setMenuOpen(false); logout?.(); }}
-                      className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors"
+                      onClick={handleLogout}
+                      className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                     >
                       <LogOut size={16} />
                       Sair
