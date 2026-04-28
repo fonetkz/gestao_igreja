@@ -367,8 +367,9 @@ def criar_programacao(
     for hino_id in hinos_ids:
         hino = session.get(Hino, hino_id)
         if hino:
-            hino.data_ultima_apresentacao = data_culto
-            session.add(hino)
+            if not hino.data_ultima_apresentacao or _compare_dates(hino.data_ultima_apresentacao, data_culto):
+                hino.data_ultima_apresentacao = data_culto
+                session.add(hino)
     
     session.commit()
     return prog
@@ -408,8 +409,9 @@ def atualizar_programacao(
         for hino_id in hinos_ids:
             hino = session.get(Hino, hino_id)
             if hino:
-                hino.data_ultima_apresentacao = data_culto
-                session.add(hino)
+                if not hino.data_ultima_apresentacao or _compare_dates(hino.data_ultima_apresentacao, data_culto):
+                    hino.data_ultima_apresentacao = data_culto
+                    session.add(hino)
     
     session.add(prog)
     session.commit()
@@ -426,8 +428,39 @@ def remover_programacao(
         prog = session.get(Programacao, prog_id)
         if not prog:
             raise HTTPException(404, "Programação não encontrada")
+        
+        def _parse_json(js):
+            if isinstance(js, list):
+                return js
+            if isinstance(js, str):
+                try:
+                    return json.loads(js)
+                except:
+                    return []
+            return []
+        
+        hinos_afetados = _parse_json(prog.hinos_json)
+        
         session.delete(prog)
         session.commit()
+        
+        # Recalcula a data_ultima_apresentacao para os hinos que estavam nesta programação
+        if hinos_afetados:
+            todas_progs = session.exec(select(Programacao)).all()
+            for hino_id in hinos_afetados:
+                hino = session.get(Hino, hino_id)
+                if hino:
+                    ultima_data = None
+                    for p in todas_progs:
+                        if hino_id in _parse_json(p.hinos_json):
+                            # Usa a mesma função de comparação para achar a maior data
+                            if ultima_data is None or _compare_dates(ultima_data, p.data):
+                                ultima_data = p.data
+                    
+                    hino.data_ultima_apresentacao = ultima_data
+                    session.add(hino)
+            session.commit()
+            
     except HTTPException:
         raise
     except Exception as e:

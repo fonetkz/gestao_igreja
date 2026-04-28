@@ -128,10 +128,6 @@ const useHymnsStore = create((set, get) => ({
     set({ todayProgram: [...todayProgram, hymnId] })
   },
 
-  setTodayProgram: (hinos) => {
-    set({ todayProgram: hinos })
-  },
-
   removeFromTodayProgram: (hymnId) => {
     set((state) => ({
       todayProgram: state.todayProgram.filter(id => id !== hymnId),
@@ -140,81 +136,6 @@ const useHymnsStore = create((set, get) => ({
 
   reorderTodayProgram: (newOrder) => {
     set({ todayProgram: newOrder })
-  },
-
-  updateProgramacao: async (progId, data_culto, tipo_culto, responsavel) => {
-    try {
-      const { todayProgram } = get()
-      const payload = {
-        data: data_culto,
-        tipo_culto,
-        responsavel,
-        status: 'confirmado',
-        hinos_json: JSON.stringify(todayProgram)
-      }
-      const { data } = await api.patch(`/api/programacoes/${progId}`, payload)
-
-      const updatedEntry = {
-        ...data,
-        hinos_json: safeParseJson(data.hinos_json)
-      }
-
-      set((state) => ({
-        programHistory: state.programHistory.map(p => p.id === progId ? updatedEntry : p),
-        todayProgram: [],
-      }))
-
-      const { data: hymnsData } = await api.get('/api/hinos')
-      set({ hymns: hymnsData.map(h => ({ ...h, hinos_json: safeParseJson(h.hinos_json) })) })
-    } catch (err) {
-      console.error('Erro ao atualizar programação:', err)
-      throw err
-    }
-  },
-
-  deleteProgramacao: async (progId) => {
-    console.log('deleteProgramacao called, progId:', progId)
-    try {
-      const response = await api.delete(`/api/programacoes/${progId}`, { data: {} })
-      console.log('Delete response status:', response.status)
-      set((state) => ({
-        programHistory: state.programHistory.filter(p => p.id !== progId),
-      }))
-      const { data: programacoes } = await api.get('/api/programacoes')
-      
-      const safeParse = (js, defVal = []) => {
-        if (!js) return defVal
-        if (Array.isArray(js)) return js
-        try {
-          const parsed = JSON.parse(js)
-          return Array.isArray(parsed) ? parsed : defVal
-        } catch {
-          return defVal
-        }
-      }
-      
-      const ultimaDataPorHino = {}
-      for (const prog of programacoes) {
-        const hinos_ids = safeParse(prog.hinos_json)
-        const dataCulto = prog.data
-        for (const hinoId of hinos_ids) {
-          if (!ultimaDataPorHino[hinoId] || dataCulto > ultimaDataPorHino[hinoId]) {
-            ultimaDataPorHino[hinoId] = dataCulto
-          }
-        }
-      }
-      
-      const { data: hymnsData } = await api.get('/api/hinos')
-      const hinosAtualizados = hymnsData.map(h => {
-        const novaData = ultimaDataPorHino[h.id] || null
-        return { ...h, data_ultima_apresentacao: novaData, hinos_json: safeParseJson(h.hinos_json) }
-      })
-      set({ hymns: hinosAtualizados })
-    } catch (err) {
-      console.error('Erro ao excluir programação:', err)
-      alert('Erro ao excluir programação: ' + (err.response?.data?.detail || err.message))
-      throw err
-    }
   },
 
   confirmTodayProgram: async (data_culto, tipo_culto, responsavel) => {
@@ -228,7 +149,7 @@ const useHymnsStore = create((set, get) => ({
         hinos_json: JSON.stringify(todayProgram)
       }
       const { data } = await api.post('/api/programacoes', payload)
-      
+
       const newEntry = {
         ...data,
         hinos_json: safeParseJson(data.hinos_json)
@@ -239,13 +160,36 @@ const useHymnsStore = create((set, get) => ({
         todayProgram: [],
       }))
 
-      const { data: hymnsData } = await api.get('/api/hinos')
-      set({ hymns: hymnsData.map(h => ({ ...h, hinos_json: safeParseJson(h.hinos_json) })) })
+      for (const hymnId of todayProgram) {
+        const hymn = get().getHymnById(hymnId)
+        if (!hymn?.data_ultima_apresentacao || data_culto > hymn.data_ultima_apresentacao) {
+          await get().updateHymn(hymnId, { data_ultima_apresentacao: data_culto })
+        }
+      }
     } catch (error) {
       console.error('Erro ao confirmar programação', error)
       throw error
     }
   },
+
+  // Remover programação
+  removeProgram: async (id) => {
+    try {
+      await api.delete(`/api/programacoes/${id}`)
+      set((state) => ({
+        programHistory: state.programHistory.filter(p => p.id !== id),
+      }))
+
+      // Recarrega os hinos para obter as datas de última apresentação recalculadas
+      await get().fetchHymns()
+    } catch (error) {
+      console.error('Erro ao remover programação', error)
+      throw error
+    }
+  },
+
+  // Apelido para manter a compatibilidade com o ProgrammingPage.jsx
+  deleteProgramacao: async (id) => get().removeProgram(id),
 
   // Obter hino por ID
   getHymnById: (id) => {
@@ -255,7 +199,7 @@ const useHymnsStore = create((set, get) => ({
 
   // Estatísticas
   getTotalHymns: () => get().hymns.length,
-  
+
   getUniqueKeys: () => {
     const { hymns } = get()
     return new Set(hymns.filter(h => h.tonalidade).map(h => h.tonalidade)).size

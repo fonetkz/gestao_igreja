@@ -1,31 +1,30 @@
 import React, { useState, useMemo, useEffect } from 'react'
-import { Plus, Search, Music, Trash2, Save, Check, BookOpen, ChevronUp, ChevronDown, GripVertical, Clock, Calendar, Loader2 } from 'lucide-react'
+import { Plus, Search, Music, Trash2, Save, Check, BookOpen, ChevronUp, ChevronDown, GripVertical, Clock, Calendar, Loader2, Edit2 } from 'lucide-react'
 import Topbar from '../components/layout/Topbar'
 import Modal from '../components/ui/Modal'
 import useHymnsStore from '../store/hymnsStore'
 import useSettingsStore from '../store/settingsStore'
 import useAuthStore from '../store/authStore'
+import useToastStore from '../store/toastStore'
 
 // ─── HymnResultItem ──────────────────────────────────────────────────────────
-function HymnResultItem({ hymn, onAdd, isAdded }) {
+function HymnResultItem({ hymn, onAdd, isAdded, onEdit }) {
   const daysSince = useHymnsStore((s) => s.daysSinceLastUsed)(hymn.id)
   return (
-    <button
-      onClick={() => !isAdded && onAdd(hymn)}
-      disabled={isAdded}
+    <div
       className={`w-full flex items-center justify-between p-3 rounded-xl transition-all group text-left border
         ${isAdded
-          ? 'opacity-60 cursor-not-allowed bg-gray-50 dark:bg-gray-700/30 border-gray-100 dark:border-gray-700'
+          ? 'opacity-60 bg-gray-50 dark:bg-gray-700/30 border-gray-100 dark:border-gray-700'
           : 'border-blue-100 dark:border-blue-900/40 hover:border-blue-300 dark:hover:border-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/10'
         }`}
     >
-      <div className="flex-1 min-w-0">
+      <button onClick={() => !isAdded && onAdd(hymn)} disabled={isAdded} className="flex-1 min-w-0 text-left">
         <p className="font-semibold text-gray-900 dark:text-white">
           <span className="text-[#007AFF]">#{hymn.numero}</span> — {hymn.titulo}
         </p>
         <div className="flex items-center gap-2 mt-1">
           {daysSince !== null ? (
-<span className="text-xs text-orange-600 dark:text-orange-400 bg-orange-100 dark:bg-orange-900/30 px-2 py-0.5 rounded-full font-medium">
+            <span className="text-xs text-orange-600 dark:text-orange-400 bg-orange-100 dark:bg-orange-900/30 px-2 py-0.5 rounded-full font-medium">
               {daysSince >= 365 ? `${Math.floor(daysSince / 365)}a atrás` : daysSince >= 30 ? `${Math.floor(daysSince / 30)}m atrás` : `${daysSince}d atrás`}
             </span>
           ) : (
@@ -34,14 +33,19 @@ function HymnResultItem({ hymn, onAdd, isAdded }) {
             </span>
           )}
           {hymn.tonalidade && (
-            <span className="text-xs text-gray-400 dark:text-gray-500">Tom: {hymn.tonalidade}</span>
+            <span className="text-xs text-gray-400 dark:text-gray-500">Tipo: {hymn.tonalidade}</span>
           )}
         </div>
+      </button>
+      <div className="flex items-center gap-1 ml-3">
+        <button onClick={(e) => { e.stopPropagation(); onEdit(hymn); }} className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-200 transition-colors">
+          <Edit2 size={16} />
+        </button>
+        <button onClick={() => !isAdded && onAdd(hymn)} disabled={isAdded} className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${isAdded ? 'bg-gray-200 dark:bg-gray-600 text-gray-400' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 hover:bg-[#007AFF] hover:text-white'}`}>
+          <Plus size={16} />
+        </button>
       </div>
-      <div className={`w-8 h-8 rounded-full flex items-center justify-center ml-3 transition-colors ${isAdded ? 'bg-gray-200 dark:bg-gray-600' : 'bg-blue-100 dark:bg-blue-900/30 group-hover:bg-[#007AFF]'}`}>
-        <Plus size={16} className={isAdded ? 'text-gray-400' : 'text-blue-600 group-hover:text-white'} />
-      </div>
-    </button>
+    </div>
   )
 }
 
@@ -75,10 +79,24 @@ function ProgrammedHymnItem({ hymn, index, onRemove, onMove, isFirst, isLast }) 
   )
 }
 
-// ─── NewHymnModal ────────────────────────────────────────────────────────────
-function NewHymnModal({ isOpen, onClose, onSave }) {
+// ─── HymnModal ───────────────────────────────────────────────────────────────
+function HymnModal({ isOpen, onClose, onSave, editingHymn }) {
+  const hymnTypes = useSettingsStore((s) => s.hymnTypes) || []
   const [form, setForm] = useState({ numero: '', titulo: '', tonalidade: '' })
   const [errors, setErrors] = useState({})
+
+  useEffect(() => {
+    if (editingHymn) {
+      setForm({
+        numero: editingHymn.numero || '',
+        titulo: editingHymn.titulo || '',
+        tonalidade: editingHymn.tonalidade || ''
+      })
+    } else {
+      setForm({ numero: '', titulo: '', tonalidade: '' })
+    }
+    setErrors({})
+  }, [editingHymn, isOpen])
 
   const handleSubmit = (e) => {
     e.preventDefault()
@@ -86,14 +104,11 @@ function NewHymnModal({ isOpen, onClose, onSave }) {
     if (!form.numero.trim()) newErrors.numero = 'Número obrigatório'
     if (!form.titulo.trim()) newErrors.titulo = 'Título obrigatório'
     if (Object.keys(newErrors).length) { setErrors(newErrors); return }
-    onSave(form)
-    setForm({ numero: '', titulo: '', tonalidade: '' })
-    setErrors({})
-    onClose()
+    onSave(form, editingHymn?.id)
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Cadastrar Novo Hino" size="md">
+    <Modal isOpen={isOpen} onClose={onClose} title={editingHymn ? "Editar Hino" : "Cadastrar Novo Hino"} size="md">
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="label-uppercase mb-2 block">Número</label>
@@ -106,12 +121,21 @@ function NewHymnModal({ isOpen, onClose, onSave }) {
           {errors.titulo && <span className="text-xs text-red-500 mt-1 block">{errors.titulo}</span>}
         </div>
         <div>
-          <label className="label-uppercase mb-2 block">Tonalidade</label>
-          <input type="text" value={form.tonalidade} onChange={(e) => setForm(f => ({ ...f, tonalidade: e.target.value }))} placeholder="Ex: Dó Maior" className="input-apple" />
+          <label className="label-uppercase mb-2 block">Tipo de Hino</label>
+          <select value={form.tonalidade} onChange={(e) => setForm(f => ({ ...f, tonalidade: e.target.value }))} className="select-apple w-full">
+            <option value="">Selecione o tipo...</option>
+            {hymnTypes.map(t => (
+              <option key={t.id} value={t.label}>{t.label}</option>
+            ))}
+            {/* Fallback caso existam dados antigos de tonalidade que não estão na lista de tipos */}
+            {form.tonalidade && !hymnTypes.find(t => t.label === form.tonalidade) && (
+              <option value={form.tonalidade}>{form.tonalidade} (Legado)</option>
+            )}
+          </select>
         </div>
         <div className="flex gap-3 pt-2">
           <button type="button" onClick={onClose} className="btn-apple-secondary flex-1">Cancelar</button>
-          <button type="submit" className="btn-apple-primary flex-1">Salvar Hino</button>
+          <button type="submit" className="btn-apple-primary flex-1">{editingHymn ? "Salvar Alterações" : "Salvar Hino"}</button>
         </div>
       </form>
     </Modal>
@@ -203,7 +227,7 @@ function HistoricoTab({ onEditarProgramacao, onExcluirProgramacao }) {
                       </span>
                       <span className="text-[#007AFF] font-semibold text-sm">#{hymn.numero}</span>
                       <span className="text-sm font-medium text-gray-900 dark:text-white flex-1">{hymn.titulo}</span>
-                      {hymn.tonalidade && <span className="text-xs text-gray-400 dark:text-gray-500">Tom: {hymn.tonalidade}</span>}
+                      {hymn.tonalidade && <span className="text-xs text-gray-400 dark:text-gray-500">Tipo: {hymn.tonalidade}</span>}
                     </div>
                   )
                 })}
@@ -231,15 +255,18 @@ function ProgramacaoForm({ programacaoEditando, onLimparEdicao }) {
   const reorderTodayProgram = useHymnsStore((s) => s.reorderTodayProgram)
   const confirmTodayProgram = useHymnsStore((s) => s.confirmTodayProgram)
   const updateProgramacao = useHymnsStore((s) => s.updateProgramacao)
+  const updateHymn = useHymnsStore((s) => s.updateHymn)
   const addHymn = useHymnsStore((s) => s.addHymn)
   const searchHymns = useHymnsStore((s) => s.searchHymns)
   const meetingTypes = useSettingsStore((s) => s.meetingTypes)
+  const showToast = useToastStore((s) => s.showToast)
 
   const [searchTerm, setSearchTerm] = useState('')
   const [serviceDate, setServiceDate] = useState(new Date().toISOString().split('T')[0])
   const [serviceType, setServiceType] = useState('')
   const [responsavel, setResponsavel] = useState('')
-  const [showNewHymnModal, setShowNewHymnModal] = useState(false)
+  const [hymnModalOpen, setHymnModalOpen] = useState(false)
+  const [editingHymn, setEditingHymn] = useState(null)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [errors, setErrors] = useState({})
@@ -272,13 +299,30 @@ function ProgramacaoForm({ programacaoEditando, onLimparEdicao }) {
     const arr = [...todayProgram]
     const newIdx = idx + dir
     if (newIdx < 0 || newIdx >= arr.length) return
-    ;[arr[idx], arr[newIdx]] = [arr[newIdx], arr[idx]]
+      ;[arr[idx], arr[newIdx]] = [arr[newIdx], arr[idx]]
     reorderTodayProgram(arr)
   }
 
-  const handleSaveNewHymn = async (form) => {
-    const newHymn = await addHymn(form)
-    if (newHymn) addToTodayProgram(newHymn.id)
+  const handleSaveHymn = async (form, id) => {
+    try {
+      if (id) {
+        await updateHymn(id, form)
+        showToast('Hino atualizado com sucesso!')
+      } else {
+        const newHymn = await addHymn(form)
+        if (newHymn) addToTodayProgram(newHymn.id)
+        showToast('Hino cadastrado com sucesso!')
+      }
+      setHymnModalOpen(false)
+      setEditingHymn(null)
+    } catch (error) {
+      console.error("Erro ao salvar hino", error)
+    }
+  }
+
+  const openEditHymn = (hymn) => {
+    setEditingHymn(hymn)
+    setHymnModalOpen(true)
   }
 
   const handleConfirm = async () => {
@@ -316,7 +360,7 @@ function ProgramacaoForm({ programacaoEditando, onLimparEdicao }) {
                 <option value="">Selecionar...</option>
                 {meetingTypes.map((t) => <option key={t.id} value={t.label}>{t.label}</option>)}
               </select>
-              {errors.serviceType && <span className="text-xs text-red-500 mt-1">Selecione o tipo de culto</span>}
+              {errors.serviceType && <span className="text-xs text-red-500 mt-1">Selecione o tipo de reunião</span>}
             </div>
             <div className="flex items-center gap-2">
               <label className="label-uppercase">Responsável</label>
@@ -337,7 +381,7 @@ function ProgramacaoForm({ programacaoEditando, onLimparEdicao }) {
                 <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Buscar por número ou título..." className="input-apple pl-9" />
               </div>
-              <button onClick={() => setShowNewHymnModal(true)} className="w-full mb-3 text-sm font-medium text-[#007AFF] hover:text-[#0062CC] flex items-center justify-center gap-1 py-2 rounded-xl border border-dashed border-[#007AFF]/30 hover:border-[#007AFF] hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors">
+              <button onClick={() => { setEditingHymn(null); setHymnModalOpen(true); }} className="w-full mb-3 text-sm font-medium text-[#007AFF] hover:text-[#0062CC] flex items-center justify-center gap-1 py-2 rounded-xl border border-dashed border-[#007AFF]/30 hover:border-[#007AFF] hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors">
                 <Plus size={16} /> Novo Hino
               </button>
               <div className="space-y-1 max-h-[480px] overflow-y-auto pr-1">
@@ -345,7 +389,7 @@ function ProgramacaoForm({ programacaoEditando, onLimparEdicao }) {
                   <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-8">Nenhum hino encontrado</p>
                 ) : (
                   filteredHymns.map((hymn) => (
-                    <HymnResultItem key={hymn.id} hymn={hymn} onAdd={handleAddHymn} isAdded={todayProgram.includes(hymn.id)} />
+                    <HymnResultItem key={hymn.id} hymn={hymn} onAdd={handleAddHymn} isAdded={todayProgram.includes(hymn.id)} onEdit={openEditHymn} />
                   ))
                 )}
               </div>
@@ -390,7 +434,7 @@ function ProgramacaoForm({ programacaoEditando, onLimparEdicao }) {
         </div>
       </div>
 
-      <NewHymnModal isOpen={showNewHymnModal} onClose={() => setShowNewHymnModal(false)} onSave={handleSaveNewHymn} />
+      <HymnModal isOpen={hymnModalOpen} onClose={() => setHymnModalOpen(false)} onSave={handleSaveHymn} editingHymn={editingHymn} />
     </>
   )
 }
@@ -399,10 +443,13 @@ function ProgramacaoForm({ programacaoEditando, onLimparEdicao }) {
 export default function ProgrammingPage() {
   const [activeTab, setActiveTab] = useState('programar')
   const [programacaoEditando, setProgramacaoEditando] = useState(null)
+  const [programToDelete, setProgramToDelete] = useState(null)
+
   const fetchHymns = useHymnsStore((s) => s.fetchHymns)
   const fetchProgramHistory = useHymnsStore((s) => s.fetchProgramHistory)
   const setTodayProgram = useHymnsStore((s) => s.setTodayProgram)
   const deleteProgramacao = useHymnsStore((s) => s.deleteProgramacao)
+  const showToast = useToastStore((s) => s.showToast)
 
   useEffect(() => {
     fetchHymns()
@@ -415,15 +462,20 @@ export default function ProgrammingPage() {
     setActiveTab('programar')
   }
 
-  const handleExcluirProgramacao = async (progId) => {
-    console.log('Excluindo programa:', progId)
-    if (confirm('Tem certeza que deseja excluir esta programação?')) {
-      try {
-        await deleteProgramacao(progId)
-      } catch (err) {
-        console.error('Erro ao excluir:', err)
-        alert('Erro ao excluir: ' + (err.response?.data?.detail || err.message))
-      }
+  const handleExcluirProgramacao = (progId) => {
+    const prog = useHymnsStore.getState().programHistory.find(p => p.id === progId)
+    setProgramToDelete(prog || { id: progId, data: 'selecionada' })
+  }
+
+  const confirmarExclusao = async () => {
+    if (!programToDelete) return
+    try {
+      await deleteProgramacao(programToDelete.id)
+      setProgramToDelete(null)
+      showToast('Programação excluída com sucesso!')
+    } catch (err) {
+      console.error('Erro ao excluir:', err)
+      alert('Erro ao excluir: ' + (err.response?.data?.detail || err.message))
     }
   }
 
@@ -446,7 +498,7 @@ export default function ProgrammingPage() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-3xl font-semibold text-gray-900 dark:text-white">Programação</h1>
-            <p className="text-gray-500 dark:text-gray-400 mt-1">Monte e gerencie a ordem do culto.</p>
+            <p className="text-gray-500 dark:text-gray-400 mt-1">Monte e gerencie a ordem da reunião.</p>
           </div>
         </div>
 
@@ -467,6 +519,40 @@ export default function ProgrammingPage() {
           {activeTab === 'historico' && <HistoricoTab onEditarProgramacao={handleEditarProgramacao} onExcluirProgramacao={handleExcluirProgramacao} />}
         </div>
       </div>
+
+      {/* MODAL DE CONFIRMAÇÃO DE EXCLUSÃO */}
+      {programToDelete && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            onClick={() => setProgramToDelete(null)}
+          ></div>
+
+          <div className="relative bg-white dark:bg-[#2C2C2E] rounded-2xl shadow-2xl w-full max-w-md p-6 animate-slide-up">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+              Confirmar Exclusão
+            </h2>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              Tem certeza que deseja excluir a programação do dia <strong className="text-gray-900 dark:text-white">{programToDelete.data}</strong>? Esta ação não pode ser desfeita e irá recalcular as datas de apresentação dos hinos vinculados.
+            </p>
+
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setProgramToDelete(null)}
+                className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmarExclusao}
+                className="px-4 py-2 bg-red-500 text-white rounded-xl font-medium hover:bg-red-600 transition-colors shadow-sm shadow-red-500/30"
+              >
+                Sim, Excluir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
