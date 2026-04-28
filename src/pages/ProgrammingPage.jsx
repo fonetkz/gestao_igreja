@@ -6,6 +6,14 @@ import useHymnsStore from '../store/hymnsStore'
 import useSettingsStore from '../store/settingsStore'
 import useAuthStore from '../store/authStore'
 import useToastStore from '../store/toastStore'
+import useMembersStore from '../store/membersStore'
+
+// Função auxiliar para formatar a data (YYYY-MM-DD para DD/MM/YYYY)
+const formatDate = (d) => {
+  if (!d) return ''
+  if (!d.includes('-')) return d
+  return d.split('T')[0].split('-').reverse().join('/')
+}
 
 // ─── HymnResultItem ──────────────────────────────────────────────────────────
 function HymnResultItem({ hymn, onAdd, isAdded, onEdit }) {
@@ -50,7 +58,10 @@ function HymnResultItem({ hymn, onAdd, isAdded, onEdit }) {
 }
 
 // ─── ProgrammedHymnItem ──────────────────────────────────────────────────────
-function ProgrammedHymnItem({ hymn, index, onRemove, onMove, isFirst, isLast }) {
+function ProgrammedHymnItem({ hymn, index, onRemove, onMove, isFirst, isLast, onUpdateRegente }) {
+  const members = useMembersStore((s) => s.members) || []
+  const conductors = members.filter(m => m.status === 'Ativo' && m.cargo && m.cargo.toLowerCase().includes('regente'))
+
   return (
     <div className="flex items-center gap-3 p-4 bg-white dark:bg-[#2C2C2E] rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-all">
       <div className="flex flex-col items-center gap-0.5">
@@ -67,7 +78,26 @@ function ProgrammedHymnItem({ hymn, index, onRemove, onMove, isFirst, isLast }) 
           <span className="text-[#007AFF] font-bold">#{hymn.numero}</span>
           <span className="font-semibold text-gray-900 dark:text-white truncate">{hymn.titulo}</span>
         </div>
-        {hymn.tonalidade && <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Tom: {hymn.tonalidade}</p>}
+        <div className="flex items-center gap-3 mt-1">
+          {hymn.tonalidade && <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Tipo: {hymn.tonalidade}</p>}
+          <div className="flex items-center gap-1.5 mt-1">
+            <span className="text-xs text-gray-500 dark:text-gray-400">Regente:</span>
+            <select
+              value={hymn.regente || ''}
+              onChange={(e) => onUpdateRegente(hymn.id, e.target.value)}
+              className="text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-md px-2 py-1 text-gray-700 dark:text-gray-300 focus:outline-none focus:border-blue-400"
+            >
+              <option value="">Nenhum</option>
+              {conductors.map(c => (
+                <option key={c.id} value={c.nome}>{c.nome}</option>
+              ))}
+              {/* Mantém visível o regente salvo caso ele tenha sido inativado ou seu cargo tenha mudado */}
+              {hymn.regente && !conductors.find(c => c.nome === hymn.regente) && (
+                <option value={hymn.regente}>{hymn.regente} (Inativo/Legado)</option>
+              )}
+            </select>
+          </div>
+        </div>
       </div>
       <button
         onClick={() => onRemove(hymn.id)}
@@ -147,7 +177,18 @@ function HistoricoTab({ onEditarProgramacao, onExcluirProgramacao }) {
   const programHistory = useHymnsStore((s) => s.programHistory)
   const fetchProgramHistory = useHymnsStore((s) => s.fetchProgramHistory)
   const getHymnById = useHymnsStore((s) => s.getHymnById)
+
+  const meetingTypes = useSettingsStore((s) => s.meetingTypes) || []
+  const hymnTypes = useSettingsStore((s) => s.hymnTypes) || []
+  const members = useMembersStore((s) => s.members) || []
+  const conductors = members.filter(m => m.status === 'Ativo' && m.cargo && m.cargo.toLowerCase().includes('regente'))
+
   const [expanded, setExpanded] = useState({})
+  const [searchTerm, setSearchTerm] = useState('')
+  const [searchDate, setSearchDate] = useState('')
+  const [filterTipoReuniao, setFilterTipoReuniao] = useState('')
+  const [filterTipoHino, setFilterTipoHino] = useState('')
+  const [filterRegente, setFilterRegente] = useState('')
 
   useEffect(() => { fetchProgramHistory() }, [])
 
@@ -187,67 +228,150 @@ function HistoricoTab({ onEditarProgramacao, onExcluirProgramacao }) {
     )
   }
 
+  const filteredHistory = programHistory.filter(prog => {
+    const term = searchTerm.toLowerCase()
+    const hinos = Array.isArray(prog.hinos_json) ? prog.hinos_json : []
+
+    const matchesTerm = !term || (prog.tipo_culto || prog.contexto || '').toLowerCase().includes(term) || (prog.responsavel || '').toLowerCase().includes(term)
+    const matchesDate = !searchDate || prog.data === searchDate
+    const matchesTipoReuniao = !filterTipoReuniao || (prog.tipo_culto || prog.contexto) === filterTipoReuniao
+
+    const matchesTipoHino = !filterTipoHino || hinos.some(hymnItem => {
+      const id = typeof hymnItem === 'object' ? hymnItem.id : hymnItem
+      const hymn = getHymnById(id)
+      return hymn && hymn.tonalidade === filterTipoHino
+    })
+
+    const matchesRegente = !filterRegente || hinos.some(hymnItem => {
+      const regente = typeof hymnItem === 'object' ? hymnItem.regente : ''
+      return regente === filterRegente
+    })
+
+    return matchesTerm && matchesDate && matchesTipoReuniao && matchesTipoHino && matchesRegente
+  })
+
   return (
     <div className="space-y-4">
-      {programHistory.map((prog) => {
-        const hinos = Array.isArray(prog.hinos_json) ? prog.hinos_json : []
-        const isExpanded = expanded[prog.id]
-        return (
-          <div key={prog.id} className="apple-card p-5">
-            <button onClick={() => toggleExpand(prog.id)} className="w-full text-left">
-              <div className="flex items-start justify-between">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <Calendar size={16} className="text-[#007AFF]" />
-                    <span className="font-semibold text-gray-900 dark:text-white">{prog.data}</span>
-                    <span className="badge-info">{prog.tipo_culto || prog.contexto}</span>
-                  </div>
-                  {prog.responsavel && (
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Responsável: {prog.responsavel}</p>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-semibold text-gray-500 dark:text-gray-400">
-                    {hinos.length} {hinos.length === 1 ? 'hino' : 'hinos'}
-                  </span>
-                  <ChevronDown size={20} className={`text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
-                </div>
-              </div>
-            </button>
-
-            {isExpanded && (
-              <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700 space-y-2">
-                {hinos.map((hymnId, idx) => {
-                  const hymn = getHymnById(hymnId)
-                  if (!hymn) return null
-                  return (
-                    <div key={hymnId} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/40 rounded-xl">
-                      <span className="w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center text-xs font-bold text-gray-600 dark:text-gray-300">
-                        {idx + 1}
-                      </span>
-                      <span className="text-[#007AFF] font-semibold text-sm">#{hymn.numero}</span>
-                      <span className="text-sm font-medium text-gray-900 dark:text-white flex-1">{hymn.titulo}</span>
-                      {hymn.tonalidade && <span className="text-xs text-gray-400 dark:text-gray-500">Tipo: {hymn.tonalidade}</span>}
-                    </div>
-                  )
-                })}
-                <button onClick={() => handleEditar(prog)} className="flex-1 mt-3 py-2 text-sm font-medium text-[#007AFF] border border-dashed border-[#007AFF]/30 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors">
-                  Editar
-                </button>
-                <button onClick={() => handleExcluir(prog.id)} className="flex-1 mt-3 ml-2 py-2 text-sm font-medium text-red-500 border border-dashed border-red-300/30 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors">
-                  Excluir
-                </button>
-              </div>
-            )}
+      <div className="apple-card p-4 space-y-4">
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="relative flex-1">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Buscar por responsável ou termo livre..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-9 pr-4 py-2.5 rounded-xl border text-sm font-medium transition-all duration-200 focus:outline-none bg-slate-50 dark:bg-slate-900/50 text-slate-900 dark:text-white border-slate-200 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-400"
+            />
           </div>
-        )
-      })}
+          <div className="w-full sm:w-44">
+            <input
+              type="date"
+              value={searchDate}
+              onChange={(e) => setSearchDate(e.target.value)}
+              className="w-full px-3 py-2.5 rounded-xl border text-sm font-medium transition-all duration-200 focus:outline-none bg-slate-50 dark:bg-slate-900/50 text-slate-900 dark:text-white border-slate-200 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-400"
+            />
+          </div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <select
+            value={filterTipoReuniao}
+            onChange={(e) => setFilterTipoReuniao(e.target.value)}
+            className="w-full px-4 py-2.5 rounded-xl border text-sm font-medium transition-all duration-200 focus:outline-none bg-slate-50 dark:bg-slate-900/50 text-slate-900 dark:text-white border-slate-200 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-400"
+          >
+            <option value="">Tipo de Reunião (Todos)</option>
+            {meetingTypes.map(t => <option key={t.id} value={t.label}>{t.label}</option>)}
+          </select>
+          <select
+            value={filterTipoHino}
+            onChange={(e) => setFilterTipoHino(e.target.value)}
+            className="w-full px-4 py-2.5 rounded-xl border text-sm font-medium transition-all duration-200 focus:outline-none bg-slate-50 dark:bg-slate-900/50 text-slate-900 dark:text-white border-slate-200 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-400"
+          >
+            <option value="">Tipo de Hino (Todos)</option>
+            {hymnTypes.map(t => <option key={t.id} value={t.label}>{t.label}</option>)}
+          </select>
+          <select
+            value={filterRegente}
+            onChange={(e) => setFilterRegente(e.target.value)}
+            className="w-full px-4 py-2.5 rounded-xl border text-sm font-medium transition-all duration-200 focus:outline-none bg-slate-50 dark:bg-slate-900/50 text-slate-900 dark:text-white border-slate-200 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-400"
+          >
+            <option value="">Regente (Todos)</option>
+            {conductors.map(c => <option key={c.id} value={c.nome}>{c.nome}</option>)}
+          </select>
+        </div>
+      </div>
+
+      {filteredHistory.length === 0 ? (
+        <div className="apple-card p-8 text-center text-gray-500 dark:text-gray-400">
+          Nenhuma programação encontrada.
+        </div>
+      ) : (
+        filteredHistory.map((prog) => {
+          const hinos = Array.isArray(prog.hinos_json) ? prog.hinos_json : []
+          const isExpanded = expanded[prog.id]
+          return (
+            <div key={prog.id} className="apple-card p-5">
+              <button onClick={() => toggleExpand(prog.id)} className="w-full text-left">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <Calendar size={16} className="text-[#007AFF]" />
+                      <span className="font-semibold text-gray-900 dark:text-white">{formatDate(prog.data)}</span>
+                      <span className="badge-info">{prog.tipo_culto || prog.contexto}</span>
+                    </div>
+                    {prog.responsavel && (
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Responsável: {prog.responsavel}</p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-gray-500 dark:text-gray-400">
+                      {hinos.length} {hinos.length === 1 ? 'hino' : 'hinos'}
+                    </span>
+                    <ChevronDown size={20} className={`text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                  </div>
+                </div>
+              </button>
+
+              {isExpanded && (
+                <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700 space-y-2">
+                  {hinos.map((hymnId, idx) => {
+                    const isObj = typeof hymnId === 'object';
+                    const id = isObj ? hymnId.id : hymnId;
+                    const regente = isObj ? hymnId.regente : '';
+                    const hymn = getHymnById(id)
+                    if (!hymn) return null
+                    return (
+                      <div key={hymnId} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/40 rounded-xl">
+                        <span className="w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center text-xs font-bold text-gray-600 dark:text-gray-300 shrink-0">
+                          {idx + 1}
+                        </span>
+                        <span className="text-[#007AFF] font-semibold text-sm">#{hymn.numero}</span>
+                        <span className="text-sm font-medium text-gray-900 dark:text-white flex-1">{hymn.titulo}</span>
+                        {hymn.tonalidade && <span className="text-xs text-gray-400 dark:text-gray-500">Tipo: {hymn.tonalidade}</span>}
+                        {regente && <span className="text-xs text-gray-400 dark:text-gray-500 border-l border-gray-300 dark:border-gray-600 pl-2 truncate">Regente: {regente}</span>}
+                      </div>
+                    )
+                  })}
+                  <div className="flex items-center gap-2 mt-3">
+                    <button onClick={() => handleEditar(prog)} className="flex-1 mt-3 py-2 text-sm font-medium text-[#007AFF] border border-dashed border-[#007AFF]/30 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors">
+                      Editar
+                    </button>
+                    <button onClick={() => handleExcluir(prog.id)} className="flex-1 mt-3 ml-2 py-2 text-sm font-medium text-red-500 border border-dashed border-red-300/30 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors">
+                      Excluir
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )
+        })
+      )}
     </div>
   )
 }
 
 // ─── ProgramacaoForm ─────────────────────────────────────────────────────────
-function ProgramacaoForm({ programacaoEditando, onLimparEdicao }) {
+function ProgramacaoForm({ programacaoEditando, onLimparEdicao, onCancelarEdicao }) {
   const hymns = useHymnsStore((s) => s.hymns)
   const todayProgram = useHymnsStore((s) => s.todayProgram)
   const addToTodayProgram = useHymnsStore((s) => s.addToTodayProgram)
@@ -271,6 +395,9 @@ function ProgramacaoForm({ programacaoEditando, onLimparEdicao }) {
   const [saved, setSaved] = useState(false)
   const [errors, setErrors] = useState({})
 
+  // Estado local para armazenar os regentes selecionados (apenas para exibição na tela)
+  const [regentes, setRegentes] = useState({})
+
   const validate = () => {
     const newErrors = {}
     if (!serviceType) newErrors.serviceType = true
@@ -291,10 +418,14 @@ function ProgramacaoForm({ programacaoEditando, onLimparEdicao }) {
   }, [programacaoEditando])
 
   const filteredHymns = useMemo(() => searchHymns(searchTerm), [hymns, searchTerm])
-  const programHymns = useMemo(() => todayProgram.map(id => hymns.find(h => h.id === id)).filter(Boolean), [todayProgram, hymns])
+  const programHymns = useMemo(() => todayProgram.map(id => {
+    const h = hymns.find(h => h.id === id);
+    return h ? { ...h, regente: regentes[id] || '' } : null;
+  }).filter(Boolean), [todayProgram, hymns, regentes])
 
   const handleAddHymn = (hymn) => addToTodayProgram(hymn.id)
   const handleRemove = (id) => removeFromTodayProgram(id)
+  const handleUpdateRegente = (id, regente) => setRegentes(prev => ({ ...prev, [id]: regente }))
   const handleMove = (idx, dir) => {
     const arr = [...todayProgram]
     const newIdx = idx + dir
@@ -373,18 +504,18 @@ function ProgramacaoForm({ programacaoEditando, onLimparEdicao }) {
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
           {/* Left — Acervo */}
           <div className="md:col-span-5 space-y-4">
-            <div className="apple-card p-4">
-              <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+            <div className="apple-card p-4 flex flex-col h-full">
+              <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2 shrink-0">
                 <Music size={18} className="text-[#007AFF]" /> Acervo de Hinos
               </h3>
-              <div className="relative mb-3">
+              <div className="relative mb-3 shrink-0">
                 <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Buscar por número ou título..." className="input-apple pl-9" />
               </div>
-              <button onClick={() => { setEditingHymn(null); setHymnModalOpen(true); }} className="w-full mb-3 text-sm font-medium text-[#007AFF] hover:text-[#0062CC] flex items-center justify-center gap-1 py-2 rounded-xl border border-dashed border-[#007AFF]/30 hover:border-[#007AFF] hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors">
+              <button onClick={() => { setEditingHymn(null); setHymnModalOpen(true); }} className="w-full mb-3 text-sm font-medium text-[#007AFF] hover:text-[#0062CC] flex items-center justify-center gap-1 py-2 rounded-xl border border-dashed border-[#007AFF]/30 hover:border-[#007AFF] hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors shrink-0">
                 <Plus size={16} /> Novo Hino
               </button>
-              <div className="space-y-1 max-h-[480px] overflow-y-auto pr-1">
+              <div className="space-y-1 flex-1 max-h-[480px] overflow-y-auto pr-1">
                 {filteredHymns.length === 0 ? (
                   <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-8">Nenhum hino encontrado</p>
                 ) : (
@@ -398,8 +529,8 @@ function ProgramacaoForm({ programacaoEditando, onLimparEdicao }) {
 
           {/* Right — Ordem do Culto */}
           <div className="md:col-span-7">
-            <div className="apple-card p-4 min-h-[400px]">
-              <div className="flex items-center justify-between mb-4">
+            <div className="apple-card p-4 flex flex-col h-full">
+              <div className="flex items-center justify-between mb-4 shrink-0">
                 <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                   <Music size={18} className="text-purple-500" /> Ordem do Culto
                 </h3>
@@ -407,7 +538,7 @@ function ProgramacaoForm({ programacaoEditando, onLimparEdicao }) {
               </div>
 
               {todayProgram.length === 0 ? (
-                <div className="empty-state">
+                <div className="empty-state flex-1 flex flex-col items-center justify-center min-h-[200px]">
                   <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-4">
                     <Music size={32} className="text-gray-300 dark:text-gray-500" />
                   </div>
@@ -415,17 +546,26 @@ function ProgramacaoForm({ programacaoEditando, onLimparEdicao }) {
                   <p className="text-sm text-gray-500 dark:text-gray-400">Busque hinos ao lado para começar</p>
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-3 flex-1 overflow-y-auto max-h-[480px] pr-2">
                   {programHymns.map((hymn, idx) => hymn && (
-                    <ProgrammedHymnItem key={hymn.id} hymn={hymn} index={idx} total={todayProgram.length} onRemove={handleRemove} onMove={handleMove} isFirst={idx === 0} isLast={idx === todayProgram.length - 1} />
+                    <ProgrammedHymnItem key={hymn.id} hymn={hymn} index={idx} total={todayProgram.length} onRemove={handleRemove} onMove={handleMove} isFirst={idx === 0} isLast={idx === todayProgram.length - 1} onUpdateRegente={handleUpdateRegente} />
                   ))}
                 </div>
               )}
 
               {todayProgram.length > 0 && (
-                <div className="mt-6 pt-4 border-t border-gray-100 dark:border-gray-700 flex justify-end">
-                  <button onClick={handleConfirm} disabled={saving || saved} className="btn-apple-primary px-8">
-                    {saving ? <><Loader2 size={18} className="animate-spin" /> Salvando...</> : saved ? <><Check size={18} /> Salvo!</> : <><Save size={18} /> Salvar Programação</>}
+                <div className="mt-auto pt-5 border-t border-gray-100 dark:border-gray-700 flex gap-3 shrink-0">
+                  {programacaoEditando && (
+                    <button
+                      onClick={onCancelarEdicao || onLimparEdicao}
+                      disabled={saving}
+                      className="btn-apple-secondary flex-1 py-3"
+                    >
+                      Cancelar Edição
+                    </button>
+                  )}
+                  <button onClick={handleConfirm} disabled={saving || saved} className="btn-apple-primary flex-1 py-3">
+                    {saving ? <><Loader2 size={18} className="animate-spin" /> Salvando...</> : saved ? <><Check size={18} /> Salvo!</> : <><Save size={18} /> {programacaoEditando ? 'Salvar Alterações' : 'Salvar Programação'}</>}
                   </button>
                 </div>
               )}
@@ -460,6 +600,12 @@ export default function ProgrammingPage() {
     setTodayProgram(prog.hinos)
     setProgramacaoEditando(prog)
     setActiveTab('programar')
+  }
+
+  const handleCancelarEdicao = () => {
+    setProgramacaoEditando(null)
+    setTodayProgram([])
+    setActiveTab('historico')
   }
 
   const handleExcluirProgramacao = (progId) => {
@@ -515,7 +661,7 @@ export default function ProgrammingPage() {
         </div>
 
         <div className="animate-fade-in">
-          {activeTab === 'programar' && <ProgramacaoForm programacaoEditando={programacaoEditando} onLimparEdicao={() => setProgramacaoEditando(null)} />}
+          {activeTab === 'programar' && <ProgramacaoForm programacaoEditando={programacaoEditando} onLimparEdicao={() => setProgramacaoEditando(null)} onCancelarEdicao={handleCancelarEdicao} />}
           {activeTab === 'historico' && <HistoricoTab onEditarProgramacao={handleEditarProgramacao} onExcluirProgramacao={handleExcluirProgramacao} />}
         </div>
       </div>
@@ -533,7 +679,7 @@ export default function ProgrammingPage() {
               Confirmar Exclusão
             </h2>
             <p className="text-gray-600 dark:text-gray-400 mb-6">
-              Tem certeza que deseja excluir a programação do dia <strong className="text-gray-900 dark:text-white">{programToDelete.data}</strong>? Esta ação não pode ser desfeita e irá recalcular as datas de apresentação dos hinos vinculados.
+              Tem certeza que deseja excluir a programação do dia <strong className="text-gray-900 dark:text-white">{formatDate(programToDelete.data)}</strong>? Esta ação não pode ser desfeita e irá recalcular as datas de apresentação dos hinos vinculados.
             </p>
 
             <div className="flex gap-3 justify-end">

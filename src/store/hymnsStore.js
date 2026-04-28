@@ -128,6 +128,10 @@ const useHymnsStore = create((set, get) => ({
     set({ todayProgram: [...todayProgram, hymnId] })
   },
 
+  setTodayProgram: (hymns) => {
+    set({ todayProgram: hymns })
+  },
+
   removeFromTodayProgram: (hymnId) => {
     set((state) => ({
       todayProgram: state.todayProgram.filter(id => id !== hymnId),
@@ -141,6 +145,7 @@ const useHymnsStore = create((set, get) => ({
   confirmTodayProgram: async (data_culto, tipo_culto, responsavel) => {
     try {
       const { todayProgram } = get()
+
       const payload = {
         data: data_culto,
         tipo_culto,
@@ -168,6 +173,38 @@ const useHymnsStore = create((set, get) => ({
       }
     } catch (error) {
       console.error('Erro ao confirmar programação', error)
+      throw error
+    }
+  },
+
+  // Atualizar programação
+  updateProgramacao: async (id, data_culto, tipo_culto, responsavel) => {
+    try {
+      const { todayProgram } = get()
+
+      const payload = {
+        data: data_culto,
+        tipo_culto,
+        responsavel,
+        status: 'confirmado',
+        hinos_json: JSON.stringify(todayProgram)
+      }
+      const { data } = await api.patch(`/api/programacoes/${id}`, payload)
+
+      const updatedEntry = {
+        ...data,
+        hinos_json: safeParseJson(data.hinos_json)
+      }
+
+      set((state) => ({
+        programHistory: state.programHistory.map(p => p.id === id ? updatedEntry : p),
+        todayProgram: [],
+      }))
+
+      // Recarrega os hinos para atualizar as datas de última apresentação caso as datas mudem
+      await get().fetchHymns()
+    } catch (error) {
+      console.error('Erro ao atualizar programação', error)
       throw error
     }
   },

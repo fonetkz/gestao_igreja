@@ -364,7 +364,8 @@ def criar_programacao(
     hinos_ids = _parse_json(prog.hinos_json)
     data_culto = prog.data
     
-    for hino_id in hinos_ids:
+    for item in hinos_ids:
+        hino_id = item.get("id") if isinstance(item, dict) else item
         hino = session.get(Hino, hino_id)
         if hino:
             if not hino.data_ultima_apresentacao or _compare_dates(hino.data_ultima_apresentacao, data_culto):
@@ -406,7 +407,8 @@ def atualizar_programacao(
         hinos_ids = _parse_json(hinos_json)
         data_culto = prog.data
         
-        for hino_id in hinos_ids:
+        for item in hinos_ids:
+            hino_id = item.get("id") if isinstance(item, dict) else item
             hino = session.get(Hino, hino_id)
             if hino:
                 if not hino.data_ultima_apresentacao or _compare_dates(hino.data_ultima_apresentacao, data_culto):
@@ -447,12 +449,14 @@ def remover_programacao(
         # Recalcula a data_ultima_apresentacao para os hinos que estavam nesta programação
         if hinos_afetados:
             todas_progs = session.exec(select(Programacao)).all()
-            for hino_id in hinos_afetados:
+            for item in hinos_afetados:
+                hino_id = item.get("id") if isinstance(item, dict) else item
                 hino = session.get(Hino, hino_id)
                 if hino:
                     ultima_data = None
                     for p in todas_progs:
-                        if hino_id in _parse_json(p.hinos_json):
+                        p_hinos = _parse_json(p.hinos_json)
+                        if any((x.get("id") if isinstance(x, dict) else x) == hino_id for x in p_hinos):
                             # Usa a mesma função de comparação para achar a maior data
                             if ultima_data is None or _compare_dates(ultima_data, p.data):
                                 ultima_data = p.data
