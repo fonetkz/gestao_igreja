@@ -110,6 +110,7 @@ function AccordionItem({ listName, title, icon: Icon }) {
 // ─── Seção de configurações auxiliares ─────────────────────────────────────
 const sectionConfigs = [
   { listName: 'meetingTypes', title: 'Tipos de Reunião', icon: Calendar },
+  { listName: 'hymnTypes', title: 'Tipos de Hinos', icon: Music },
   { listName: 'voices', title: 'Vozes do Coral', icon: Music },
   { listName: 'instruments', title: 'Instrumentos', icon: Music },
   { listName: 'statuses', title: 'Situações de Membro', icon: Award },
@@ -180,7 +181,7 @@ export default function SettingsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Sidebar */}
           <div className="lg:col-span-1">
-            <div className="apple-card p-3 space-y-2">
+            <div className="apple-card p-2">
               {sidebarItems.map((item) => {
                 const Icon = item.icon
                 const isActive = activeSection === item.id
@@ -188,11 +189,10 @@ export default function SettingsPage() {
                   <button
                     key={item.id}
                     onClick={() => setActiveSection(item.id)}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-                      isActive
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${isActive
                         ? 'bg-gray-100 dark:bg-gray-700/50 text-gray-900 dark:text-white'
                         : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700/30'
-                    }`}
+                      }`}
                   >
                     <Icon size={18} />
                     {item.label}
