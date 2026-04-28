@@ -4,6 +4,7 @@ import Topbar from '../components/layout/Topbar'
 import Modal from '../components/ui/Modal'
 import useHymnsStore from '../store/hymnsStore'
 import useSettingsStore from '../store/settingsStore'
+import useAuthStore from '../store/authStore'
 
 // ─── HymnResultItem ──────────────────────────────────────────────────────────
 function HymnResultItem({ hymn, onAdd, isAdded }) {
@@ -24,12 +25,12 @@ function HymnResultItem({ hymn, onAdd, isAdded }) {
         </p>
         <div className="flex items-center gap-2 mt-1">
           {daysSince !== null ? (
-            <span className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
-              <Clock size={10} /> {daysSince}d atrás
+<span className="text-xs text-orange-600 dark:text-orange-400 bg-orange-100 dark:bg-orange-900/30 px-2 py-0.5 rounded-full font-medium">
+              {daysSince >= 365 ? `${Math.floor(daysSince / 365)}a atrás` : daysSince >= 30 ? `${Math.floor(daysSince / 30)}m atrás` : `${daysSince}d atrás`}
             </span>
           ) : (
             <span className="text-xs text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-2 py-0.5 rounded-full font-medium">
-              Nunca tocado
+              Nunca utilizado
             </span>
           )}
           {hymn.tonalidade && (
@@ -118,12 +119,35 @@ function NewHymnModal({ isOpen, onClose, onSave }) {
 }
 
 // ─── HistoricoTab ─────────────────────────────────────────────────────────────
-function HistoricoTab() {
+function HistoricoTab({ onEditarProgramacao, onExcluirProgramacao }) {
   const programHistory = useHymnsStore((s) => s.programHistory)
   const fetchProgramHistory = useHymnsStore((s) => s.fetchProgramHistory)
   const getHymnById = useHymnsStore((s) => s.getHymnById)
+  const [expanded, setExpanded] = useState({})
 
   useEffect(() => { fetchProgramHistory() }, [])
+
+  const toggleExpand = (id) => setExpanded(prev => ({ ...prev, [id]: !prev[id] }))
+
+  const handleExcluir = (progId) => {
+    if (onExcluirProgramacao) {
+      onExcluirProgramacao(progId)
+    }
+  }
+
+  const handleEditar = (prog) => {
+    const hinos = Array.isArray(prog.hinos_json) ? prog.hinos_json : []
+    const programacaoeditavel = {
+      id: prog.id,
+      data: prog.data,
+      tipo: prog.tipo_culto || prog.contexto,
+      responsavel: prog.responsavel,
+      hinos: hinos
+    }
+    if (onEditarProgramacao) {
+      onEditarProgramacao(programacaoeditavel)
+    }
+  }
 
   if (programHistory.length === 0) {
     return (
@@ -143,40 +167,54 @@ function HistoricoTab() {
     <div className="space-y-4">
       {programHistory.map((prog) => {
         const hinos = Array.isArray(prog.hinos_json) ? prog.hinos_json : []
+        const isExpanded = expanded[prog.id]
         return (
           <div key={prog.id} className="apple-card p-5">
-            <div className="flex items-start justify-between mb-4">
-              <div>
-                <div className="flex items-center gap-2">
-                  <Calendar size={16} className="text-[#007AFF]" />
-                  <span className="font-semibold text-gray-900 dark:text-white">{prog.data}</span>
-                  <span className="badge-info">{prog.tipo_culto || prog.contexto}</span>
-                </div>
-                {prog.responsavel && (
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Responsável: {prog.responsavel}</p>
-                )}
-              </div>
-              <span className="text-sm font-semibold text-gray-500 dark:text-gray-400">
-                {hinos.length} {hinos.length === 1 ? 'hino' : 'hinos'}
-              </span>
-            </div>
-
-            <div className="space-y-2">
-              {hinos.map((hymnId, idx) => {
-                const hymn = getHymnById(hymnId)
-                if (!hymn) return null
-                return (
-                  <div key={hymnId} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/40 rounded-xl">
-                    <span className="w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center text-xs font-bold text-gray-600 dark:text-gray-300">
-                      {idx + 1}
-                    </span>
-                    <span className="text-[#007AFF] font-semibold text-sm">#{hymn.numero}</span>
-                    <span className="text-sm font-medium text-gray-900 dark:text-white flex-1">{hymn.titulo}</span>
-                    {hymn.tonalidade && <span className="text-xs text-gray-400 dark:text-gray-500">Tom: {hymn.tonalidade}</span>}
+            <button onClick={() => toggleExpand(prog.id)} className="w-full text-left">
+              <div className="flex items-start justify-between">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <Calendar size={16} className="text-[#007AFF]" />
+                    <span className="font-semibold text-gray-900 dark:text-white">{prog.data}</span>
+                    <span className="badge-info">{prog.tipo_culto || prog.contexto}</span>
                   </div>
-                )
-              })}
-            </div>
+                  {prog.responsavel && (
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Responsável: {prog.responsavel}</p>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold text-gray-500 dark:text-gray-400">
+                    {hinos.length} {hinos.length === 1 ? 'hino' : 'hinos'}
+                  </span>
+                  <ChevronDown size={20} className={`text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                </div>
+              </div>
+            </button>
+
+            {isExpanded && (
+              <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700 space-y-2">
+                {hinos.map((hymnId, idx) => {
+                  const hymn = getHymnById(hymnId)
+                  if (!hymn) return null
+                  return (
+                    <div key={hymnId} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/40 rounded-xl">
+                      <span className="w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center text-xs font-bold text-gray-600 dark:text-gray-300">
+                        {idx + 1}
+                      </span>
+                      <span className="text-[#007AFF] font-semibold text-sm">#{hymn.numero}</span>
+                      <span className="text-sm font-medium text-gray-900 dark:text-white flex-1">{hymn.titulo}</span>
+                      {hymn.tonalidade && <span className="text-xs text-gray-400 dark:text-gray-500">Tom: {hymn.tonalidade}</span>}
+                    </div>
+                  )
+                })}
+                <button onClick={() => handleEditar(prog)} className="flex-1 mt-3 py-2 text-sm font-medium text-[#007AFF] border border-dashed border-[#007AFF]/30 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors">
+                  Editar
+                </button>
+                <button onClick={() => handleExcluir(prog.id)} className="flex-1 mt-3 ml-2 py-2 text-sm font-medium text-red-500 border border-dashed border-red-300/30 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors">
+                  Excluir
+                </button>
+              </div>
+            )}
           </div>
         )
       })}
@@ -185,13 +223,14 @@ function HistoricoTab() {
 }
 
 // ─── ProgramacaoForm ─────────────────────────────────────────────────────────
-function ProgramacaoForm() {
+function ProgramacaoForm({ programacaoEditando, onLimparEdicao }) {
   const hymns = useHymnsStore((s) => s.hymns)
   const todayProgram = useHymnsStore((s) => s.todayProgram)
   const addToTodayProgram = useHymnsStore((s) => s.addToTodayProgram)
   const removeFromTodayProgram = useHymnsStore((s) => s.removeFromTodayProgram)
   const reorderTodayProgram = useHymnsStore((s) => s.reorderTodayProgram)
   const confirmTodayProgram = useHymnsStore((s) => s.confirmTodayProgram)
+  const updateProgramacao = useHymnsStore((s) => s.updateProgramacao)
   const addHymn = useHymnsStore((s) => s.addHymn)
   const searchHymns = useHymnsStore((s) => s.searchHymns)
   const meetingTypes = useSettingsStore((s) => s.meetingTypes)
@@ -203,6 +242,26 @@ function ProgramacaoForm() {
   const [showNewHymnModal, setShowNewHymnModal] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [errors, setErrors] = useState({})
+
+  const validate = () => {
+    const newErrors = {}
+    if (!serviceType) newErrors.serviceType = true
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+
+  useEffect(() => {
+    const user = useAuthStore.getState().user
+    const userName = user?.name || ''
+    if (programacaoEditando) {
+      setServiceDate(programacaoEditando.data || new Date().toISOString().split('T')[0])
+      setServiceType(programacaoEditando.tipo || '')
+      setResponsavel(programacaoEditando.responsavel || userName)
+    } else if (!serviceType) {
+      setResponsavel(userName)
+    }
+  }, [programacaoEditando])
 
   const filteredHymns = useMemo(() => searchHymns(searchTerm), [hymns, searchTerm])
   const programHymns = useMemo(() => todayProgram.map(id => hymns.find(h => h.id === id)).filter(Boolean), [todayProgram, hymns])
@@ -223,11 +282,16 @@ function ProgramacaoForm() {
   }
 
   const handleConfirm = async () => {
-    if (!serviceDate || todayProgram.length === 0) return
+    if (todayProgram.length === 0 || !validate()) return
     setSaving(true)
     try {
-      await confirmTodayProgram(serviceDate, serviceType || 'Culto Dominical', responsavel)
+      if (programacaoEditando?.id) {
+        await updateProgramacao(programacaoEditando.id, serviceDate, serviceType, responsavel)
+      } else {
+        await confirmTodayProgram(serviceDate, serviceType, responsavel)
+      }
       setSaved(true)
+      if (onLimparEdicao) onLimparEdicao()
       setTimeout(() => setSaved(false), 3000)
     } catch (err) {
       console.error(err)
@@ -248,10 +312,11 @@ function ProgramacaoForm() {
             </div>
             <div className="flex items-center gap-2 flex-1 min-w-[220px]">
               <label className="label-uppercase">Tipo de Culto</label>
-              <select value={serviceType} onChange={(e) => setServiceType(e.target.value)} className="select-apple flex-1">
+              <select value={serviceType} onChange={(e) => setServiceType(e.target.value)} className={`select-apple flex-1 ${errors.serviceType ? 'border-red-400 ring-2 ring-red-400' : ''}`}>
                 <option value="">Selecionar...</option>
                 {meetingTypes.map((t) => <option key={t.id} value={t.label}>{t.label}</option>)}
               </select>
+              {errors.serviceType && <span className="text-xs text-red-500 mt-1">Selecione o tipo de culto</span>}
             </div>
             <div className="flex items-center gap-2">
               <label className="label-uppercase">Responsável</label>
@@ -333,13 +398,41 @@ function ProgramacaoForm() {
 // ─── Page ────────────────────────────────────────────────────────────────────
 export default function ProgrammingPage() {
   const [activeTab, setActiveTab] = useState('programar')
+  const [programacaoEditando, setProgramacaoEditando] = useState(null)
   const fetchHymns = useHymnsStore((s) => s.fetchHymns)
   const fetchProgramHistory = useHymnsStore((s) => s.fetchProgramHistory)
+  const setTodayProgram = useHymnsStore((s) => s.setTodayProgram)
+  const deleteProgramacao = useHymnsStore((s) => s.deleteProgramacao)
 
   useEffect(() => {
     fetchHymns()
     fetchProgramHistory()
   }, [])
+
+  const handleEditarProgramacao = (prog) => {
+    setTodayProgram(prog.hinos)
+    setProgramacaoEditando(prog)
+    setActiveTab('programar')
+  }
+
+  const handleExcluirProgramacao = async (progId) => {
+    console.log('Excluindo programa:', progId)
+    if (confirm('Tem certeza que deseja excluir esta programação?')) {
+      try {
+        await deleteProgramacao(progId)
+      } catch (err) {
+        console.error('Erro ao excluir:', err)
+        alert('Erro ao excluir: ' + (err.response?.data?.detail || err.message))
+      }
+    }
+  }
+
+  const handleTabChange = (tabId) => {
+    setActiveTab(tabId)
+    if (tabId === 'programar' && !programacaoEditando) {
+      setTodayProgram([])
+    }
+  }
 
   const tabs = [
     { id: 'programar', label: 'Nova Programação', icon: Music },
@@ -362,7 +455,7 @@ export default function ProgrammingPage() {
             const Icon = tab.icon
             const isActive = activeTab === tab.id
             return (
-              <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${isActive ? 'bg-white dark:bg-[#2C2C2E] text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}>
+              <button key={tab.id} onClick={() => handleTabChange(tab.id)} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${isActive ? 'bg-white dark:bg-[#2C2C2E] text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}>
                 <Icon size={16} /> {tab.label}
               </button>
             )
@@ -370,8 +463,8 @@ export default function ProgrammingPage() {
         </div>
 
         <div className="animate-fade-in">
-          {activeTab === 'programar' && <ProgramacaoForm />}
-          {activeTab === 'historico' && <HistoricoTab />}
+          {activeTab === 'programar' && <ProgramacaoForm programacaoEditando={programacaoEditando} onLimparEdicao={() => setProgramacaoEditando(null)} />}
+          {activeTab === 'historico' && <HistoricoTab onEditarProgramacao={handleEditarProgramacao} onExcluirProgramacao={handleExcluirProgramacao} />}
         </div>
       </div>
     </div>

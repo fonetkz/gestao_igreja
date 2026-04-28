@@ -1,6 +1,7 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Search, Edit2, Plus, ClipboardList, History, Bell, Users2, MessageSquare, Check, X, Cake, CheckCircle, BellRing, Clock, XCircle, Music, ChevronUp, ChevronDown } from 'lucide-react'
 import Topbar from '../components/layout/Topbar'
+import useSettingsStore from '../store/settingsStore'
 
 function Badge({ children, variant = 'default' }) {
   const variants = {
@@ -82,6 +83,11 @@ const isAniversarioMes = (data) => {
 
 export default function MembersPage() {
   const [activeTab, setActiveTab] = useState('lista')
+  const fetchSettings = useSettingsStore((s) => s.fetchSettings)
+
+  useEffect(() => {
+    fetchSettings()
+  }, [])
   const [searchText, setSearchText] = useState('')
   const [vozFilter, setVozFilter] = useState('')
   const [instrumentoFilter, setInstrumentoFilter] = useState('')
@@ -466,8 +472,9 @@ export default function MembersPage() {
 }
 
 function ChamadaTab({ members, isEditing = false, chamada = null, onSaveEdit = null, onCancelEdit = null }) {
+  const attendanceContexts = useSettingsStore((s) => s.attendanceContexts) || []
   const [dataChamada, setDataChamada] = useState(chamada?.data ? chamada.data.split('/').reverse().join('-') : '2026-04-26')
-  const [contextoChamada, setContextoChamada] = useState(chamada?.tipo || 'Ensaio Geral')
+  const [contextoChamada, setContextoChamada] = useState(chamada?.tipo || attendanceContexts[0]?.label || 'Ensaio Geral')
   const [presencas, setPresencas] = useState(() => {
     if (chamada?.registros) {
       const map = {}
@@ -519,8 +526,9 @@ function ChamadaTab({ members, isEditing = false, chamada = null, onSaveEdit = n
           <div>
             <label className="block text-xs font-semibold text-gray-500 uppercase mb-2">Contexto</label>
             <select value={contextoChamada} onChange={(e) => setContextoChamada(e.target.value)} className="px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm">
-              <option value="Ensaio Geral">Ensaio Geral</option>
-              <option value="Culto Dominical">Culto Dominical</option>
+              {attendanceContexts.map(ctx => (
+                <option key={ctx.id} value={ctx.label}>{ctx.label}</option>
+              ))}
             </select>
           </div>
           <div className="flex-1 min-w-[200px]">
@@ -850,6 +858,7 @@ function JustificativasList({ alert, onSave, onCancel }) {
 }
 
 function EdicaoDrawer({ chamada, members, onSave, onClose }) {
+  const attendanceContexts = useSettingsStore((s) => s.attendanceContexts) || []
   const [presencas, setPresencas] = useState(() => {
     const map = {}
     if (chamada?.registros) {
@@ -865,7 +874,7 @@ function EdicaoDrawer({ chamada, members, onSave, onClose }) {
     return map
   })
   const [search, setSearch] = useState('')
-  const [contexto, setContexto] = useState(chamada?.tipo || chamada?.contexto || 'Ensaio Geral')
+  const [contexto, setContexto] = useState(chamada?.tipo || chamada?.contexto || attendanceContexts[0]?.label || 'Ensaio Geral')
 
   const filteredMembers = members
     .filter(m => !search || m.nome.toLowerCase().includes(search.toLowerCase()))
@@ -916,10 +925,9 @@ function EdicaoDrawer({ chamada, members, onSave, onClose }) {
               onChange={(e) => setContexto(e.target.value)}
               className="px-3 py-2 bg-gray-50 border-0 rounded-lg text-sm sm:w-48 outline-none focus:ring-2 focus:ring-blue-500/30"
             >
-              <option value="Ensaio Geral">Ensaio Geral</option>
-              <option value="Culto Dominical">Culto Dominical</option>
-              <option value="Culto de Celebração">Culto de Celebração</option>
-              <option value="Ensaio de Naipe">Ensaio de Naipe</option>
+              {attendanceContexts.map(ctx => (
+                <option key={ctx.id} value={ctx.label}>{ctx.label}</option>
+              ))}
             </select>
           </div>
 
