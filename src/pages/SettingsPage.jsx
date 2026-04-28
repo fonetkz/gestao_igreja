@@ -180,7 +180,7 @@ export default function SettingsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Sidebar */}
           <div className="lg:col-span-1">
-            <div className="apple-card p-2">
+            <div className="apple-card p-3 space-y-2">
               {sidebarItems.map((item) => {
                 const Icon = item.icon
                 const isActive = activeSection === item.id

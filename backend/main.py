@@ -26,7 +26,18 @@ from pydantic import BaseModel, field_validator
 import secrets
 import json
 import re
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
+
+def _compare_dates(d1_str, d2_str):
+    try:
+        if not d1_str or not d2_str:
+            return True
+        d1 = datetime.strptime(str(d1_str), '%Y-%m-%d')
+        d2 = datetime.strptime(str(d2_str), '%Y-%m-%d')
+        return d2 > d1
+    except Exception as e:
+        print(f'Date compare error: {e}')
+        return False
 
 from config import DIST_DIR
 from email_service import send_password_reset_email
@@ -182,7 +193,8 @@ def remover_membro(
 def listar_hinos(
     session: Session = Depends(get_session),
 ) -> Sequence[Hino]:
-    return session.exec(select(Hino).order_by(Hino.numero)).all()
+    hinos = session.exec(select(Hino).order_by(Hino.numero)).all()
+    return hinos
 
 
 @app.get("/api/hinos/{hino_id}", response_model=HinoRead)
@@ -338,6 +350,27 @@ def criar_programacao(
     session.add(prog)
     session.commit()
     session.refresh(prog)
+    
+    def _parse_json(js):
+        if isinstance(js, list):
+            return js
+        if isinstance(js, str):
+            try:
+                return json.loads(js)
+            except:
+                return []
+        return []
+    
+    hinos_ids = _parse_json(prog.hinos_json)
+    data_culto = prog.data
+    
+    for hino_id in hinos_ids:
+        hino = session.get(Hino, hino_id)
+        if hino:
+            hino.data_ultima_apresentacao = data_culto
+            session.add(hino)
+    
+    session.commit()
     return prog
 
 
@@ -350,9 +383,34 @@ def atualizar_programacao(
     prog = session.get(Programacao, prog_id)
     if not prog:
         raise HTTPException(404, "Programação não encontrada")
+    
+    def _parse_json(js):
+        if isinstance(js, list):
+            return js
+        if isinstance(js, str):
+            try:
+                return json.loads(js)
+            except:
+                return []
+        return []
+    
     data = payload.model_dump(exclude_unset=True)
+    hinos_json = data.pop('hinos_json', None)
+    
     for field, value in data.items():
         setattr(prog, field, value)
+    
+    if hinos_json:
+        prog.hinos_json = hinos_json
+        hinos_ids = _parse_json(hinos_json)
+        data_culto = prog.data
+        
+        for hino_id in hinos_ids:
+            hino = session.get(Hino, hino_id)
+            if hino:
+                hino.data_ultima_apresentacao = data_culto
+                session.add(hino)
+    
     session.add(prog)
     session.commit()
     session.refresh(prog)
@@ -364,11 +422,17 @@ def remover_programacao(
     prog_id: int,
     session: Session = Depends(get_session),
 ) -> None:
-    prog = session.get(Programacao, prog_id)
-    if not prog:
-        raise HTTPException(404, "Programação não encontrada")
-    session.delete(prog)
-    session.commit()
+    try:
+        prog = session.get(Programacao, prog_id)
+        if not prog:
+            raise HTTPException(404, "Programação não encontrada")
+        session.delete(prog)
+        session.commit()
+    except HTTPException:
+        raise
+    except Exception as e:
+        session.rollback()
+        raise HTTPException(500, f"Erro ao excluir: {str(e)}")
 
 
 # ═══════════════════════════════════════════════════════════
