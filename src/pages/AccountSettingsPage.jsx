@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { 
-  LayoutDashboard, Users, Settings, User, Mail, Lock, Eye, EyeOff, 
+import {
+  LayoutDashboard, Users, Settings, User, Mail, Lock, Eye, EyeOff,
   Shield, Star, AlertCircle, Check, ChevronRight
 } from 'lucide-react'
 import Topbar from '../components/layout/Topbar'
@@ -11,7 +11,7 @@ export default function AccountSettingsPage() {
   const [localEmail, setLocalEmail] = useState('ghr.9165@gmail.com')
   const [localPhone, setLocalPhone] = useState('+55 (17) 99123-4567')
   const [showEmailTooltip, setShowEmailTooltip] = useState(false)
-  
+
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -35,15 +35,17 @@ export default function AccountSettingsPage() {
     <div className="min-h-screen pb-12 bg-[#F5F5F7] dark:bg-[#1C1C1E]">
       <Topbar title="Gestão Igreja" />
 
-      <div className="px-8 max-w-5xl mx-auto mt-8 space-y-8">
+      <div className="px-8 max-w-7xl mx-auto mt-8">
         {/* Page Header */}
-        <div>
-          <h1 className="text-3xl font-semibold text-gray-900 dark:text-white">Gerenciamento da Conta</h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-1">Gerencie suas informações pessoais e de segurança.</p>
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-3xl font-semibold text-gray-900 dark:text-white">Gerenciamento da Conta</h1>
+            <p className="text-gray-500 dark:text-gray-400 mt-1">Gerencie suas informações pessoais e de segurança.</p>
+          </div>
         </div>
 
         {/* Account Profile Card */}
-        <div className="apple-card overflow-hidden">
+        <div className="apple-card overflow-hidden mb-8">
           {/* Profile Identity Card */}
           <div className="flex items-center gap-5 p-6 border-b border-gray-100 dark:border-gray-700">
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#007AFF] to-[#0051D4] flex items-center justify-center shadow-lg shadow-blue-500/20">
@@ -80,9 +82,9 @@ export default function AccountSettingsPage() {
                       <Mail size={18} className="text-gray-400 dark:text-gray-500" />
                     </div>
                   </div>
-                  
+
                   {/* Email Verification Tooltip */}
-                  <div 
+                  <div
                     className="absolute -right-2 top-1/2 -translate-y-1/2 z-20"
                     onMouseEnter={() => setShowEmailTooltip(true)}
                     onMouseLeave={() => setShowEmailTooltip(false)}
@@ -174,7 +176,7 @@ export default function AccountSettingsPage() {
             {/* New Password Section */}
             <div className="p-5 rounded-2xl bg-gray-50/50 dark:bg-[#1C1C1E]/50 border border-gray-100 dark:border-gray-700">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-5">Criar nova senha</h3>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 {/* New Password */}
                 <div>
@@ -200,10 +202,9 @@ export default function AccountSettingsPage() {
                   {newPassword && (
                     <div className="mt-3 space-y-2">
                       <div className="h-2 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700">
-                        <div 
-                          className={`h-full rounded-full transition-all duration-500 ${
-                            passwordStrength >= 75 ? 'bg-green-500' : passwordStrength >= 50 ? 'bg-amber-500' : 'bg-red-500'
-                          }`}
+                        <div
+                          className={`h-full rounded-full transition-all duration-500 ${passwordStrength >= 75 ? 'bg-green-500' : passwordStrength >= 50 ? 'bg-amber-500' : 'bg-red-500'
+                            }`}
                           style={{ width: `${passwordStrength}%` }}
                         />
                       </div>

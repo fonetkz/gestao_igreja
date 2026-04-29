@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Users, TrendingUp, AlertTriangle, Cake, Music } from 'lucide-react'
 import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts'
 import Topbar from '../components/layout/Topbar'
@@ -6,7 +7,7 @@ import Avatar from '../components/ui/Avatar'
 import useMembersStore from '../store/membersStore'
 import useHymnsStore from '../store/hymnsStore'
 
-function StatCard({ icon: Icon, label, value, color, suffix = '' }) {
+function StatCard({ icon: Icon, label, value, color, suffix = '', to }) {
   const colorMap = {
     primary: { bg: 'bg-gray-900 dark:bg-white', icon: 'text-white dark:text-gray-900' },
     success: { bg: 'bg-green-100 dark:bg-green-900/30', icon: 'text-green-600 dark:text-green-400' },
@@ -14,9 +15,11 @@ function StatCard({ icon: Icon, label, value, color, suffix = '' }) {
     info: { bg: 'bg-blue-100 dark:bg-blue-900/30', icon: 'text-blue-600 dark:text-blue-400' },
   }
   const colors = colorMap[color]
+  const CardWrapper = to ? Link : 'div'
+  const wrapperProps = to ? { to, className: "metric-card animate-slide-up group block cursor-pointer transition-all hover:shadow-lg hover:-translate-y-1" } : { className: "metric-card animate-slide-up group" }
 
   return (
-    <div className="metric-card animate-slide-up group">
+    <CardWrapper {...wrapperProps}>
       <div className="flex items-start justify-between mb-4">
         <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${colors.bg} transition-transform duration-300 group-hover:scale-110`}>
           <Icon size={24} className={colors.icon} strokeWidth={2} />
@@ -24,7 +27,7 @@ function StatCard({ icon: Icon, label, value, color, suffix = '' }) {
       </div>
       <p className="text-4xl font-bold text-gray-900 dark:text-white">{value}{suffix === '%' && '%'}</p>
       <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mt-1">{label}</p>
-    </div>
+    </CardWrapper>
   )
 }
 
@@ -184,17 +187,17 @@ export default function DashboardPage() {
               type="month"
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(e.target.value)}
-              className="w-full px-4 py-2 bg-white dark:bg-[#2C2C2E] border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-medium text-gray-900 dark:text-white shadow-sm focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 outline-none transition-all"
+              className="input-apple w-full"
             />
           </div>
         </div>
 
         {/* Stats Grid - 4 columns */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <StatCard icon={Users} label="Integrantes Ativos" value={activeMembers} color="primary" />
-          <StatCard icon={TrendingUp} label="Presença Média" value={overallRate} color="success" suffix="%" />
-          <StatCard icon={AlertTriangle} label="Alertas Críticos" value={problematicMembers.length} color="warning" />
-          <StatCard icon={Cake} label="Aniversariantes" value={birthdayMembers.length} color="info" />
+          <StatCard icon={Users} label="Integrantes Ativos" value={activeMembers} color="primary" to="/membros?view=lista" />
+          <StatCard icon={TrendingUp} label="Presença Média" value={overallRate} color="success" suffix="%" to="/membros?view=chamada" />
+          <StatCard icon={AlertTriangle} label="Alertas Críticos" value={problematicMembers.length} color="warning" to="/membros?view=alertas" />
+          <StatCard icon={Cake} label="Aniversariantes" value={birthdayMembers.length} color="info" to="/membros?view=lista" />
         </div>
 
         {/* Charts Area */}
@@ -246,14 +249,19 @@ export default function DashboardPage() {
           <div className="space-y-6">
             {/* Alerts Card */}
             <div className="apple-card p-5">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
-                  <AlertTriangle size={20} className="text-red-500 dark:text-red-400" strokeWidth={2} />
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                    <AlertTriangle size={20} className="text-red-500 dark:text-red-400" strokeWidth={2} />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900 dark:text-white">Atenção</h3>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">2+ faltas (mês selecionado)</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900 dark:text-white">Atenção</h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">2+ faltas (mês selecionado)</p>
-                </div>
+                <Link to="/membros?view=alertas" className="text-xs font-semibold text-[#007AFF] hover:text-[#0062CC] dark:text-blue-400 transition-colors">
+                  Ver todos
+                </Link>
               </div>
 
               <div className="space-y-3">
@@ -276,14 +284,19 @@ export default function DashboardPage() {
 
             {/* Birthdays Card */}
             <div className="apple-card p-5">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-xl bg-pink-100 dark:bg-pink-900/30 flex items-center justify-center">
-                  <Cake size={20} className="text-pink-500 dark:text-pink-400" strokeWidth={2} />
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-pink-100 dark:bg-pink-900/30 flex items-center justify-center">
+                    <Cake size={20} className="text-pink-500 dark:text-pink-400" strokeWidth={2} />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900 dark:text-white">Aniversariantes</h3>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">No mês selecionado</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900 dark:text-white">Aniversariantes</h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">No mês selecionado</p>
-                </div>
+                <Link to="/membros?view=lista" className="text-xs font-semibold text-[#007AFF] hover:text-[#0062CC] dark:text-blue-400 transition-colors">
+                  Ver todos
+                </Link>
               </div>
 
               <div className="space-y-3">
@@ -311,7 +324,7 @@ export default function DashboardPage() {
                           <p className="text-sm font-semibold text-gray-900 dark:text-white">{m.nome}</p>
                           <p className="text-xs text-gray-500 dark:text-gray-400">{m.secao || m.instrumento_voz}</p>
                         </div>
-                        <span className="text-sm font-bold text-pink-600 dark:text-pink-400 bg-white dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-pink-100 dark:border-pink-800/50 shadow-sm">
+                        <span className="text-sm font-bold text-pink-600 dark:text-pink-400 bg-white dark:bg-gray-800 px-2.5 py-1 rounded-lg border border-pink-100 dark:border-pink-800/50 shadow-sm">
                           {String(day).padStart(2, '0')}/{String(month).padStart(2, '0')}
                         </span>
                       </div>
