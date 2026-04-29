@@ -41,15 +41,15 @@ def main() -> None:
         str(SPEC_FILE),
     ])
 
-    output = ROOT / "dist_desktop" / "ChoirDeck"
+    output = ROOT / "dist_desktop" / "GestaoIgreja"
     # PyInstaller default output é em dist/, mas com --distpath poderíamos mudar
-    pyinstaller_out = ROOT / "dist" / "ChoirDeck"
+    pyinstaller_out = ROOT / "dist" / "GestaoIgreja"
     if not pyinstaller_out.is_dir():
-        pyinstaller_out = ROOT / "dist_desktop" / "ChoirDeck"
+        pyinstaller_out = ROOT / "dist_desktop" / "GestaoIgreja"
 
     print(f"\n✓ Build concluído!")
     print(f"  Executável em: {pyinstaller_out}")
-    print(f"  Execute: ChoirDeck.exe")
+    print(f"  Execute: GestaoIgreja.exe")
 
 
 if __name__ == "__main__":

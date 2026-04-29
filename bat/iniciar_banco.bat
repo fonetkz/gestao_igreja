@@ -1,6 +1,6 @@
 @echo off
 echo ========================================
-echo Inicializando Banco de Dados - Choir Deck
+echo Inicializando Banco de Dados - Gestão Igreja
 echo ========================================
 
 cd /d "%~dp0backend"
