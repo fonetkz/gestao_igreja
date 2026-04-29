@@ -139,7 +139,7 @@ function CadastroTab() {
               </div>
               <div className="pt-2">
                 <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 block mb-3">Situação Atual</label>
-                <RadioGroup options={[{ value: 'Ativo', label: 'Ativo' }, { value: 'Licença', label: 'Em Licença' }, { value: 'Ausente', label: 'Ausente' }]} value={form.status} onValueChange={(v) => setForm(f => ({ ...f, status: v }))} />
+                <RadioGroup options={[{ value: 'Ativo', label: 'Ativo' }, { value: 'Licença', label: 'Licença' }, { value: 'Ausente', label: 'Ausente' }]} value={form.status} onValueChange={(v) => setForm(f => ({ ...f, status: v }))} />
               </div>
               <div className="pt-4 mt-6 border-t border-slate-200 dark:border-slate-700 flex gap-3">
                 <Button type="submit" size="lg" className="flex-1" icon={editingId ? Edit2 : UserPlus}>{editingId ? 'Atualizar Cadastro' : 'Salvar Cadastro'}</Button>
@@ -574,10 +574,10 @@ export default function MembersPage() {
               </div>
               <Card padding="none" className="overflow-hidden">
                 <div className="p-4 border-b border-slate-200 dark:border-slate-700">
-</TabsContent>
-</Tabs>
-</div>
-</div>
-</Modal>
-</div>
-)
+                </TabsContent>
+              </Tabs>
+            </div>
+          </div>
+        </Modal>
+      </div>
+      )

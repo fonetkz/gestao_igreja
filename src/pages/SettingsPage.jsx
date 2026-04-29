@@ -1,8 +1,9 @@
-import React, { useState } from 'react'
-import { Plus, Trash2, Check, User, Lock, Eye, EyeOff, Save, Shield, ChevronDown, Music, Users, Calendar, Award, Edit2, X } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { Plus, Trash2, Check, User, Lock, Eye, EyeOff, Save, Shield, ChevronDown, Music, Users, Calendar, Award, Edit2, X, Loader2, Mail, AlertTriangle, CheckCircle } from 'lucide-react'
 import Topbar from '../components/layout/Topbar'
 import useAuthStore from '../store/authStore'
 import useSettingsStore from '../store/settingsStore'
+import api from '../services/api'
 
 // ─── AccordionItem conectado ao settingsStore ───────────────────────────────
 function AccordionItem({ listName, title, icon: Icon }) {
@@ -113,7 +114,7 @@ const sectionConfigs = [
   { listName: 'hymnTypes', title: 'Tipos de Hinos', icon: Music },
   { listName: 'voices', title: 'Vozes do Coral', icon: Music },
   { listName: 'instruments', title: 'Instrumentos', icon: Music },
-  { listName: 'statuses', title: 'Situações de Membro', icon: Award },
+  { listName: 'statuses', title: 'Situações do Integrante', icon: Award },
   { listName: 'positions', title: 'Cargos e Funções', icon: Award },
   { listName: 'conductors', title: 'Regentes', icon: Users },
   { listName: 'hymnSections', title: 'Seções de Hinos', icon: Award },
@@ -132,6 +133,10 @@ export default function SettingsPage() {
   const [localName, setLocalName] = useState(user?.name || '')
   const [localEmail, setLocalEmail] = useState(user?.email || '')
   const [profileSaved, setProfileSaved] = useState(false)
+  const [showEmailCodeInput, setShowEmailCodeInput] = useState(false)
+  const [emailCode, setEmailCode] = useState('')
+  const [emailCodeError, setEmailCodeError] = useState('')
+  const [isEmailLoading, setIsEmailLoading] = useState(false)
 
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
@@ -142,24 +147,94 @@ export default function SettingsPage() {
   const [pwdError, setPwdError] = useState('')
   const [pwdSaved, setPwdSaved] = useState(false)
 
+  const [isForgotPwdMode, setIsForgotPwdMode] = useState(false)
+  const [pwdResetCode, setPwdResetCode] = useState('')
+  const [isPwdLoading, setIsPwdLoading] = useState(false)
+
   const handleSaveProfile = async () => {
-    await updateProfile({ name: localName, email: localEmail })
-    setProfileSaved(true)
-    setTimeout(() => setProfileSaved(false), 2000)
+    if (!localName.trim() || !localEmail.trim()) return
+
+    if (localEmail !== user?.email) {
+      setIsEmailLoading(true)
+      try {
+        await api.post('/api/auth/solicitar-troca-email', { new_email: localEmail })
+        setShowEmailCodeInput(true)
+        setEmailCodeError('')
+      } catch (err) {
+        console.error(err)
+        alert('Erro ao solicitar troca de e-mail.')
+      } finally {
+        setIsEmailLoading(false)
+      }
+    } else {
+      await updateProfile({ name: localName, email: localEmail })
+      setProfileSaved(true)
+      setTimeout(() => setProfileSaved(false), 2000)
+    }
+  }
+
+  const handleConfirmEmailChange = async () => {
+    if (!emailCode.trim()) {
+      setEmailCodeError('Digite o código recebido.')
+      return
+    }
+    setIsEmailLoading(true)
+    try {
+      const res = await api.post('/api/auth/confirmar-troca-email', { token: emailCode })
+      await updateProfile({ name: localName, email: res.data.new_email })
+      setShowEmailCodeInput(false)
+      setEmailCode('')
+      setProfileSaved(true)
+      setTimeout(() => setProfileSaved(false), 2000)
+    } catch (err) {
+      setEmailCodeError(err.response?.data?.detail || 'Código inválido ou expirado.')
+    } finally {
+      setIsEmailLoading(false)
+    }
+  }
+
+  const handleRequestPwdReset = async () => {
+    setIsPwdLoading(true)
+    try {
+      await api.post('/api/auth/esqueci-senha', { email: user?.email })
+      setIsForgotPwdMode(true)
+      setPwdError('')
+      setPwdResetCode('')
+    } catch (err) {
+      setPwdError('Erro ao solicitar recuperação. Verifique sua conexão.')
+    } finally {
+      setIsPwdLoading(false)
+    }
   }
 
   const handleSavePassword = async () => {
     setPwdError('')
-    if (!currentPassword) { setPwdError('Digite a senha atual'); return }
-    if (currentPassword !== (passwordHash || 'choir2024')) { setPwdError('Senha atual incorreta'); return }
     if (newPassword.length < 6) { setPwdError('A nova senha deve ter pelo menos 6 caracteres'); return }
     if (newPassword !== confirmPassword) { setPwdError('As senhas não conferem'); return }
-    await updateCredentials(localEmail, newPassword)
-    setPwdSaved(true)
-    setCurrentPassword('')
-    setNewPassword('')
-    setConfirmPassword('')
-    setTimeout(() => setPwdSaved(false), 2000)
+
+    setIsPwdLoading(true)
+    try {
+      if (isForgotPwdMode) {
+        if (!pwdResetCode.trim()) { setPwdError('Digite o código recebido no e-mail'); setIsPwdLoading(false); return }
+        await api.post('/api/auth/redefinir-senha', { token: pwdResetCode, new_password: newPassword })
+        await updateCredentials(user?.email || localEmail, newPassword)
+      } else {
+        if (!currentPassword) { setPwdError('Digite a senha atual'); setIsPwdLoading(false); return }
+        if (currentPassword !== (passwordHash || 'choir2024')) { setPwdError('Senha atual incorreta'); setIsPwdLoading(false); return }
+        await updateCredentials(user?.email || localEmail, newPassword)
+      }
+      setPwdSaved(true)
+      setCurrentPassword('')
+      setNewPassword('')
+      setConfirmPassword('')
+      setPwdResetCode('')
+      setIsForgotPwdMode(false)
+      setTimeout(() => setPwdSaved(false), 2000)
+    } catch (err) {
+      setPwdError(err.response?.data?.detail || 'Erro ao alterar a senha. Verifique o código e tente novamente.')
+    } finally {
+      setIsPwdLoading(false)
+    }
   }
 
   const sidebarItems = [
@@ -190,8 +265,8 @@ export default function SettingsPage() {
                     key={item.id}
                     onClick={() => setActiveSection(item.id)}
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${isActive
-                        ? 'bg-gray-100 dark:bg-gray-700/50 text-gray-900 dark:text-white'
-                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700/30'
+                      ? 'bg-gray-100 dark:bg-gray-700/50 text-gray-900 dark:text-white'
+                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700/30'
                       }`}
                   >
                     <Icon size={18} />
@@ -211,88 +286,254 @@ export default function SettingsPage() {
                 <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">Dados Pessoais</h2>
                 <div className="space-y-4">
                   <div>
-                    <label className="label-uppercase mb-2 block">Nome</label>
-                    <input
-                      type="text"
-                      value={localName}
-                      onChange={(e) => setLocalName(e.target.value)}
-                      className="input-apple"
-                      placeholder="Seu nome completo"
-                    />
+                    <label className="label-uppercase mb-2 block">Nome Completo</label>
+                    <div className="relative">
+                      <User size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                      <input
+                        type="text"
+                        value={localName}
+                        onChange={(e) => setLocalName(e.target.value)}
+                        className="input-apple pl-10"
+                        placeholder="Seu nome completo"
+                        disabled={showEmailCodeInput}
+                      />
+                    </div>
                   </div>
                   <div>
-                    <label className="label-uppercase mb-2 block">E-mail</label>
-                    <input
-                      type="email"
-                      value={localEmail}
-                      onChange={(e) => setLocalEmail(e.target.value)}
-                      className="input-apple"
-                      placeholder="seu@email.com"
-                    />
+                    <label className="label-uppercase mb-2 block">E-mail de Acesso</label>
+                    <div className="relative">
+                      <Mail size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                      <input
+                        type="email"
+                        value={localEmail}
+                        onChange={(e) => setLocalEmail(e.target.value)}
+                        className="input-apple pl-10 pr-28"
+                        placeholder="seu@email.com"
+                        disabled={showEmailCodeInput}
+                      />
+                      <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                        {localEmail === user?.email ? (
+                          <span className="inline-flex items-center gap-1 bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400 text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider">
+                            <CheckCircle size={12} /> Verificado
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400 text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider animate-pulse">
+                            <AlertTriangle size={12} /> Não Salvo
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    {localEmail !== user?.email && !showEmailCodeInput && (
+                      <p className="text-xs text-amber-600 dark:text-amber-400 mt-2 font-medium">
+                        Clique em "Salvar Alterações" para iniciar a verificação deste novo e-mail.
+                      </p>
+                    )}
                   </div>
+
+                  {showEmailCodeInput && (
+                    <div className="p-5 bg-blue-50/50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800/50 rounded-2xl mt-6 animate-slide-up relative overflow-hidden">
+                      <div className="absolute top-0 left-0 w-1 h-full bg-[#007AFF]"></div>
+                      <div className="flex flex-col sm:flex-row items-start gap-4">
+                        <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center shrink-0 hidden sm:flex">
+                          <Mail size={20} className="text-[#007AFF] dark:text-blue-400" />
+                        </div>
+                        <div className="flex-1 w-full">
+                          <h4 className="text-base font-bold text-gray-900 dark:text-white mb-1">
+                            Verifique seu novo e-mail
+                          </h4>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                            Enviamos um código de segurança para <strong className="text-gray-900 dark:text-white">{localEmail}</strong>.
+                            Por favor, insira o código abaixo para confirmar a titularidade.
+                          </p>
+                          <div className="flex flex-col sm:flex-row gap-3">
+                            <input
+                              type="text"
+                              placeholder="Ex: A1B2C3D4"
+                              value={emailCode}
+                              onChange={(e) => setEmailCode(e.target.value.toUpperCase())}
+                              className="input-apple flex-1 uppercase tracking-[0.2em] font-mono text-center sm:text-left text-lg py-2.5"
+                              maxLength={8}
+                              autoComplete="one-time-code"
+                              name="email-verification-code"
+                              autoCorrect="off"
+                              spellCheck={false}
+                            />
+                            <button
+                              onClick={handleConfirmEmailChange}
+                              disabled={isEmailLoading}
+                              className="btn-apple-primary px-8 py-2.5 whitespace-nowrap flex justify-center items-center"
+                            >
+                              {isEmailLoading ? <><Loader2 size={18} className="animate-spin mr-2" /> Verificando</> : 'Confirmar Código'}
+                            </button>
+                          </div>
+                          {emailCodeError && (
+                            <div className="mt-3 text-sm text-red-500 flex items-center gap-1.5 font-medium animate-fade-in">
+                              <AlertTriangle size={14} /> {emailCodeError}
+                            </div>
+                          )}
+                          <button
+                            onClick={() => {
+                              setShowEmailCodeInput(false)
+                              setLocalEmail(user?.email || '')
+                              setEmailCodeError('')
+                              setEmailCode('')
+                            }}
+                            className="text-sm text-[#007AFF] dark:text-blue-400 mt-4 font-semibold hover:underline"
+                          >
+                            Cancelar e manter e-mail atual
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   <div>
-                    <label className="label-uppercase mb-2 block">Cargo</label>
-                    <input
-                      type="text"
-                      value="Administrador"
-                      disabled
-                      className="input-apple opacity-50 cursor-not-allowed"
-                    />
+                    <label className="label-uppercase mb-2 block">Nível de Acesso</label>
+                    <div className="relative">
+                      <Shield size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                      <input
+                        type="text"
+                        value="Administrador Principal"
+                        disabled
+                        className="input-apple pl-10 opacity-60 cursor-not-allowed bg-gray-50 dark:bg-gray-800"
+                      />
+                    </div>
                   </div>
                 </div>
-                <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-700 flex justify-end">
-                  <button onClick={handleSaveProfile} className="btn-apple-primary">
-                    {profileSaved ? <><Check size={16} /> Salvo!</> : <><Save size={16} /> Salvar Alterações</>}
-                  </button>
-                </div>
+                {!showEmailCodeInput && (
+                  <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-700 flex justify-end">
+                    <button onClick={handleSaveProfile} disabled={isEmailLoading} className="btn-apple-primary">
+                      {isEmailLoading ? <><Loader2 size={16} className="animate-spin" /> Processando...</> : profileSaved ? <><Check size={16} /> Salvo!</> : <><Save size={16} /> Salvar Alterações</>}
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 
             {/* ── Segurança ── */}
             {activeSection === 'seguranca' && (
               <div className="apple-card p-6">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">Trocar Senha</h2>
-                <div className="space-y-4">
-                  {[
-                    { label: 'Senha Atual', val: currentPassword, set: setCurrentPassword, show: showCurrentPwd, toggle: () => setShowCurrentPwd(!showCurrentPwd) },
-                    { label: 'Nova Senha', val: newPassword, set: setNewPassword, show: showNewPwd, toggle: () => setShowNewPwd(!showNewPwd) },
-                    { label: 'Confirmar Nova Senha', val: confirmPassword, set: setConfirmPassword, show: showConfirmPwd, toggle: () => setShowConfirmPwd(!showConfirmPwd) },
-                  ].map(({ label, val, set, show, toggle }) => (
-                    <div key={label}>
-                      <label className="label-uppercase mb-2 block">{label}</label>
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 rounded-xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                    <Lock size={20} className="text-red-600 dark:text-red-400" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">Segurança da Conta</h2>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Atualize suas credenciais de acesso.</p>
+                  </div>
+                </div>
+
+                <div className="space-y-5">
+                  {!isForgotPwdMode ? (
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="label-uppercase block">Senha Atual</label>
+                        <button onClick={handleRequestPwdReset} disabled={isPwdLoading} className="text-xs font-bold text-[#007AFF] dark:text-blue-400 hover:underline">
+                          {isPwdLoading ? 'Aguarde...' : 'Esqueci a senha atual'}
+                        </button>
+                      </div>
                       <div className="relative">
+                        <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                         <input
-                          type={show ? 'text' : 'password'}
-                          value={val}
-                          onChange={(e) => set(e.target.value)}
-                          className="input-apple pr-10"
+                          type={showCurrentPwd ? 'text' : 'password'}
+                          value={currentPassword}
+                          onChange={(e) => setCurrentPassword(e.target.value)}
+                          className="input-apple pl-10 pr-10"
                           placeholder="••••••••"
+                          disabled={isPwdLoading}
+                          autoComplete="current-password"
                         />
-                        <button
-                          type="button"
-                          onClick={toggle}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-                        >
-                          {show ? <EyeOff size={18} /> : <Eye size={18} />}
+                        <button type="button" onClick={() => setShowCurrentPwd(!showCurrentPwd)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                          {showCurrentPwd ? <EyeOff size={18} /> : <Eye size={18} />}
                         </button>
                       </div>
                     </div>
-                  ))}
+                  ) : (
+                    <div className="p-5 bg-blue-50/50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800/50 rounded-2xl animate-slide-up relative overflow-hidden">
+                      <div className="absolute top-0 left-0 w-1 h-full bg-[#007AFF]"></div>
+                      <div className="flex flex-col sm:flex-row items-start gap-4">
+                        <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center shrink-0 hidden sm:flex">
+                          <Shield size={20} className="text-[#007AFF] dark:text-blue-400" />
+                        </div>
+                        <div className="flex-1 w-full">
+                          <h4 className="text-base font-bold text-gray-900 dark:text-white mb-1">Recuperação Autorizada</h4>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                            Enviamos um código para <strong className="text-gray-900 dark:text-white">{user?.email}</strong>. Digite-o abaixo e crie sua nova senha.
+                          </p>
+                          <input
+                            type="text"
+                            placeholder="EX: A1B2C3D4"
+                            value={pwdResetCode}
+                            onChange={(e) => setPwdResetCode(e.target.value.toUpperCase())}
+                            className="input-apple uppercase tracking-[0.2em] font-mono text-center text-lg py-2.5 mb-2 w-full sm:max-w-[250px]"
+                            maxLength={8}
+                            disabled={isPwdLoading}
+                            autoComplete="one-time-code"
+                            name="password-reset-code"
+                            autoCorrect="off"
+                            spellCheck={false}
+                          />
+                          <button onClick={() => { setIsForgotPwdMode(false); setPwdError(''); setPwdResetCode('') }} className="block text-sm text-[#007AFF] dark:text-blue-400 mt-2 font-semibold hover:underline">
+                            Lembrei minha senha atual
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 pt-2">
+                    <div>
+                      <label className="label-uppercase mb-2 block">Nova Senha</label>
+                      <div className="relative">
+                        <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                        <input
+                          type={showNewPwd ? 'text' : 'password'}
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          className="input-apple pl-10 pr-10"
+                          placeholder="••••••••"
+                          disabled={isPwdLoading}
+                          autoComplete="new-password"
+                        />
+                        <button type="button" onClick={() => setShowNewPwd(!showNewPwd)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                          {showNewPwd ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="label-uppercase mb-2 block">Confirmar Nova Senha</label>
+                      <div className="relative">
+                        <CheckCircle size={18} className={`absolute left-3 top-1/2 -translate-y-1/2 ${newPassword && newPassword === confirmPassword ? 'text-green-500' : 'text-gray-400'}`} />
+                        <input
+                          type={showConfirmPwd ? 'text' : 'password'}
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          className="input-apple pl-10 pr-10"
+                          placeholder="••••••••"
+                          disabled={isPwdLoading}
+                          autoComplete="new-password"
+                        />
+                        <button type="button" onClick={() => setShowConfirmPwd(!showConfirmPwd)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                          {showConfirmPwd ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 {pwdError && (
-                  <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl text-sm font-medium border border-red-100 dark:border-red-800/30">
-                    {pwdError}
+                  <div className="mt-5 text-sm text-red-500 flex items-center gap-1.5 font-medium bg-red-50 dark:bg-red-900/10 p-3 rounded-xl border border-red-100 dark:border-red-800/30 animate-fade-in">
+                    <AlertTriangle size={16} /> {pwdError}
                   </div>
                 )}
 
-                <div className="mt-6 flex items-center justify-between pt-6 border-t border-gray-100 dark:border-gray-700">
+                <div className="mt-8 flex items-center justify-between pt-6 border-t border-gray-100 dark:border-gray-700">
                   <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
                     <Shield size={14} />
-                    Dados armazenados com segurança
+                    Criptografia PBKDF2 aplicada
                   </div>
-                  <button onClick={handleSavePassword} disabled={pwdSaved} className="btn-apple-primary">
-                    {pwdSaved ? <><Check size={16} /> Salvo!</> : <><Save size={16} /> Atualizar Senha</>}
+                  <button onClick={handleSavePassword} disabled={isPwdLoading || pwdSaved} className="btn-apple-primary px-8 py-2.5">
+                    {isPwdLoading ? <><Loader2 size={16} className="animate-spin mr-2" /> Processando...</> : pwdSaved ? <><Check size={16} className="mr-2" /> Salvo!</> : <><Save size={16} className="mr-2" /> Atualizar Senha</>}
                   </button>
                 </div>
               </div>
@@ -309,6 +550,7 @@ export default function SettingsPage() {
                 ))}
               </div>
             )}
+
           </div>
         </div>
       </div>

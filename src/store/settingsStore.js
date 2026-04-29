@@ -32,7 +32,7 @@ const defaultSettings = {
   ],
   statuses: [
     { id: 1, value: 'Ativo', label: 'Ativo' },
-    { id: 2, value: 'Licença', label: 'Em Licença' },
+    { id: 2, value: 'Licença', label: 'Licença' },
     { id: 3, value: 'Desativado', label: 'Inativo' },
   ],
   voices: [
@@ -67,6 +67,20 @@ const defaultSettings = {
   ],
   conductors: [
     { id: 1, value: 'Elen Márcia', label: 'Elen Márcia' },
+  ],
+  printThemes: [
+    {
+      id: 1,
+      name: 'Clássico (Padrão)',
+      logoUrl: '',
+      headerAlign: 'center',
+      primaryColor: '#000000',
+      showDate: true,
+      showResponsible: true,
+      showType: true,
+      showConductor: true,
+      compactMode: false
+    }
   ]
 }
 
@@ -110,7 +124,7 @@ const useSettingsStore = create((set, get) => ({
         voices: state.voices,
         instruments: state.instruments,
         positions: state.positions,
-        conductors: state.conductors
+        conductors: state.conductors,
       }
       await api.put('/api/config/global_settings', { valor: payload })
     } catch (error) {

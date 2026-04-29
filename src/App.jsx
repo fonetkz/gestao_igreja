@@ -9,6 +9,7 @@ import SettingsPage from './pages/SettingsPage'
 import AccountSettingsPage from './pages/AccountSettingsPage'
 
 import ResetPasswordPage from './pages/ResetPasswordPage'
+import Toast from './components/ui/Toast'
 
 export default function App() {
   return (
@@ -30,6 +31,8 @@ export default function App() {
         {/* Redirect padrão */}
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
+
+      <Toast />
     </BrowserRouter>
   )
 }

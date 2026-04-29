@@ -1,11 +1,10 @@
-import React, { useMemo } from 'react'
+import React, { useMemo, useState } from 'react'
 import { Users, TrendingUp, AlertTriangle, Cake, Music } from 'lucide-react'
 import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts'
 import Topbar from '../components/layout/Topbar'
 import Avatar from '../components/ui/Avatar'
 import useMembersStore from '../store/membersStore'
 import useHymnsStore from '../store/hymnsStore'
-import { useAttendance } from '../hooks/useAttendance'
 
 function StatCard({ icon: Icon, label, value, color, suffix = '' }) {
   const colorMap = {
@@ -44,25 +43,72 @@ function CustomTooltip({ active, payload, label }) {
 
 export default function DashboardPage() {
   const members = useMembersStore((s) => s.members)
-  const getProblematicMembers = useMembersStore((s) => s.getProblematicMembers)
-  const { monthlyData, overallRate } = useAttendance()
+  const storeAttendance = useMembersStore((s) => s.attendance) || []
+
+  const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7))
+
+  // Calcula a taxa de presença geral baseada no histórico de chamadas em tempo real
+  const overallRate = useMemo(() => {
+    if (!storeAttendance || storeAttendance.length === 0) return 0
+    let presences = 0
+    let total = 0
+    storeAttendance.forEach(call => {
+      let isSelectedMonth = false
+      if (call.data) {
+        if (call.data.includes('-') && call.data.startsWith(selectedMonth)) isSelectedMonth = true
+        else if (call.data.includes('/')) {
+          const [d, mo, y] = call.data.split('/')
+          if (`${y}-${mo}` === selectedMonth) isSelectedMonth = true
+        }
+      }
+      if (isSelectedMonth) {
+        const regs = call.registros_json || call.registros || []
+        total += regs.length
+        presences += regs.filter(r => r.presente).length
+      }
+    })
+    return total === 0 ? 0 : Math.round((presences / total) * 100)
+  }, [storeAttendance, selectedMonth])
 
   // Stats reais
   const activeMembers = useMemo(() => members.filter(m => m.status === 'Ativo').length, [members])
-  const problematicMembers = useMemo(() => getProblematicMembers(), [members])
+
+  const problematicMembers = useMemo(() => {
+    return members.map(m => {
+      let unjustifiedCount = 0
+      storeAttendance.forEach(call => {
+        let isSelectedMonth = false
+        if (call.data) {
+          if (call.data.includes('-') && call.data.startsWith(selectedMonth)) isSelectedMonth = true
+          else if (call.data.includes('/')) {
+            const [d, mo, y] = call.data.split('/')
+            if (`${y}-${mo}` === selectedMonth) isSelectedMonth = true
+          }
+        }
+        if (isSelectedMonth) {
+          const regs = call.registros_json || call.registros || []
+          const reg = regs.find(r => String(r.membro_id) === String(m.id))
+          if (reg && !reg.presente && (!reg.justificativa || reg.justificativa.trim() === '')) {
+            unjustifiedCount++
+          }
+        }
+      })
+      return { ...m, unjustified_absences: unjustifiedCount }
+    }).filter(m => m.unjustified_absences >= 2).sort((a, b) => b.unjustified_absences - a.unjustified_absences)
+  }, [members, storeAttendance, selectedMonth])
 
   // Aniversariantes do mês
   const birthdayMembers = useMemo(() => {
-    const currentMonth = new Date().getMonth() + 1
+    const targetMonth = parseInt(selectedMonth.split('-')[1], 10)
     return members.filter(m => {
       if (!m.data_nascimento) return false
       const parts = m.data_nascimento.split('-')
-      if (parts.length === 3) return parseInt(parts[1]) === currentMonth
+      if (parts.length === 3) return parseInt(parts[1], 10) === targetMonth
       const partsSlash = m.data_nascimento.split('/')
-      if (partsSlash.length === 3) return parseInt(partsSlash[1]) === currentMonth
+      if (partsSlash.length === 3) return parseInt(partsSlash[1], 10) === targetMonth
       return false
     })
-  }, [members])
+  }, [members, selectedMonth])
 
   // Presença por seção
   const sectionData = useMemo(() => {
@@ -80,9 +126,47 @@ export default function DashboardPage() {
 
   // Gráfico
   const chartData = useMemo(() => {
-    if (monthlyData.length > 0) return monthlyData.slice(-6)
-    return [{ name: 'Sem dados', presenca: 0 }]
-  }, [monthlyData])
+    if (!storeAttendance || storeAttendance.length === 0) {
+      return [{ name: 'Sem dados', presenca: 0 }]
+    }
+
+    const monthMap = {}
+
+    storeAttendance.forEach(call => {
+      if (!call.data) return
+      let year, month
+      if (call.data.includes('-')) {
+        const parts = call.data.split('T')[0].split('-')
+        year = parts[0]
+        month = parts[1]
+      } else if (call.data.includes('/')) {
+        const parts = call.data.split('/')
+        year = parts[2]
+        month = parts[1]
+      } else {
+        return
+      }
+
+      const key = `${year}-${month}`
+      if (!monthMap[key]) monthMap[key] = { presences: 0, total: 0 }
+
+      const regs = call.registros_json || call.registros || []
+      monthMap[key].total += regs.length
+      monthMap[key].presences += regs.filter(r => r.presente).length
+    })
+
+    const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
+    const result = Object.keys(monthMap).sort().map(key => {
+      const [y, m] = key.split('-')
+      const data = monthMap[key]
+      return {
+        name: `${monthNames[parseInt(m, 10) - 1]}/${y.slice(2)}`,
+        presenca: data.total > 0 ? Math.round((data.presences / data.total) * 100) : 0
+      }
+    })
+
+    return result.length > 0 ? result.slice(-6) : [{ name: 'Sem dados', presenca: 0 }]
+  }, [storeAttendance])
 
   return (
     <div className="min-h-screen pb-12">
@@ -95,11 +179,19 @@ export default function DashboardPage() {
             <h1 className="text-3xl font-semibold text-gray-900 dark:text-white">Dashboard</h1>
             <p className="text-gray-500 dark:text-gray-400 mt-1">Acompanhe as métricas essenciais da sua organização.</p>
           </div>
+          <div className="w-40 sm:w-48">
+            <input
+              type="month"
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              className="w-full px-4 py-2 bg-white dark:bg-[#2C2C2E] border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-medium text-gray-900 dark:text-white shadow-sm focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 outline-none transition-all"
+            />
+          </div>
         </div>
 
         {/* Stats Grid - 4 columns */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <StatCard icon={Users} label="Membros Ativos" value={activeMembers} color="primary" />
+          <StatCard icon={Users} label="Integrantes Ativos" value={activeMembers} color="primary" />
           <StatCard icon={TrendingUp} label="Presença Média" value={overallRate} color="success" suffix="%" />
           <StatCard icon={AlertTriangle} label="Alertas Críticos" value={problematicMembers.length} color="warning" />
           <StatCard icon={Cake} label="Aniversariantes" value={birthdayMembers.length} color="info" />
@@ -131,7 +223,7 @@ export default function DashboardPage() {
             {/* Presence by Section */}
             {sectionData.length > 0 && (
               <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-700">
-                <h4 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">Membros por Seção</h4>
+                <h4 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">Integrantes por Seção</h4>
                 <div className="space-y-3">
                   {sectionData.map((section) => (
                     <div key={section.nome} className="flex items-center gap-4">
@@ -160,13 +252,13 @@ export default function DashboardPage() {
                 </div>
                 <div>
                   <h3 className="font-semibold text-gray-900 dark:text-white">Atenção</h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">2+ faltas no mês</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">2+ faltas (mês selecionado)</p>
                 </div>
               </div>
 
               <div className="space-y-3">
                 {problematicMembers.length === 0 ? (
-                  <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-6">Nenhum alerta no momento 🎉</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-6">Nenhum alerta no momento.</p>
                 ) : (
                   problematicMembers.slice(0, 5).map((m) => (
                     <div key={m.id} className="flex items-center gap-3 p-3 rounded-xl bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-800/30">
@@ -175,7 +267,7 @@ export default function DashboardPage() {
                         <p className="text-sm font-semibold text-gray-900 dark:text-white">{m.nome}</p>
                         <p className="text-xs text-gray-500 dark:text-gray-400">{m.secao || m.instrumento_voz}</p>
                       </div>
-                      <span className="badge-apple bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400">{m.faltas_mes_atual} faltas</span>
+                      <span className="badge-apple bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400">{m.unjustified_absences} faltas</span>
                     </div>
                   ))
                 )}
@@ -190,7 +282,7 @@ export default function DashboardPage() {
                 </div>
                 <div>
                   <h3 className="font-semibold text-gray-900 dark:text-white">Aniversariantes</h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Neste mês</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">No mês selecionado</p>
                 </div>
               </div>
 
@@ -199,7 +291,19 @@ export default function DashboardPage() {
                   <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-6">Nenhum aniversariante este mês</p>
                 ) : (
                   birthdayMembers.slice(0, 5).map((m) => {
-                    const day = m.data_nascimento?.split('-')[2] || m.data_nascimento?.split('/')[0] || '?'
+                    let day = '?'
+                    let month = '?'
+                    if (m.data_nascimento) {
+                      if (m.data_nascimento.includes('-')) {
+                        const parts = m.data_nascimento.split('-')
+                        day = parts[2]
+                        month = parts[1]
+                      } else if (m.data_nascimento.includes('/')) {
+                        const parts = m.data_nascimento.split('/')
+                        day = parts[0]
+                        month = parts[1]
+                      }
+                    }
                     return (
                       <div key={m.id} className="flex items-center gap-3 p-3 rounded-xl bg-pink-50 dark:bg-pink-900/10 border border-pink-100 dark:border-pink-800/30">
                         <Avatar name={m.nome} size="sm" />
@@ -207,7 +311,9 @@ export default function DashboardPage() {
                           <p className="text-sm font-semibold text-gray-900 dark:text-white">{m.nome}</p>
                           <p className="text-xs text-gray-500 dark:text-gray-400">{m.secao || m.instrumento_voz}</p>
                         </div>
-                        <span className="text-lg font-bold text-pink-600 dark:text-pink-400">{parseInt(day)}</span>
+                        <span className="text-sm font-bold text-pink-600 dark:text-pink-400 bg-white dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-pink-100 dark:border-pink-800/50 shadow-sm">
+                          {String(day).padStart(2, '0')}/{String(month).padStart(2, '0')}
+                        </span>
                       </div>
                     )
                   })
