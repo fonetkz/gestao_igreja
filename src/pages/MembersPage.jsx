@@ -197,6 +197,7 @@ export default function MembersPage() {
   })
   const pendingAlerts = membersWithAbsencesData.filter(m => m.unjustified_absences >= 2 && (!alertSearch || m.nome.toLowerCase().includes(alertSearch.toLowerCase())))
   const justifiedAlerts = membersWithAbsencesData.filter(m => m.justified_absences > 0 && (!alertSearch || m.nome.toLowerCase().includes(alertSearch.toLowerCase())))
+  const hasPendingAlerts = membersWithAbsencesData.some(m => m.unjustified_absences >= 2)
 
   const handleSaveEdicaoChamada = async (chamadaId, novosRegistros, novoContexto) => {
     try {
@@ -277,8 +278,14 @@ export default function MembersPage() {
           <button onClick={() => handleTabChange('historico')} className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'historico' ? 'bg-white dark:bg-[#2C2C2E] text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}>
             <History size={16} className="inline mr-2" />Histórico
           </button>
-          <button onClick={() => handleTabChange('alertas')} className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'alertas' ? 'bg-white dark:bg-[#2C2C2E] text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}>
-            <Bell size={16} className="inline mr-2" />Alertas
+          <button onClick={() => handleTabChange('alertas')} className={`flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'alertas' ? 'bg-white dark:bg-[#2C2C2E] text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}>
+            <div className="relative flex items-center justify-center mr-2">
+              <Bell size={16} />
+              {hasPendingAlerts && (
+                <span className={`absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-500 rounded-full ring-2 ${activeTab === 'alertas' ? 'ring-white dark:ring-[#2C2C2E]' : 'ring-gray-100 dark:ring-gray-800'}`} />
+              )}
+            </div>
+            Alertas
           </button>
         </div>
 
@@ -414,14 +421,16 @@ export default function MembersPage() {
                         <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">{formatarTelefone(member.telefone)}</td>
                         <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{formatarDataNascimento(member.data_nascimento)}</td>
                         <td className="px-4 py-3">{member.secao ? <Badge variant="blue">{member.secao}</Badge> : <span className="text-gray-400">—</span>}</td>
-                        <td className="px-4 py-3">{member.instrumento_voz ? <Badge variant="purple">{member.instrumento_voz}</Badge> : <span className="text-gray-400">—</span>}</td>
-                        <td className="px-4 py-3"><Badge variant="default">{member.cargo}</Badge></td>
+                        <td className="px-4 py-3">
+                          {member.instrumento_voz && member.instrumento_voz.split(', ').filter(i => i !== member.secao).join(', ') ? <Badge variant="purple">{member.instrumento_voz.split(', ').filter(i => i !== member.secao).join(', ')}</Badge> : <span className="text-gray-400">—</span>}
+                        </td>
+                        <td className="px-4 py-3">{member.cargo ? <Badge variant="default">{member.cargo}</Badge> : <span className="text-gray-400">—</span>}</td>
                         <td className="px-4 py-3"><Badge variant={getStatusVariant(member.status)}>{member.status}</Badge></td>
                         <td className="px-4 py-3 text-right">
                           <button onClick={() => {
                             setEditingMember({
                               ...member,
-                              instrumentos: member.instrumento_voz ? member.instrumento_voz.split(', ') : [],
+                              instrumentos: member.instrumento_voz ? member.instrumento_voz.split(', ').filter(i => i !== member.secao) : [],
                               cargos: member.cargo ? member.cargo.split(', ') : []
                             });
                             setShowDrawer(true);
@@ -573,7 +582,13 @@ export default function MembersPage() {
                   className="input-apple w-48"
                 />
                 <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
-                  <button onClick={() => setAlertSubTab('pendentes')} className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${alertSubTab === 'pendentes' ? 'bg-white dark:bg-[#2C2C2E] text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>Pendentes</button>
+                  <button onClick={() => setAlertSubTab('pendentes')} className={`flex items-center px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${alertSubTab === 'pendentes' ? 'bg-white dark:bg-[#2C2C2E] text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
+                    <div className="relative flex items-center justify-center mr-1.5">
+                      <BellRing size={14} />
+                      {hasPendingAlerts && <span className={`absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-red-500 rounded-full ring-2 ${alertSubTab === 'pendentes' ? 'ring-white dark:ring-[#2C2C2E]' : 'ring-gray-100 dark:ring-gray-800'}`} />}
+                    </div>
+                    Pendentes
+                  </button>
                   <button onClick={() => setAlertSubTab('justificadas')} className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${alertSubTab === 'justificadas' ? 'bg-white dark:bg-[#2C2C2E] text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>Justificadas</button>
                 </div>
               </div>
@@ -836,14 +851,21 @@ function ChamadaTab({ members, isEditing = false, chamada = null, onSaveEdit = n
                   </div>
                 </div>
                 {showJustificativa && (
-                  <div className="mt-3 pl-11">
+                  <div className="mt-3 pl-11 flex items-center gap-2">
                     <input
                       type="text"
                       placeholder="Adicionar motivo da falta (opcional)"
                       value={justificativas[member.id] || ''}
                       onChange={(e) => updateJustificativa(member.id, e.target.value)}
-                      className="input-apple text-sm"
+                      className="input-apple text-sm flex-1"
                     />
+                    <button
+                      onClick={() => updateJustificativa(member.id, '')}
+                      className="w-10 h-10 flex items-center justify-center rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors shrink-0"
+                      title="Apagar Justificativa"
+                    >
+                      <X size={18} />
+                    </button>
                   </div>
                 )}
               </div>
@@ -1155,13 +1177,23 @@ function JustificativasList({ alert, onSave, onCancel }) {
             <span className="font-semibold text-gray-700 dark:text-gray-300 text-sm">{formatarData(falta.call.data)}</span>
             <span className="text-xs text-gray-500 dark:text-gray-400">- {falta.call.contexto || falta.call.tipo}</span>
           </div>
-          <input
-            type="text"
-            placeholder="Motivo (opcional)..."
-            value={justificativas[falta.call.id] || ''}
-            onChange={(e) => updateJustificativa(falta.call.id, e.target.value)}
-            className="input-apple text-sm"
-          />
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              placeholder="Motivo (opcional)..."
+              value={justificativas[falta.call.id] || ''}
+              onChange={(e) => updateJustificativa(falta.call.id, e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleSalvar() }}
+              className="input-apple text-sm flex-1"
+            />
+            <button
+              onClick={() => updateJustificativa(falta.call.id, '')}
+              className="w-10 h-10 flex items-center justify-center rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors shrink-0"
+              title="Apagar Justificativa"
+            >
+              <X size={18} />
+            </button>
+          </div>
         </div>
       ))}
       <div className="flex gap-3 pt-2">
@@ -1297,14 +1329,21 @@ function EdicaoDrawer({ chamada, members, onSave, onDelete, onClose }) {
                   </div>
                 </div>
                 {showJustificativa && (
-                  <div className="mt-3">
+                  <div className="mt-3 flex items-center gap-2">
                     <input
                       type="text"
                       placeholder="Adicionar motivo da falta (opcional)"
                       value={justificativas[member.id] || ''}
                       onChange={(e) => updateJustificativa(member.id, e.target.value)}
-                      className="input-apple text-sm"
+                      className="input-apple text-sm flex-1"
                     />
+                    <button
+                      onClick={() => updateJustificativa(member.id, '')}
+                      className="w-10 h-10 flex items-center justify-center rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors shrink-0"
+                      title="Apagar Justificativa"
+                    >
+                      <X size={18} />
+                    </button>
                   </div>
                 )}
               </div>

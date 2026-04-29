@@ -15,7 +15,7 @@ def send_password_reset_email(to_email: str, token: str, base_url: str = "http:/
         
     smtp_username = os.getenv("SMTP_USERNAME")
     smtp_password = os.getenv("SMTP_PASSWORD")
-    from_email = os.getenv("SMTP_FROM_EMAIL", "suporte@choirdeck.com")
+    from_email = os.getenv("SMTP_FROM_EMAIL", "suporte@igreja.com")
 
     if not smtp_username or not smtp_password:
         print("Aviso: Credenciais SMTP não configuradas. O e-mail não será enviado.")
@@ -84,7 +84,7 @@ def send_email_change_code(to_email: str, token: str):
         
     smtp_username = os.getenv("SMTP_USERNAME")
     smtp_password = os.getenv("SMTP_PASSWORD")
-    from_email = os.getenv("SMTP_FROM_EMAIL", "suporte@choirdeck.com")
+    from_email = os.getenv("SMTP_FROM_EMAIL", "suporte@igreja.com")
 
     if not smtp_username or not smtp_password:
         print("Aviso: Credenciais SMTP não configuradas. O e-mail não será enviado.")

@@ -25,7 +25,7 @@ export default function Topbar({ title = 'Gestão Igreja', searchPlaceholder, on
 
   const [isDarkMode, setIsDarkMode] = useState(() => {
     try {
-      return localStorage.getItem('choir_deck_theme') === 'dark'
+      return localStorage.getItem('gestao_igreja_theme') === 'dark'
     } catch { return false }
   })
 
@@ -35,10 +35,10 @@ export default function Topbar({ title = 'Gestão Igreja', searchPlaceholder, on
     const root = document.documentElement
     if (next) {
       root.classList.add('dark')
-      localStorage.setItem('choir_deck_theme', 'dark')
+      localStorage.setItem('gestao_igreja_theme', 'dark')
     } else {
       root.classList.remove('dark')
-      localStorage.setItem('choir_deck_theme', 'light')
+      localStorage.setItem('gestao_igreja_theme', 'light')
     }
   }
 

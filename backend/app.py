@@ -7,6 +7,7 @@ import signal
 import socket
 import threading
 import time
+import webbrowser
 from typing import NoReturn
 
 # Adiciona o diretório pai ao path para imports
@@ -14,7 +15,6 @@ base_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(base_dir))
 
 import uvicorn
-import webview
 
 from config import API_HOST, API_PORT
 
@@ -67,23 +67,21 @@ def main() -> NoReturn:
 
     _wait_for_server(API_HOST, port)
 
-    # Janela nativa sem chrome de browser
-    window = webview.create_window(
-        title="Choir Deck",
-        url=url,
-        width=1280,
-        height=800,
-        min_size=(960, 600),
-        resizable=True,
-        text_select=True,
-    )
+    # Abre o navegador padrão do usuário
+    print(f"Abrindo o navegador na URL: {url}")
+    webbrowser.open(url)
 
-    is_frozen = getattr(sys, "frozen", False)
-
-    webview.start(
-        debug=not is_frozen,
-        gui="edgechromium",  # Win10+ usa Edge WebView2
-    )
+    print("\n" + "="*40)
+    print("Servidor do Gestão Igreja está rodando!")
+    print("Feche esta janela (ou pressione Ctrl+C) para encerrar o sistema.")
+    print("="*40 + "\n")
+    
+    # Mantém o processo principal vivo para o servidor continuar rodando
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        pass
 
     # Ao fechar a janela, encerra o processo de forma confiável
     os._exit(0)

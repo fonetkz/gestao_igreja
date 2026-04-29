@@ -2,7 +2,7 @@
 setlocal enabledelayedexpansion
 
 echo ========================================
-echo Rodando Projeto - Choir Deck
+echo Rodando Projeto - Gestão Igreja
 echo ========================================
 
 set PROJECT_ROOT=%~dp0
@@ -29,7 +29,7 @@ if not exist "%PROJECT_ROOT%orquestra.db" (
 
 echo.
 echo ========================================
-echo Iniciando Choir Deck...
+echo Iniciando Gestão Igreja...
 echo ========================================
 echo.
 

@@ -219,7 +219,7 @@ export default function SettingsPage() {
         await updateCredentials(user?.email || localEmail, newPassword)
       } else {
         if (!currentPassword) { setPwdError('Digite a senha atual'); setIsPwdLoading(false); return }
-        if (currentPassword !== (passwordHash || 'choir2024')) { setPwdError('Senha atual incorreta'); setIsPwdLoading(false); return }
+        if (currentPassword !== (passwordHash || 'admin123')) { setPwdError('Senha atual incorreta'); setIsPwdLoading(false); return }
         await updateCredentials(user?.email || localEmail, newPassword)
       }
       setPwdSaved(true)

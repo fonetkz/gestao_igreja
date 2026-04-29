@@ -1,6 +1,6 @@
 @echo off
 echo ========================================
-echo Rodando Projeto - Choir Deck
+echo Rodando Projeto - Gestão Igreja
 echo (Com Banco Existente)
 echo ========================================
 
@@ -27,7 +27,7 @@ if not exist orquestra.db (
 
 echo.
 echo ========================================
-echo Iniciando Choir Deck com banco existente...
+echo Iniciando Gestão Igreja com banco existente...
 echo ========================================
 echo.
 

@@ -2,8 +2,8 @@ import { create } from 'zustand'
 import api from '../services/api'
 
 const useAuthStore = create((set, get) => ({
-  user: JSON.parse(localStorage.getItem('choir_deck_user') || 'null'),
-  isAuthenticated: !!localStorage.getItem('choir_deck_token'),
+  user: JSON.parse(localStorage.getItem('gestao_igreja_user') || 'null'),
+  isAuthenticated: !!localStorage.getItem('gestao_igreja_token'),
   passwordHash: null,
 
   fetchAuthConfig: async () => {
@@ -11,10 +11,10 @@ const useAuthStore = create((set, get) => ({
       const { data } = await api.get('/api/config/auth_settings')
       const parsed = JSON.parse(data.valor_json || '{}')
       if (parsed.user) {
-        set({ user: parsed.user, passwordHash: parsed.passwordHash || 'choir2024' })
+        set({ user: parsed.user, passwordHash: parsed.passwordHash || 'admin123' })
         // Atualiza o cache local para refletir no carregamento imediato
         if (get().isAuthenticated) {
-          localStorage.setItem('choir_deck_user', JSON.stringify(parsed.user))
+          localStorage.setItem('gestao_igreja_user', JSON.stringify(parsed.user))
         }
       }
     } catch (error) {
@@ -33,7 +33,7 @@ const useAuthStore = create((set, get) => ({
         id: 1, name: 'Maestro Ricardo', email: 'email@email.com', role: 'Super Admin'
       }
       await api.put('/api/config/auth_settings', {
-        valor: { user: currentUser, passwordHash: state.passwordHash || 'choir2024' }
+        valor: { user: currentUser, passwordHash: state.passwordHash || 'admin123' }
       })
     } catch (error) {
       console.error("Erro ao salvar credenciais", error)
@@ -47,12 +47,12 @@ const useAuthStore = create((set, get) => ({
 
     // Na primeira vez ou se não existir, criamos fallback
     const validEmail = storedUser.email || 'email@email.com'
-    const validPassword = state.passwordHash || 'choir2024'
+    const validPassword = state.passwordHash || 'admin123'
 
     if (email === validEmail && password === validPassword) {
       const authenticatedUser = { ...storedUser, email: validEmail }
-      localStorage.setItem('choir_deck_token', 'mock-jwt-token-2024')
-      localStorage.setItem('choir_deck_user', JSON.stringify(authenticatedUser))
+      localStorage.setItem('gestao_igreja_token', 'mock-jwt-token-2024')
+      localStorage.setItem('gestao_igreja_user', JSON.stringify(authenticatedUser))
       set({ user: authenticatedUser, isAuthenticated: true })
       return { success: true }
     }
@@ -60,7 +60,7 @@ const useAuthStore = create((set, get) => ({
   },
 
   logout: () => {
-    localStorage.removeItem('choir_deck_token')
+    localStorage.removeItem('gestao_igreja_token')
     // Não removemos mais o user_cache completamente, apenas bloqueamos acesso
     // para que a pessoa não perca o último email digitado no login
     set({ isAuthenticated: false })
@@ -71,7 +71,7 @@ const useAuthStore = create((set, get) => ({
     const state = get()
     const updatedUser = { ...(state.user || {}), ...updates }
 
-    localStorage.setItem('choir_deck_user', JSON.stringify(updatedUser))
+    localStorage.setItem('gestao_igreja_user', JSON.stringify(updatedUser))
     set({ user: updatedUser })
     await get().saveToDatabase()
   },
@@ -81,7 +81,7 @@ const useAuthStore = create((set, get) => ({
     const state = get()
     const updatedUser = { ...(state.user || {}), email }
 
-    localStorage.setItem('choir_deck_user', JSON.stringify(updatedUser))
+    localStorage.setItem('gestao_igreja_user', JSON.stringify(updatedUser))
     set({ user: updatedUser, passwordHash: newPassword })
     await get().saveToDatabase()
     return { success: true }

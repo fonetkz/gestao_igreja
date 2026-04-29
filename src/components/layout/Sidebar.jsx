@@ -28,7 +28,7 @@ export default function Sidebar() {
             <Music size={20} className="text-white dark:text-gray-900" strokeWidth={2.5} />
           </div>
           <div className="flex-1">
-            <h1 className="text-base font-bold text-gray-900 dark:text-white">Sacred Gallery</h1>
+            <h1 className="text-base font-bold text-gray-900 dark:text-white">Gestão Igreja</h1>
             <p className="text-[11px] font-semibold uppercase tracking-[1px] text-gray-400 dark:text-gray-500 mt-0.5">
               Gestão
             </p>

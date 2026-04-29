@@ -4,43 +4,6 @@ import { ArrowRight, Shield, Globe, Sun, Moon } from 'lucide-react'
 import useAuthStore from '../store/authStore'
 import api from '../services/api'
 
-function AnimatedCounter({ end, label, delay = 0 }) {
-  const [count, setCount] = useState(0)
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      let start = 0
-      const duration = 1500
-      const startTime = performance.now()
-
-      const animate = (currentTime) => {
-        const elapsed = currentTime - startTime
-        const progress = Math.min(elapsed / duration, 1)
-        // Ease-out cubic
-        const eased = 1 - Math.pow(1 - progress, 3)
-        setCount(Math.floor(eased * end))
-
-        if (progress < 1) {
-          requestAnimationFrame(animate)
-        }
-      }
-
-      requestAnimationFrame(animate)
-    }, delay)
-
-    return () => clearTimeout(timer)
-  }, [end, delay])
-
-  return (
-    <div className="animate-fade-in">
-      <div className="text-4xl font-bold text-white">{count}</div>
-      <div className="text-[10px] font-semibold uppercase tracking-[2px] text-blue-200 mt-1">
-        {label}
-      </div>
-    </div>
-  )
-}
-
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -58,8 +21,8 @@ export default function LoginPage() {
   const [isDarkMode, setIsDarkMode] = useState(() => {
     try {
       if (typeof window !== 'undefined') {
-        if ('choir_deck_theme' in localStorage) {
-          return localStorage.getItem('choir_deck_theme') === 'dark'
+        if ('gestao_igreja_theme' in localStorage) {
+          return localStorage.getItem('gestao_igreja_theme') === 'dark'
         }
         return false
       }
@@ -99,10 +62,10 @@ export default function LoginPage() {
     const root = window.document.documentElement
     if (isDarkMode) {
       root.classList.add('dark')
-      localStorage.setItem('choir_deck_theme', 'dark')
+      localStorage.setItem('gestao_igreja_theme', 'dark')
     } else {
       root.classList.remove('dark')
-      localStorage.setItem('choir_deck_theme', 'light')
+      localStorage.setItem('gestao_igreja_theme', 'light')
     }
   }, [isDarkMode])
 
@@ -272,20 +235,14 @@ export default function LoginPage() {
         <div className="relative z-10 flex flex-col justify-center px-16 py-12 w-full">
           <div className="max-w-md">
             <p className="text-[11px] font-semibold uppercase tracking-[3px] text-blue-300 mb-3">
-              Gestão de Coral
+              Sistema de Gestão
             </p>
             <h1 className="text-5xl font-bold text-white leading-tight mb-6">
-              Choir Deck
+              Gestão Igreja
             </h1>
-            <p className="text-blue-200 text-base leading-relaxed mb-16">
-              Onde a precisão encontra a performance. Orquestre seu grupo com a reverência de uma obra-prima.
+            <p className="text-blue-200 text-base leading-relaxed">
+              Gerencie membros, programações e chamadas de forma simples, moderna e eficiente.
             </p>
-
-            {/* Animated Counters */}
-            <div className="flex gap-16">
-              <AnimatedCounter end={42} label="Membros Ativos" delay={500} />
-              <AnimatedCounter end={18} label="Partituras Pendentes" delay={800} />
-            </div>
           </div>
         </div>
       </div>
@@ -470,7 +427,7 @@ export default function LoginPage() {
                         type="email"
                         value={recoveryEmail}
                         onChange={(e) => setRecoveryEmail(e.target.value)}
-                        placeholder="administrador@choirdeck.com"
+                        placeholder="admin@igreja.com"
                         className="input-base mt-1 dark:bg-slate-900 dark:border-slate-700 dark:text-white"
                         autoComplete="email"
                         disabled={loading}
@@ -532,7 +489,7 @@ export default function LoginPage() {
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="administrador@choirdeck.com"
+                      placeholder="admin@igreja.com"
                       className="input-base mt-1 dark:bg-slate-900 dark:border-slate-700 dark:text-white"
                       autoComplete="email"
                     />
@@ -637,7 +594,7 @@ export default function LoginPage() {
         {/* Footer */}
         <div className="flex items-center justify-between px-8 py-4 text-gray-500 dark:text-slate-500">
           <span className="text-[11px] font-medium uppercase tracking-[2px]">
-            © 2024 Choir Deck
+            © 2026 Gestão Igreja
           </span>
           <div className="flex items-center gap-3">
             <button

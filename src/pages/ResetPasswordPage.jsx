@@ -196,7 +196,7 @@ export default function ResetPasswordPage() {
         {/* Footer */}
         <div className="flex items-center justify-between px-8 py-4 text-gray-500 dark:text-slate-500">
           <span className="text-[11px] font-medium uppercase tracking-[2px]">
-            © 2024 Choir Deck
+            © 2026 Gestão Igreja
           </span>
           <div className="flex items-center gap-3">
             <Shield size={16} className="text-gray-400 dark:text-slate-600" />
