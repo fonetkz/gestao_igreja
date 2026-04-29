@@ -1,4 +1,4 @@
-('E:\\PROJETOS\\saas_gestao_igreja\\build\\orquestra\\SacredGallery.pkg',
+('E:\\PROJETOS\\saas_gestao_igreja\\build\\orquestra\\GestaoIgreja.pkg',
  {'BINARY': True,
   'DATA': True,
   'EXECUTABLE': True,
