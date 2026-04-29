@@ -40,7 +40,7 @@ def _compare_dates(d1_str, d2_str):
         return False
 
 from config import DIST_DIR
-from email_service import send_password_reset_email
+from email_service import send_password_reset_email, send_email_change_code
 from database import get_session, init_db
 from models import (
     Chamada,
@@ -366,11 +366,14 @@ def criar_programacao(
     
     for item in hinos_ids:
         hino_id = item.get("id") if isinstance(item, dict) else item
-        hino = session.get(Hino, hino_id)
-        if hino:
-            if not hino.data_ultima_apresentacao or _compare_dates(hino.data_ultima_apresentacao, data_culto):
-                hino.data_ultima_apresentacao = data_culto
-                session.add(hino)
+        try:
+            hino = session.get(Hino, int(hino_id))
+            if hino:
+                if not hino.data_ultima_apresentacao or _compare_dates(hino.data_ultima_apresentacao, data_culto):
+                    hino.data_ultima_apresentacao = data_culto
+                    session.add(hino)
+        except (ValueError, TypeError):
+            pass # Ignora IDs de texto customizados (ex: 'custom_1234')
     
     session.commit()
     return prog
@@ -409,11 +412,14 @@ def atualizar_programacao(
         
         for item in hinos_ids:
             hino_id = item.get("id") if isinstance(item, dict) else item
-            hino = session.get(Hino, hino_id)
-            if hino:
-                if not hino.data_ultima_apresentacao or _compare_dates(hino.data_ultima_apresentacao, data_culto):
-                    hino.data_ultima_apresentacao = data_culto
-                    session.add(hino)
+            try:
+                hino = session.get(Hino, int(hino_id))
+                if hino:
+                    if not hino.data_ultima_apresentacao or _compare_dates(hino.data_ultima_apresentacao, data_culto):
+                        hino.data_ultima_apresentacao = data_culto
+                        session.add(hino)
+            except (ValueError, TypeError):
+                pass
     
     session.add(prog)
     session.commit()
@@ -451,18 +457,21 @@ def remover_programacao(
             todas_progs = session.exec(select(Programacao)).all()
             for item in hinos_afetados:
                 hino_id = item.get("id") if isinstance(item, dict) else item
-                hino = session.get(Hino, hino_id)
-                if hino:
-                    ultima_data = None
-                    for p in todas_progs:
-                        p_hinos = _parse_json(p.hinos_json)
-                        if any((x.get("id") if isinstance(x, dict) else x) == hino_id for x in p_hinos):
-                            # Usa a mesma função de comparação para achar a maior data
-                            if ultima_data is None or _compare_dates(ultima_data, p.data):
-                                ultima_data = p.data
-                    
-                    hino.data_ultima_apresentacao = ultima_data
-                    session.add(hino)
+                try:
+                    hino = session.get(Hino, int(hino_id))
+                    if hino:
+                        ultima_data = None
+                        for p in todas_progs:
+                            p_hinos = _parse_json(p.hinos_json)
+                            if any(str(x.get("id") if isinstance(x, dict) else x) == str(int(hino_id)) for x in p_hinos):
+                                # Usa a mesma função de comparação para achar a maior data
+                                if ultima_data is None or _compare_dates(ultima_data, p.data):
+                                    ultima_data = p.data
+                        
+                        hino.data_ultima_apresentacao = ultima_data
+                        session.add(hino)
+                except (ValueError, TypeError):
+                    pass
             session.commit()
             
     except HTTPException:
@@ -636,6 +645,73 @@ def redefinir_senha(
     
     return JSONResponse({"message": "Senha redefinida com sucesso."})
 
+
+class EmailChangeRequest(BaseModel):
+    new_email: str
+
+class EmailChangeConfirm(BaseModel):
+    token: str
+
+@app.post("/api/auth/solicitar-troca-email")
+def solicitar_troca_email(
+    payload: EmailChangeRequest,
+    session: Session = Depends(get_session),
+) -> JSONResponse:
+    token = secrets.token_hex(4).upper()
+    expiry = (datetime.now() + timedelta(hours=1)).isoformat()
+    
+    cfg = session.get(Configuracao, "email_change_token_data")
+    reset_data = {"token": token, "expiry": expiry, "new_email": payload.new_email}
+    
+    if cfg:
+        cfg.valor_json = json.dumps(reset_data)
+    else:
+        cfg = Configuracao(key="email_change_token_data", valor_json=json.dumps(reset_data))
+        
+    session.add(cfg)
+    session.commit()
+
+    success = send_email_change_code(payload.new_email, token)
+    
+    if success:
+        return JSONResponse({"message": "Código enviado para o novo e-mail."})
+    else:
+        print(f"DEV MOCK: Token gerado para troca de email: {token}")
+        return JSONResponse({"message": "E-mail simulado com sucesso (SMTP não configurado)."})
+
+@app.post("/api/auth/confirmar-troca-email")
+def confirmar_troca_email(
+    payload: EmailChangeConfirm,
+    session: Session = Depends(get_session),
+) -> JSONResponse:
+    cfg = session.get(Configuracao, "email_change_token_data")
+    if not cfg:
+        raise HTTPException(400, "Nenhuma solicitação de troca de e-mail encontrada.")
+        
+    data = json.loads(cfg.valor_json)
+    if data.get("token") != payload.token.strip().upper():
+        raise HTTPException(400, "Código inválido. Verifique e tente novamente.")
+        
+    expiry = datetime.fromisoformat(data.get("expiry", "2000-01-01T00:00:00"))
+    if datetime.now() > expiry:
+        raise HTTPException(400, "O código de verificação expirou. Solicite um novo.")
+
+    auth_cfg = session.get(Configuracao, "auth_settings")
+    if not auth_cfg:
+        raise HTTPException(500, "Configurações de usuário não encontradas.")
+        
+    auth_data = json.loads(auth_cfg.valor_json)
+    if "user" not in auth_data:
+        auth_data["user"] = {}
+    auth_data["user"]["email"] = data["new_email"]
+    
+    auth_cfg.valor_json = json.dumps(auth_data)
+    
+    session.delete(cfg)
+    session.add(auth_cfg)
+    session.commit()
+    
+    return JSONResponse({"message": "E-mail alterado com sucesso.", "new_email": data["new_email"]})
 
 # ─── Health ───────────────────────────────────────────────
 

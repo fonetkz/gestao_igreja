@@ -124,7 +124,7 @@ const useHymnsStore = create((set, get) => ({
   // Programação do dia
   addToTodayProgram: (hymnId) => {
     const { todayProgram } = get()
-    if (todayProgram.includes(hymnId)) return
+    if (todayProgram.some(item => (typeof item === 'object' ? item.id === hymnId : item === hymnId))) return
     set({ todayProgram: [...todayProgram, hymnId] })
   },
 
@@ -134,7 +134,10 @@ const useHymnsStore = create((set, get) => ({
 
   removeFromTodayProgram: (hymnId) => {
     set((state) => ({
-      todayProgram: state.todayProgram.filter(id => id !== hymnId),
+      todayProgram: state.todayProgram.filter(item => {
+        const id = typeof item === 'object' ? item.id : item;
+        return id !== hymnId;
+      }),
     }))
   },
 
@@ -142,16 +145,17 @@ const useHymnsStore = create((set, get) => ({
     set({ todayProgram: newOrder })
   },
 
-  confirmTodayProgram: async (data_culto, tipo_culto, responsavel) => {
+  confirmTodayProgram: async (data_culto, tipo_culto, responsavel, customProgram) => {
     try {
       const { todayProgram } = get()
+      const programToSave = customProgram || todayProgram
 
       const payload = {
         data: data_culto,
         tipo_culto,
         responsavel,
         status: 'confirmado',
-        hinos_json: JSON.stringify(todayProgram)
+        hinos_json: JSON.stringify(programToSave)
       }
       const { data } = await api.post('/api/programacoes', payload)
 
@@ -165,7 +169,8 @@ const useHymnsStore = create((set, get) => ({
         todayProgram: [],
       }))
 
-      for (const hymnId of todayProgram) {
+      for (const item of programToSave) {
+        const hymnId = typeof item === 'object' ? item.id : item;
         const hymn = get().getHymnById(hymnId)
         if (!hymn?.data_ultima_apresentacao || data_culto > hymn.data_ultima_apresentacao) {
           await get().updateHymn(hymnId, { data_ultima_apresentacao: data_culto })
@@ -178,16 +183,17 @@ const useHymnsStore = create((set, get) => ({
   },
 
   // Atualizar programação
-  updateProgramacao: async (id, data_culto, tipo_culto, responsavel) => {
+  updateProgramacao: async (id, data_culto, tipo_culto, responsavel, customProgram) => {
     try {
       const { todayProgram } = get()
+      const programToSave = customProgram || todayProgram
 
       const payload = {
         data: data_culto,
         tipo_culto,
         responsavel,
         status: 'confirmado',
-        hinos_json: JSON.stringify(todayProgram)
+        hinos_json: JSON.stringify(programToSave)
       }
       const { data } = await api.patch(`/api/programacoes/${id}`, payload)
 

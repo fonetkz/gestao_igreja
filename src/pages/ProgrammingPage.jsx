@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react'
-import { Plus, Search, Music, Trash2, Save, Check, BookOpen, ChevronUp, ChevronDown, GripVertical, Clock, Calendar, Loader2, Edit2 } from 'lucide-react'
+import { Plus, Search, Music, Trash2, Save, Check, BookOpen, ChevronUp, ChevronDown, GripVertical, Clock, Calendar, Loader2, Edit2, AlertTriangle } from 'lucide-react'
 import Topbar from '../components/layout/Topbar'
 import Modal from '../components/ui/Modal'
 import useHymnsStore from '../store/hymnsStore'
@@ -13,6 +13,15 @@ const formatDate = (d) => {
   if (!d) return ''
   if (!d.includes('-')) return d
   return d.split('T')[0].split('-').reverse().join('/')
+}
+
+// Função auxiliar para pegar o dia da semana
+const getDayOfWeek = (d) => {
+  if (!d || !d.includes('-')) return ''
+  const [ano, mes, dia] = d.split('T')[0].split('-')
+  const date = new Date(ano, mes - 1, dia)
+  const dias = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado']
+  return dias[date.getDay()]
 }
 
 // ─── HymnResultItem ──────────────────────────────────────────────────────────
@@ -58,18 +67,24 @@ function HymnResultItem({ hymn, onAdd, isAdded, onEdit }) {
 }
 
 // ─── ProgrammedHymnItem ──────────────────────────────────────────────────────
-function ProgrammedHymnItem({ hymn, index, onRemove, onMove, isFirst, isLast, onUpdateRegente }) {
+function ProgrammedHymnItem({ hymn, index, onRemove, onMove, isFirst, isLast, onUpdateRegente, onDragStart, onDragOver, onDragEnd }) {
   const members = useMembersStore((s) => s.members) || []
   const conductors = members.filter(m => m.status === 'Ativo' && m.cargo && m.cargo.toLowerCase().includes('regente'))
 
   return (
-    <div className="flex items-center gap-3 p-4 bg-white dark:bg-[#2C2C2E] rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-all">
+    <div
+      draggable
+      onDragStart={(e) => onDragStart && onDragStart(e, index)}
+      onDragOver={(e) => onDragOver && onDragOver(e, index)}
+      onDragEnd={onDragEnd}
+      className="flex items-center gap-3 p-4 bg-white dark:bg-[#2C2C2E] rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-all cursor-grab active:cursor-grabbing"
+    >
       <div className="flex flex-col items-center gap-0.5">
-        <button disabled={isFirst} onClick={() => onMove(index, -1)} className="p-1 text-gray-300 dark:text-gray-600 hover:text-gray-500 dark:hover:text-gray-300 disabled:opacity-30">
+        <button type="button" disabled={isFirst} onClick={() => onMove(index, -1)} className="p-1 text-gray-300 dark:text-gray-600 hover:text-gray-500 dark:hover:text-gray-300 disabled:opacity-30 cursor-pointer">
           <ChevronUp size={16} />
         </button>
         <GripVertical size={14} className="text-gray-300 dark:text-gray-600" />
-        <button disabled={isLast} onClick={() => onMove(index, 1)} className="p-1 text-gray-300 dark:text-gray-600 hover:text-gray-500 dark:hover:text-gray-300 disabled:opacity-30">
+        <button type="button" disabled={isLast} onClick={() => onMove(index, 1)} className="p-1 text-gray-300 dark:text-gray-600 hover:text-gray-500 dark:hover:text-gray-300 disabled:opacity-30 cursor-pointer">
           <ChevronDown size={16} />
         </button>
       </div>
@@ -88,12 +103,9 @@ function ProgrammedHymnItem({ hymn, index, onRemove, onMove, isFirst, isLast, on
               className="text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-md px-2 py-1 text-gray-700 dark:text-gray-300 focus:outline-none focus:border-blue-400"
             >
               <option value="">Nenhum</option>
-              {conductors.map(c => (
-                <option key={c.id} value={c.nome}>{c.nome}</option>
-              ))}
-              {/* Mantém visível o regente salvo caso ele tenha sido inativado ou seu cargo tenha mudado */}
+              {conductors.map(c => <option key={c.id} value={c.nome}>{c.nome}</option>)}
               {hymn.regente && !conductors.find(c => c.nome === hymn.regente) && (
-                <option value={hymn.regente}>{hymn.regente} (Inativo/Legado)</option>
+                <option value={hymn.regente}>{hymn.regente} (Inativo)</option>
               )}
             </select>
           </div>
@@ -134,7 +146,11 @@ function HymnModal({ isOpen, onClose, onSave, editingHymn }) {
     if (!form.numero.trim()) newErrors.numero = 'Número obrigatório'
     if (!form.titulo.trim()) newErrors.titulo = 'Título obrigatório'
     if (Object.keys(newErrors).length) { setErrors(newErrors); return }
-    onSave(form, editingHymn?.id)
+    onSave({
+      ...form,
+      numero: form.numero.toUpperCase(),
+      titulo: form.titulo.toUpperCase()
+    }, editingHymn?.id)
   }
 
   return (
@@ -142,12 +158,12 @@ function HymnModal({ isOpen, onClose, onSave, editingHymn }) {
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="label-uppercase mb-2 block">Número</label>
-          <input type="text" value={form.numero} onChange={(e) => setForm(f => ({ ...f, numero: e.target.value }))} placeholder="Ex: 001" className={`input-apple ${errors.numero ? 'ring-2 ring-red-400' : ''}`} />
+          <input type="text" value={form.numero} onChange={(e) => setForm(f => ({ ...f, numero: e.target.value }))} placeholder="Ex: 001" className={`input-apple uppercase ${errors.numero ? 'ring-2 ring-red-400' : ''}`} />
           {errors.numero && <span className="text-xs text-red-500 mt-1 block">{errors.numero}</span>}
         </div>
         <div>
           <label className="label-uppercase mb-2 block">Título</label>
-          <input type="text" value={form.titulo} onChange={(e) => setForm(f => ({ ...f, titulo: e.target.value }))} placeholder="Nome do hino" className={`input-apple ${errors.titulo ? 'ring-2 ring-red-400' : ''}`} />
+          <input type="text" value={form.titulo} onChange={(e) => setForm(f => ({ ...f, titulo: e.target.value }))} placeholder="Nome do hino" className={`input-apple uppercase ${errors.titulo ? 'ring-2 ring-red-400' : ''}`} />
           {errors.titulo && <span className="text-xs text-red-500 mt-1 block">{errors.titulo}</span>}
         </div>
         <div>
@@ -232,7 +248,14 @@ function HistoricoTab({ onEditarProgramacao, onExcluirProgramacao }) {
     const term = searchTerm.toLowerCase()
     const hinos = Array.isArray(prog.hinos_json) ? prog.hinos_json : []
 
-    const matchesTerm = !term || (prog.tipo_culto || prog.contexto || '').toLowerCase().includes(term) || (prog.responsavel || '').toLowerCase().includes(term)
+    const matchesTerm = !term ||
+      (prog.tipo_culto || prog.contexto || '').toLowerCase().includes(term) ||
+      (prog.responsavel || '').toLowerCase().includes(term) ||
+      hinos.some(hymnItem => {
+        const id = typeof hymnItem === 'object' ? hymnItem.id : hymnItem
+        const hymn = getHymnById(id)
+        return hymn && ((hymn.titulo || '').toLowerCase().includes(term) || (String(hymn.numero) || '').toLowerCase().includes(term))
+      })
     const matchesDate = !searchDate || prog.data === searchDate
     const matchesTipoReuniao = !filterTipoReuniao || (prog.tipo_culto || prog.contexto) === filterTipoReuniao
 
@@ -253,18 +276,28 @@ function HistoricoTab({ onEditarProgramacao, onExcluirProgramacao }) {
   return (
     <div className="space-y-4">
       <div className="apple-card p-4 space-y-4">
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="relative flex-1">
+        <div className="flex flex-col md:flex-row gap-4">
+          <div className="relative flex-1 min-w-[200px]">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
-              placeholder="Buscar por responsável ou termo livre..."
               value={searchTerm}
+              placeholder="Buscar por Hino..."
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-9 pr-4 py-2.5 rounded-xl border text-sm font-medium transition-all duration-200 focus:outline-none bg-slate-50 dark:bg-slate-900/50 text-slate-900 dark:text-white border-slate-200 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-400"
             />
           </div>
-          <div className="w-full sm:w-44">
+          <div className="w-full md:w-56">
+            <select
+              value={filterTipoReuniao}
+              onChange={(e) => setFilterTipoReuniao(e.target.value)}
+              className="w-full px-4 py-2.5 rounded-xl border text-sm font-medium transition-all duration-200 focus:outline-none bg-slate-50 dark:bg-slate-900/50 text-slate-900 dark:text-white border-slate-200 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-400"
+            >
+              <option value="">Tipo de Reunião (Todos)</option>
+              {meetingTypes.map(t => <option key={t.id} value={t.label}>{t.label}</option>)}
+            </select>
+          </div>
+          <div className="w-full md:w-44">
             <input
               type="date"
               value={searchDate}
@@ -273,15 +306,7 @@ function HistoricoTab({ onEditarProgramacao, onExcluirProgramacao }) {
             />
           </div>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <select
-            value={filterTipoReuniao}
-            onChange={(e) => setFilterTipoReuniao(e.target.value)}
-            className="w-full px-4 py-2.5 rounded-xl border text-sm font-medium transition-all duration-200 focus:outline-none bg-slate-50 dark:bg-slate-900/50 text-slate-900 dark:text-white border-slate-200 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-400"
-          >
-            <option value="">Tipo de Reunião (Todos)</option>
-            {meetingTypes.map(t => <option key={t.id} value={t.label}>{t.label}</option>)}
-          </select>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <select
             value={filterTipoHino}
             onChange={(e) => setFilterTipoHino(e.target.value)}
@@ -316,7 +341,9 @@ function HistoricoTab({ onEditarProgramacao, onExcluirProgramacao }) {
                   <div>
                     <div className="flex items-center gap-2">
                       <Calendar size={16} className="text-[#007AFF]" />
-                      <span className="font-semibold text-gray-900 dark:text-white">{formatDate(prog.data)}</span>
+                      <span className="font-semibold text-gray-900 dark:text-white">
+                        {formatDate(prog.data)} <span className="text-sm font-normal text-gray-500 dark:text-gray-400 ml-1">({getDayOfWeek(prog.data)})</span>
+                      </span>
                       <span className="badge-info">{prog.tipo_culto || prog.contexto}</span>
                     </div>
                     {prog.responsavel && (
@@ -352,12 +379,12 @@ function HistoricoTab({ onEditarProgramacao, onExcluirProgramacao }) {
                       </div>
                     )
                   })}
-                  <div className="flex items-center gap-2 mt-3">
-                    <button onClick={() => handleEditar(prog)} className="flex-1 mt-3 py-2 text-sm font-medium text-[#007AFF] border border-dashed border-[#007AFF]/30 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors">
-                      Editar
+                  <div className="flex flex-col sm:flex-row items-center gap-2 mt-4 pt-2">
+                    <button onClick={() => handleEditar(prog)} className="w-full sm:flex-1 py-2 text-sm font-medium text-[#007AFF] border border-dashed border-[#007AFF]/30 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors flex items-center justify-center gap-2">
+                      <Edit2 size={16} /> Editar
                     </button>
-                    <button onClick={() => handleExcluir(prog.id)} className="flex-1 mt-3 ml-2 py-2 text-sm font-medium text-red-500 border border-dashed border-red-300/30 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors">
-                      Excluir
+                    <button onClick={() => handleExcluir(prog.id)} className="w-full sm:flex-1 py-2 text-sm font-medium text-red-500 border border-dashed border-red-300/30 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors flex items-center justify-center gap-2">
+                      <Trash2 size={16} /> Excluir
                     </button>
                   </div>
                 </div>
@@ -394,6 +421,7 @@ function ProgramacaoForm({ programacaoEditando, onLimparEdicao, onCancelarEdicao
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [errors, setErrors] = useState({})
+  const [draggedIdx, setDraggedIdx] = useState(null)
 
   // Estado local para armazenar os regentes selecionados (apenas para exibição na tela)
   const [regentes, setRegentes] = useState({})
@@ -412,17 +440,37 @@ function ProgramacaoForm({ programacaoEditando, onLimparEdicao, onCancelarEdicao
       setServiceDate(programacaoEditando.data || new Date().toISOString().split('T')[0])
       setServiceType(programacaoEditando.tipo || '')
       setResponsavel(programacaoEditando.responsavel || userName)
+
+      const initialRegentes = {}
+      if (programacaoEditando.hinos) {
+        programacaoEditando.hinos.forEach(item => {
+          if (typeof item === 'object' && item.id && item.regente) {
+            initialRegentes[item.id] = item.regente
+          }
+        })
+      }
+      setRegentes(initialRegentes)
     } else if (!serviceType) {
       setResponsavel(userName)
+      setRegentes({})
     }
   }, [programacaoEditando])
 
   const filteredHymns = useMemo(() => searchHymns(searchTerm), [hymns, searchTerm])
-  const programHymns = useMemo(() => todayProgram.map(id => {
+  const programHymns = useMemo(() => todayProgram.map(item => {
+    if (typeof item === 'object' && item.type === 'custom') return item;
+    const id = typeof item === 'object' ? item.id : item;
+    const originalRegente = typeof item === 'object' ? item.regente : '';
     const h = hymns.find(h => h.id === id);
-    return h ? { ...h, regente: regentes[id] || '' } : null;
+    return h ? { ...h, regente: regentes[id] !== undefined ? regentes[id] : originalRegente } : null;
   }).filter(Boolean), [todayProgram, hymns, regentes])
 
+  const handleAddCustomItem = () => {
+    if (!customTitle.trim()) return
+    addCustomItem(customTitle, customSubtitle)
+    setCustomTitle('')
+    setCustomSubtitle('')
+  }
   const handleAddHymn = (hymn) => addToTodayProgram(hymn.id)
   const handleRemove = (id) => removeFromTodayProgram(id)
   const handleUpdateRegente = (id, regente) => setRegentes(prev => ({ ...prev, [id]: regente }))
@@ -432,6 +480,37 @@ function ProgramacaoForm({ programacaoEditando, onLimparEdicao, onCancelarEdicao
     if (newIdx < 0 || newIdx >= arr.length) return
       ;[arr[idx], arr[newIdx]] = [arr[newIdx], arr[idx]]
     reorderTodayProgram(arr)
+  }
+
+  const handleDragStart = (e, idx) => {
+    setDraggedIdx(idx)
+    e.dataTransfer.effectAllowed = 'move'
+    // Necessário para compatibilidade com navegadores mais antigos (ex: Firefox)
+    if (e.dataTransfer.setData) e.dataTransfer.setData('text/plain', idx)
+
+    // Pequeno delay visual para clarear o item original sendo arrastado e criar o efeito de 'fantasma'
+    setTimeout(() => {
+      if (e.target && e.target.classList) e.target.classList.add('opacity-40', 'border-blue-400')
+    }, 0)
+  }
+
+  const handleDragOver = (e, idx) => {
+    e.preventDefault() // Permite que o item seja solto
+    if (draggedIdx === null || draggedIdx === idx) return
+
+    // Reordena a matriz ao vivo para criar uma experiência mágica e responsiva
+    const newProgram = [...todayProgram]
+    const draggedItem = newProgram[draggedIdx]
+    newProgram.splice(draggedIdx, 1)
+    newProgram.splice(idx, 0, draggedItem)
+
+    reorderTodayProgram(newProgram)
+    setDraggedIdx(idx)
+  }
+
+  const handleDragEnd = (e) => {
+    setDraggedIdx(null)
+    if (e.target && e.target.classList) e.target.classList.remove('opacity-40', 'border-blue-400')
   }
 
   const handleSaveHymn = async (form, id) => {
@@ -457,16 +536,27 @@ function ProgramacaoForm({ programacaoEditando, onLimparEdicao, onCancelarEdicao
   }
 
   const handleConfirm = async () => {
-    if (todayProgram.length === 0 || !validate()) return
+    if (todayProgram.length === 0) return
+    if (!validate()) {
+      showToast('Por favor, selecione o Tipo de Reunião para continuar.', 'error')
+      return
+    }
     setSaving(true)
     try {
+      const programToSave = todayProgram.map(item => {
+        const id = typeof item === 'object' ? item.id : item;
+        const regente = regentes[id] !== undefined ? regentes[id] : (typeof item === 'object' ? item.regente : '');
+        return { id, regente };
+      });
+
       if (programacaoEditando?.id) {
-        await updateProgramacao(programacaoEditando.id, serviceDate, serviceType, responsavel)
+        await updateProgramacao(programacaoEditando.id, serviceDate, serviceType, responsavel, programToSave)
       } else {
-        await confirmTodayProgram(serviceDate, serviceType, responsavel)
+        await confirmTodayProgram(serviceDate, serviceType, responsavel, programToSave)
       }
       setSaved(true)
       if (onLimparEdicao) onLimparEdicao()
+      setRegentes({})
       setTimeout(() => setSaved(false), 3000)
     } catch (err) {
       console.error(err)
@@ -480,22 +570,21 @@ function ProgramacaoForm({ programacaoEditando, onLimparEdicao, onCancelarEdicao
       <div className="space-y-6">
         {/* Header Card */}
         <div className="apple-card p-4">
-          <div className="flex flex-wrap items-end gap-4">
+          <div className="flex flex-wrap items-center gap-4">
             <div className="flex items-center gap-2">
               <label className="label-uppercase">Data</label>
               <input type="date" value={serviceDate} onChange={(e) => setServiceDate(e.target.value)} className="input-apple w-auto" style={{ colorScheme: 'light' }} />
             </div>
-            <div className="flex items-center gap-2 flex-1 min-w-[220px]">
-              <label className="label-uppercase">Tipo de Culto</label>
-              <select value={serviceType} onChange={(e) => setServiceType(e.target.value)} className={`select-apple flex-1 ${errors.serviceType ? 'border-red-400 ring-2 ring-red-400' : ''}`}>
+            <div className="flex items-center gap-2">
+              <label className="label-uppercase">Tipo de Reunião</label>
+              <select value={serviceType} onChange={(e) => setServiceType(e.target.value)} className={`select-apple w-56 sm:w-64 ${errors.serviceType ? 'border-red-400 ring-2 ring-red-400' : ''}`}>
                 <option value="">Selecionar...</option>
                 {meetingTypes.map((t) => <option key={t.id} value={t.label}>{t.label}</option>)}
               </select>
-              {errors.serviceType && <span className="text-xs text-red-500 mt-1">Selecione o tipo de reunião</span>}
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-1 min-w-[220px]">
               <label className="label-uppercase">Responsável</label>
-              <input type="text" value={responsavel} onChange={(e) => setResponsavel(e.target.value)} placeholder="Nome do responsável" className="input-apple w-48" />
+              <input type="text" value={responsavel} onChange={(e) => setResponsavel(e.target.value)} placeholder="Nome do responsável" className="input-apple flex-1 w-full" />
             </div>
           </div>
         </div>
@@ -532,7 +621,7 @@ function ProgramacaoForm({ programacaoEditando, onLimparEdicao, onCancelarEdicao
             <div className="apple-card p-4 flex flex-col h-full">
               <div className="flex items-center justify-between mb-4 shrink-0">
                 <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                  <Music size={18} className="text-purple-500" /> Ordem do Culto
+                  <Music size={18} className="text-purple-500" /> Ordem dos Hinos da Reunião
                 </h3>
                 <span className="badge-info">{todayProgram.length} {todayProgram.length === 1 ? 'Hino' : 'Hinos'}</span>
               </div>
@@ -548,13 +637,13 @@ function ProgramacaoForm({ programacaoEditando, onLimparEdicao, onCancelarEdicao
               ) : (
                 <div className="space-y-3 flex-1 overflow-y-auto max-h-[480px] pr-2">
                   {programHymns.map((hymn, idx) => hymn && (
-                    <ProgrammedHymnItem key={hymn.id} hymn={hymn} index={idx} total={todayProgram.length} onRemove={handleRemove} onMove={handleMove} isFirst={idx === 0} isLast={idx === todayProgram.length - 1} onUpdateRegente={handleUpdateRegente} />
+                    <ProgrammedHymnItem key={hymn.id} hymn={hymn} index={idx} total={todayProgram.length} onRemove={handleRemove} onMove={handleMove} isFirst={idx === 0} isLast={idx === todayProgram.length - 1} onUpdateRegente={handleUpdateRegente} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd} />
                   ))}
                 </div>
               )}
 
               {todayProgram.length > 0 && (
-                <div className="mt-auto pt-5 border-t border-gray-100 dark:border-gray-700 flex gap-3 shrink-0">
+                <div className="mt-auto pt-5 border-t border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row gap-3 shrink-0">
                   {programacaoEditando && (
                     <button
                       onClick={onCancelarEdicao || onLimparEdicao}
@@ -564,7 +653,7 @@ function ProgramacaoForm({ programacaoEditando, onLimparEdicao, onCancelarEdicao
                       Cancelar Edição
                     </button>
                   )}
-                  <button onClick={handleConfirm} disabled={saving || saved} className="btn-apple-primary flex-1 py-3">
+                  <button onClick={handleConfirm} disabled={saving || saved} className="btn-apple-primary flex-1 py-3 flex items-center justify-center gap-2">
                     {saving ? <><Loader2 size={18} className="animate-spin" /> Salvando...</> : saved ? <><Check size={18} /> Salvo!</> : <><Save size={18} /> {programacaoEditando ? 'Salvar Alterações' : 'Salvar Programação'}</>}
                   </button>
                 </div>

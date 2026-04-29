@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react'
-import { Search, Edit2, Plus, ClipboardList, History, Bell, Users2, MessageSquare, Check, X, Cake, CheckCircle, BellRing, Clock, XCircle, Music, ChevronUp, ChevronDown } from 'lucide-react'
+import React, { useState } from 'react'
+import { Search, Edit2, Plus, ClipboardList, History, Bell, Users2, MessageSquare, Check, X, Cake, CheckCircle, BellRing, Clock, XCircle, Music, ChevronUp, ChevronDown, Trash2 } from 'lucide-react'
 import Topbar from '../components/layout/Topbar'
+import useMembersStore from '../store/membersStore'
 import useSettingsStore from '../store/settingsStore'
+import useToastStore from '../store/toastStore'
 
 function Badge({ children, variant = 'default' }) {
   const variants = {
@@ -43,7 +45,7 @@ function Modal({ isOpen, onClose, title, children, size = 'lg' }) {
 const mockMembers = [
   { id: 1, nome: 'Gustavo Henrique', telefone: '(17) 99123-4567', data_nascimento: '15/04/1990', secao: 'Tenor', instrumento_voz: 'Violino', cargo: 'Músico', status: 'Ativo' },
   { id: 2, nome: 'Aline Souza', telefone: '(17) 99234-5678', data_nascimento: '22/08/1995', secao: 'Soprano', instrumento_voz: 'Flauta', cargo: 'Músico', status: 'Ativo' },
-  { id: 3, nome: 'Carlos Eduardo', telefone: '(17) 99345-6789', data_nascimento: '03/12/1988', secao: 'Baixo', instrumento_voz: 'Trompete', cargo: 'Músico', status: 'Em Licença' },
+  { id: 3, nome: 'Carlos Eduardo', telefone: '(17) 99345-6789', data_nascimento: '03/12/1988', secao: 'Baixo', instrumento_voz: 'Trompete', cargo: 'Músico', status: 'Licença' },
   { id: 4, nome: 'Mariana Santos', telefone: '(17) 99456-7890', data_nascimento: '10/04/1992', secao: 'Contralto', instrumento_voz: 'Clarinete', cargo: 'Regente', status: 'Ativo' },
   { id: 5, nome: 'Pedro Oliveira', telefone: '(17) 99567-8901', data_nascimento: '05/11/1985', secao: 'Tenor', instrumento_voz: 'Violão', cargo: 'Músico', status: 'Ativo' },
   { id: 6, nome: 'Ana Paula', telefone: '(17) 99678-9012', data_nascimento: '30/06/1998', secao: 'Soprano', instrumento_voz: '', cargo: 'Coordenadora', status: 'Ativo' },
@@ -57,98 +59,161 @@ const mockHistorico = [
   { id: 3, data: '05/04/2026', tipo: 'Culto Dominical', presentes: 45, ausentes: 3, registros: [] },
 ]
 
-const mockAlertasIniciais = [
-  { id: 1, nome: 'Gustavo Henrique', secao: 'Tenor', faltas: 3, resolvido: false, justificativa: '' },
-  { id: 2, nome: 'Mariana Santos', secao: 'Contralto', faltas: 3, resolvido: false, justificativa: '' },
-]
-
-const voiceOptions = ['', 'Soprano', 'Contralto', 'Tenor', 'Baixo']
-const instrumentOptions = ['', 'Violino', 'Flauta', 'Clarinete', 'Trompete', 'Violão', 'Piano', 'Violoncelo']
-const statusOptions = ['', 'Ativo', 'Em Licença', 'Inativo']
-const functionOptions = ['', 'Músico', 'Regente', 'Coordenadora', 'Auxiliar']
-
 const formatarDataNascimento = (data) => {
   if (!data) return '—'
-  const [dia, mes, ano] = data.split('/')
+  let dia, mes, ano;
+  if (data.includes('-')) {
+    [ano, mes, dia] = data.split('T')[0].split('-')
+  } else {
+    [dia, mes, ano] = data.split('/')
+  }
   const meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
   return `${dia} ${meses[parseInt(mes, 10) - 1]} ${ano}`
 }
 
 const isAniversarioMes = (data) => {
   if (!data) return false
-  const [, mes] = data.split('/')
+  let mes;
+  if (data.includes('-')) {
+    mes = data.split('-')[1]
+  } else {
+    mes = data.split('/')[1]
+  }
   const mesAtual = new Date().getMonth() + 1
   return parseInt(mes, 10) === mesAtual
 }
 
-export default function MembersPage() {
-  const [activeTab, setActiveTab] = useState('lista')
-  const fetchSettings = useSettingsStore((s) => s.fetchSettings)
+const formatarTelefone = (phone) => {
+  if (!phone) return '—'
+  const digits = phone.replace(/\D/g, '')
+  if (digits.length === 11) {
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`
+  } else if (digits.length === 10) {
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`
+  }
+  return phone
+}
 
-  useEffect(() => {
-    fetchSettings()
-  }, [])
+export default function MembersPage() {
+  const [sortConfig, setSortConfig] = useState({ key: 'nome', direction: 'asc' })
+  const [activeTab, setActiveTab] = useState('lista')
+  const [showDrawer, setShowDrawer] = useState(false)
+  const [editingMember, setEditingMember] = useState(null)
+  const [editingChamada, setEditingChamada] = useState(null)
+  const [justifyingAlert, setJustifyingAlert] = useState(null)
   const [searchText, setSearchText] = useState('')
   const [vozFilter, setVozFilter] = useState('')
   const [instrumentoFilter, setInstrumentoFilter] = useState('')
   const [funcaoFilter, setFuncaoFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
-  const [showDrawer, setShowDrawer] = useState(false)
-  const [editingMember, setEditingMember] = useState(null)
-  const [justifyingAlert, setJustifyingAlert] = useState(null)
-  const [editingHistory, setEditingHistory] = useState(null)
-  const [editingChamada, setEditingChamada] = useState(null)
-  const [historico, setHistorico] = useState(mockHistorico)
-  const [alertas, setAlertas] = useState(mockAlertasIniciais)
-  const [activeAlertTab, setActiveAlertTab] = useState('pendentes')
+  const [historicoFilter, setHistoricoFilter] = useState('')
+  const [historicoDateFilter, setHistoricoDateFilter] = useState('')
+  const [historicoNameFilter, setHistoricoNameFilter] = useState('')
   const [alertSearch, setAlertSearch] = useState('')
-  const [sortConfig, setSortConfig] = useState({ key: 'nome', direction: 'asc' })
+  const [alertSubTab, setAlertSubTab] = useState('pendentes')
+  const [alertMonth, setAlertMonth] = useState(new Date().toISOString().slice(0, 7))
 
-  const filteredMembers = mockMembers.filter(m => {
-    if (statusFilter && m.status !== statusFilter) return false
-    if (vozFilter && m.secao !== vozFilter) return false
-    if (instrumentoFilter && m.instrumento_voz !== instrumentoFilter) return false
-    if (funcaoFilter && m.cargo !== funcaoFilter) return false
+  const storeMembers = useMembersStore((s) => s.members) || []
+  const storeAttendance = useMembersStore((s) => s.attendance) || []
+  const addMember = useMembersStore((s) => s.addMember)
+  const updateMember = useMembersStore((s) => s.updateMember)
+  const removeMember = useMembersStore((s) => s.removeMember)
+  const deleteCall = useMembersStore((s) => s.deleteCall)
+  const updateAttendance = useMembersStore((s) => s.updateAttendance)
+
+  const voices = useSettingsStore((s) => s.voices) || []
+  const instruments = useSettingsStore((s) => s.instruments) || []
+  const positions = useSettingsStore((s) => s.positions) || []
+  const statuses = useSettingsStore((s) => s.statuses) || []
+  const attendanceContexts = useSettingsStore((s) => s.attendanceContexts) || []
+
+  const filteredMembers = storeMembers.filter(member => {
     if (searchText) {
-      const term = searchText.toLowerCase()
-      if (!m.nome.toLowerCase().includes(term) && !m.telefone.toLowerCase().includes(term)) return false
+      const searchLower = searchText.toLowerCase()
+      const searchDigits = searchText.replace(/\D/g, '')
+      const matchNome = member.nome.toLowerCase().includes(searchLower)
+      const matchTelefone = member.telefone && searchDigits && member.telefone.replace(/\D/g, '').includes(searchDigits)
+      if (!matchNome && !matchTelefone) return false
     }
+    if (vozFilter && member.secao !== vozFilter) return false
+    if (instrumentoFilter && !member.instrumento_voz?.includes(instrumentoFilter)) return false
+    if (funcaoFilter && !member.cargo?.includes(funcaoFilter)) return false
+    if (statusFilter && member.status !== statusFilter) return false
     return true
   }).sort((a, b) => {
-    let valA = a[sortConfig.key] || ''
-    let valB = b[sortConfig.key] || ''
-    if (sortConfig.key === 'data_nascimento') {
-      valA = a.data_nascimento ? a.data_nascimento.split('/').slice(0, 2).reverse().join('') : ''
-      valB = b.data_nascimento ? b.data_nascimento.split('/').slice(0, 2).reverse().join('') : ''
-    }
-    if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1
-    if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1
+    if (!sortConfig.key) return 0
+    const aVal = a[sortConfig.key] || ''
+    const bVal = b[sortConfig.key] || ''
+    if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1
+    if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1
     return 0
   })
 
+  const getMemberAbsences = (memberId) => {
+    const absences = []
+    storeAttendance.forEach(call => {
+      let isThisMonth = false
+      if (call.data) {
+        if (call.data.includes('-') && call.data.startsWith(alertMonth)) isThisMonth = true
+        else if (call.data.includes('/')) {
+          const [d, m, y] = call.data.split('/')
+          if (`${y}-${m}` === alertMonth) isThisMonth = true
+        }
+      }
+      if (isThisMonth) {
+        const regs = call.registros_json || call.registros || []
+        const reg = regs.find(r => String(r.membro_id) === String(memberId))
+        if (reg && !reg.presente) {
+          absences.push({ call, justificativa: reg.justificativa })
+        }
+      }
+    })
+    return absences
+  }
+
+  const membersWithAbsencesData = storeMembers.map(m => {
+    const absences = getMemberAbsences(m.id)
+    const unjustified = absences.filter(a => !a.justificativa || a.justificativa.trim() === '')
+    const justified = absences.filter(a => a.justificativa && a.justificativa.trim() !== '')
+    return { ...m, unjustified_absences: unjustified.length, justified_absences: justified.length, all_absences: absences, unjustified_list: unjustified, justified_list: justified }
+  })
+  const pendingAlerts = membersWithAbsencesData.filter(m => m.unjustified_absences >= 2 && (!alertSearch || m.nome.toLowerCase().includes(alertSearch.toLowerCase())))
+  const justifiedAlerts = membersWithAbsencesData.filter(m => m.justified_absences > 0 && (!alertSearch || m.nome.toLowerCase().includes(alertSearch.toLowerCase())))
+
+  const handleSaveEdicaoChamada = async (chamadaId, novosRegistros, novoContexto) => {
+    try {
+      await updateAttendance(chamadaId, { registros_json: novosRegistros, contexto: novoContexto })
+      setEditingChamada(null)
+    } catch (err) {
+      console.error('Erro ao salvar edição:', err)
+    }
+  }
+
   const getStatusVariant = (status) => {
     if (status === 'Ativo') return 'green'
-    if (status === 'Em Licença') return 'yellow'
+    if (status === 'Licença') return 'yellow'
     if (status === 'Inativo') return 'red'
     return 'default'
   }
 
-  const handleSaveJustificativa = (alertaId, justificativa) => {
-    setAlertas(prev => prev.map(a => a.id === alertaId ? { ...a, resolvido: true, justificativa } : a))
-    setJustifyingAlert(null)
-  }
+  const handleSaveJustificativa = async (alertaId, justificativasObj) => {
+    try {
+      for (const [chamadaId, motivo] of Object.entries(justificativasObj)) {
+        if (motivo === undefined) continue;
+        const call = storeAttendance.find(c => String(c.id) === String(chamadaId))
+        if (!call) continue;
+        const regs = call.registros_json || call.registros || []
+        const existingReg = regs.find(r => String(r.membro_id) === String(alertaId));
+        if (existingReg && (existingReg.justificativa || '') === motivo) continue;
 
-  const handleSaveEdicaoChamada = (chamadaId, novosRegistros, novoContexto) => {
-    setHistorico(prev => prev.map(h => {
-      if (h.id === chamadaId) {
-        const presentes = novosRegistros.filter(r => r.presente).length
-        const ausentes = novosRegistros.filter(r => !r.presente).length
-        return { ...h, tipo: novoContexto, contexto: novoContexto, registros: novosRegistros, presentes, ausentes }
+        const newRegs = regs.map(r => String(r.membro_id) === String(alertaId) ? { ...r, justificativa: motivo } : r)
+        await updateAttendance(call.id, { registros_json: newRegs, contexto: call.contexto || call.tipo })
       }
-      return h
-    }))
-    setEditingHistory(null)
-    setEditingChamada(null)
+      setJustifyingAlert(null)
+    } catch (err) {
+      console.error('Erro ao salvar justificativas:', err)
+      alert('Ocorreu um erro ao salvar as justificativas.')
+    }
   }
 
   const handleSort = (key) => {
@@ -160,12 +225,12 @@ export default function MembersPage() {
   }
 
   const stats = {
-    total: mockMembers.length,
-    ativos: mockMembers.filter(m => m.status === 'Ativo').length,
-    licenca: mockMembers.filter(m => m.status === 'Em Licença').length,
-    inativos: mockMembers.filter(m => m.status === 'Inativo').length,
-    orquestra: mockMembers.filter(m => m.instrumento_voz && m.instrumento_voz !== '').length,
-    aniversariantes: mockMembers.filter(m => isAniversarioMes(m.data_nascimento)).length
+    total: storeMembers.length,
+    ativos: storeMembers.filter(m => m.status === 'Ativo').length,
+    licenca: storeMembers.filter(m => m.status === 'Licença').length,
+    inativos: storeMembers.filter(m => m.status === 'Inativo').length,
+    orquestra: storeMembers.filter(m => m.instrumento_voz && m.instrumento_voz !== '').length,
+    aniversariantes: storeMembers.filter(m => isAniversarioMes(m.data_nascimento)).length
   }
 
   return (
@@ -214,7 +279,7 @@ export default function MembersPage() {
               <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm group">
                 <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center mb-3 transition-transform duration-300 group-hover:scale-110"><Clock size={20} /></div>
                 <p className="text-2xl font-bold text-gray-900">{stats.licenca}</p>
-                <p className="text-[11px] font-semibold text-gray-500 mt-1 uppercase tracking-wider">Em Licença</p>
+                <p className="text-[11px] font-semibold text-gray-500 mt-1 uppercase tracking-wider">Licença</p>
               </div>
               <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm group">
                 <div className="w-10 h-10 rounded-xl bg-red-50 text-red-600 flex items-center justify-center mb-3 transition-transform duration-300 group-hover:scale-110"><XCircle size={20} /></div>
@@ -241,16 +306,20 @@ export default function MembersPage() {
                   <input type="text" placeholder="Buscar..." value={searchText} onChange={(e) => setSearchText(e.target.value)} className="w-full pl-9 pr-4 py-2 bg-gray-50 border-0 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/30 focus:bg-white outline-none transition-all" />
                 </div>
                 <select value={vozFilter} onChange={(e) => setVozFilter(e.target.value)} className="w-full px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm">
-                  {voiceOptions.map(v => <option key={v} value={v}>{v || 'Todas as vozes'}</option>)}
+                  <option value="">Todas as vozes</option>
+                  {voices.map(v => <option key={v.id} value={v.label}>{v.label}</option>)}
                 </select>
                 <select value={instrumentoFilter} onChange={(e) => setInstrumentoFilter(e.target.value)} className="w-full px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm">
-                  {instrumentOptions.map(v => <option key={v} value={v}>{v || 'Todos os instrum.'}</option>)}
+                  <option value="">Todos os instrum.</option>
+                  {instruments.map(v => <option key={v.id} value={v.label}>{v.label}</option>)}
                 </select>
                 <select value={funcaoFilter} onChange={(e) => setFuncaoFilter(e.target.value)} className="w-full px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm">
-                  {functionOptions.map(v => <option key={v} value={v}>{v || 'Todas as funções'}</option>)}
+                  <option value="">Todas as funções</option>
+                  {positions.map(v => <option key={v.id} value={v.label}>{v.label}</option>)}
                 </select>
                 <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="w-full px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm">
-                  {statusOptions.map(v => <option key={v} value={v}>{v || 'Todos os status'}</option>)}
+                  <option value="">Todos os status</option>
+                  {statuses.map(v => <option key={v.id} value={v.label}>{v.label}</option>)}
                 </select>
               </div>
             </div>
@@ -298,14 +367,21 @@ export default function MembersPage() {
                     filteredMembers.map(member => (
                       <tr key={member.id} className="hover:bg-gray-50">
                         <td className="px-4 py-3"><div className="flex items-center gap-3"><Avatar name={member.nome} size="sm" /><div className="flex items-center gap-1.5"><span className="font-medium">{member.nome}</span>{isAniversarioMes(member.data_nascimento) && <Cake size={14} className="text-amber-400" title="Aniversariante do Mês" />}</div></div></td>
-                        <td className="px-4 py-3 text-sm text-gray-600">{member.telefone}</td>
+                        <td className="px-4 py-3 text-sm text-gray-600">{formatarTelefone(member.telefone)}</td>
                         <td className="px-4 py-3 text-sm text-gray-500">{formatarDataNascimento(member.data_nascimento)}</td>
                         <td className="px-4 py-3">{member.secao ? <Badge variant="blue">{member.secao}</Badge> : <span className="text-gray-400">—</span>}</td>
                         <td className="px-4 py-3">{member.instrumento_voz ? <Badge variant="purple">{member.instrumento_voz}</Badge> : <span className="text-gray-400">—</span>}</td>
                         <td className="px-4 py-3"><Badge variant="default">{member.cargo}</Badge></td>
                         <td className="px-4 py-3"><Badge variant={getStatusVariant(member.status)}>{member.status}</Badge></td>
                         <td className="px-4 py-3 text-right">
-                          <button onClick={() => { setEditingMember(member); setShowDrawer(true); }} className="p-2 rounded-lg hover:bg-gray-100 text-gray-400"><Edit2 size={16} /></button>
+                          <button onClick={() => {
+                            setEditingMember({
+                              ...member,
+                              instrumentos: member.instrumento_voz ? member.instrumento_voz.split(', ') : [],
+                              cargos: member.cargo ? member.cargo.split(', ') : []
+                            });
+                            setShowDrawer(true);
+                          }} className="p-2 rounded-lg hover:bg-gray-100 text-gray-400"><Edit2 size={16} /></button>
                         </td>
                       </tr>
                     ))
@@ -316,60 +392,148 @@ export default function MembersPage() {
           </div>
         )}
 
-        {activeTab === 'chamada' && <ChamadaTab members={mockMembers.filter(m => m.status === 'Ativo')} />}
+        {activeTab === 'chamada' && <ChamadaTab members={storeMembers.filter(m => m.status === 'Ativo')} />}
 
         {activeTab === 'historico' && (
           <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
-            <h3 className="text-lg font-semibold mb-4">Histórico de Chamadas</h3>
-            <div className="space-y-3">
-              {historico.map(item => (
-                <div key={item.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
-                  <div>
-                    <p className="font-semibold">{item.data}</p>
-                    <p className="text-sm text-gray-500">{item.tipo}</p>
-                  </div>
-                  <div className="flex items-center gap-6">
-                    <div className="text-center">
-                      <p className="text-xl font-bold text-green-600">{item.presentes}</p>
-                      <p className="text-xs text-gray-500">Presentes</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-xl font-bold text-red-500">{item.ausentes}</p>
-                      <p className="text-xs text-gray-500">Ausentes</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-lg font-semibold text-green-600">{Math.round((item.presentes / (item.presentes + item.ausentes)) * 100)}%</p>
-                      <p className="text-xs text-gray-500">Presença</p>
-                    </div>
-                    <button onClick={() => setEditingChamada(item)} className="ml-4 px-4 py-2 text-sm font-medium text-gray-500 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors">
-                      <Edit2 size={16} className="inline mr-1" />Editar
-                    </button>
-                  </div>
+            <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+              <h3 className="text-lg font-semibold">Histórico de Chamadas</h3>
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="relative">
+                  <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Buscar por nome..."
+                    value={historicoNameFilter}
+                    onChange={(e) => setHistoricoNameFilter(e.target.value)}
+                    className="pl-9 pr-4 py-2 bg-gray-50 border-0 rounded-xl text-sm w-48"
+                  />
                 </div>
-              ))}
+                <select
+                  value={historicoFilter}
+                  onChange={(e) => setHistoricoFilter(e.target.value)}
+                  className="px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm"
+                >
+                  <option value="">Todos os contextos</option>
+                  {attendanceContexts.map(ctx => (
+                    <option key={ctx.id} value={ctx.label}>{ctx.label}</option>
+                  ))}
+                </select>
+                <input
+                  type="date"
+                  value={historicoDateFilter}
+                  onChange={(e) => setHistoricoDateFilter(e.target.value)}
+                  className="px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm"
+                />
+              </div>
+            </div>
+            <div className="space-y-3">
+              {storeAttendance
+                .filter(item => {
+                  if (historicoFilter && !item.contexto?.toLowerCase().includes(historicoFilter.toLowerCase())) return false
+                  if (historicoDateFilter) {
+                    const itemDate = item.data ? item.data.split('T')[0] : item.data
+                    if (itemDate !== historicoDateFilter) return false
+                  }
+                  if (historicoNameFilter) {
+                    const registros = item.registros_json || []
+                    const hasName = registros.some(r => {
+                      const member = storeMembers.find(m => m.id === r.membro_id)
+                      return member?.nome?.toLowerCase().includes(historicoNameFilter.toLowerCase())
+                    })
+                    if (!hasName) return false
+                  }
+                  return true
+                })
+                .length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <History size={40} className="text-gray-300 mb-3" />
+                  <p className="text-base font-semibold text-gray-700">Nenhum histórico encontrado</p>
+                  <p className="text-sm text-gray-500 mt-1">As chamadas salvas aparecerão aqui.</p>
+                </div>
+              ) : (
+                storeAttendance
+                  .filter(item => {
+                    if (historicoFilter && !item.contexto?.toLowerCase().includes(historicoFilter.toLowerCase())) return false
+                    if (historicoDateFilter) {
+                      const itemDate = item.data ? item.data.split('T')[0] : item.data
+                      if (itemDate !== historicoDateFilter) return false
+                    }
+                    if (historicoNameFilter) {
+                      const registros = item.registros_json || []
+                      const hasName = registros.some(r => {
+                        const member = storeMembers.find(m => m.id === r.membro_id)
+                        return member?.nome?.toLowerCase().includes(historicoNameFilter.toLowerCase())
+                      })
+                      if (!hasName) return false
+                    }
+                    return true
+                  })
+                  .map(item => {
+                    const registros = item.registros_json || []
+                    const presentes = registros.filter(r => r.presente).length
+                    const ausentes = registros.filter(r => !r.presente).length
+
+                    let dataFormatada = '—'
+                    if (item.data) {
+                      const dataStr = item.data.includes('/') ? item.data.split('/').reverse().join('-') : item.data
+                      const dateObj = new Date(`${dataStr}T12:00:00`)
+                      if (!isNaN(dateObj.getTime())) {
+                        const rawDate = dateObj.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+                        dataFormatada = rawDate.charAt(0).toUpperCase() + rawDate.slice(1)
+                      } else {
+                        dataFormatada = item.data
+                      }
+                    }
+
+                    return (
+                      <div key={item.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                        <div>
+                          <p className="font-semibold">{dataFormatada}</p>
+                          <p className="text-sm text-gray-500">{item.contexto}</p>
+                        </div>
+                        <div className="flex items-center gap-6">
+                          <div className="text-center">
+                            <p className="text-xl font-bold text-green-600">{presentes}</p>
+                            <p className="text-xs text-gray-500">Presentes</p>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-xl font-bold text-red-500">{ausentes}</p>
+                            <p className="text-xs text-gray-500">Ausentes</p>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-lg font-semibold text-gray-900">{registros.length > 0 ? Math.round((presentes / registros.length) * 100) : 0}%</p>
+                            <p className="text-xs text-gray-500">Presença</p>
+                          </div>
+                          <button onClick={() => setEditingChamada(item)} className="ml-4 p-2 text-sm font-medium text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Editar">
+                            <Edit2 size={18} />
+                          </button>
+                        </div>
+                      </div>
+                    )
+                  })
+              )}
             </div>
           </div>
         )}
 
         {activeTab === 'alertas' && (
           <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
-            <h3 className="text-lg font-semibold mb-4">Alertas de Frequência</h3>
-
-            <div className="flex gap-1 mb-4 bg-gray-100 p-1 rounded-xl w-fit">
-              <button
-                onClick={() => setActiveAlertTab('pendentes')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium ${activeAlertTab === 'pendentes' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'}`}
-              >
-                Pendentes ({alertas.filter(a => !a.resolvido).length})
-              </button>
-              <button
-                onClick={() => setActiveAlertTab('resolvidos')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium ${activeAlertTab === 'resolvidos' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'}`}
-              >
-                Resolvidos ({alertas.filter(a => a.resolvido).length})
-              </button>
+            <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+              <h3 className="text-lg font-semibold">Alertas de Frequência</h3>
+              <div className="flex flex-wrap items-center gap-3">
+                <input
+                  type="month"
+                  value={alertMonth}
+                  onChange={(e) => setAlertMonth(e.target.value)}
+                  className="px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 outline-none focus:ring-2 focus:ring-blue-500/30"
+                />
+                <div className="flex bg-gray-100 p-1 rounded-lg">
+                  <button onClick={() => setAlertSubTab('pendentes')} className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${alertSubTab === 'pendentes' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>Pendentes</button>
+                  <button onClick={() => setAlertSubTab('justificadas')} className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${alertSubTab === 'justificadas' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>Justificadas</button>
+                </div>
+              </div>
             </div>
-
             <div className="mb-4">
               <div className="relative">
                 <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -384,61 +548,59 @@ export default function MembersPage() {
             </div>
 
             <div className="space-y-3">
-              {activeAlertTab === 'pendentes' ? (
-                alertas.filter(a => !a.resolvido && (!alertSearch || a.nome.toLowerCase().includes(alertSearch.toLowerCase()))).length === 0 ? (
+              {alertSubTab === 'pendentes' ? (
+                pendingAlerts.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
                     <BellRing className="w-16 h-16 text-gray-300 mb-4" />
                     <h4 className="text-xl font-semibold text-gray-700">Tudo tranquilo por aqui!</h4>
-                    <p className="text-sm text-gray-500 mt-2 max-w-sm">Nenhum alerta de frequência pendente encontrado no momento.</p>
+                    <p className="text-sm text-gray-500 mt-2 max-w-sm">Nenhum integrante com 2+ faltas não justificadas no mês selecionado.</p>
                   </div>
                 ) : (
-                  alertas.filter(a => !a.resolvido && (!alertSearch || a.nome.toLowerCase().includes(alertSearch.toLowerCase()))).map(alerta => (
-                    <div key={alerta.id} className="flex items-start justify-between p-4 rounded-xl border bg-red-50 border-red-100">
+                  pendingAlerts.map(member => (
+                    <div key={member.id} className="flex items-start justify-between p-4 rounded-xl border bg-red-50 border-red-100">
                       <div className="flex items-start gap-4">
-                        <Avatar name={alerta.nome} size="md" />
+                        <Avatar name={member.nome} size="md" />
                         <div>
-                          <p className="font-semibold">{alerta.nome}</p>
-                          <p className="text-sm text-gray-500">{alerta.secao} - {alerta.faltas} faltas consecutivas</p>
+                          <p className="font-semibold">{member.nome}</p>
+                          <p className="text-sm text-gray-500">{member.secao || member.cargo} - {member.unjustified_absences} faltas não justificadas</p>
                         </div>
                       </div>
-                      <button onClick={() => setJustifyingAlert(alerta)} className="bg-[#007AFF] text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-blue-600">
-                        Justificar Falta
+                      <button onClick={() => { setJustifyingAlert({ member, mode: 'pendentes' }); }} className="bg-white text-red-600 border border-red-200 px-4 py-2 rounded-xl text-sm font-medium hover:bg-red-50 transition-colors">
+                        Justificar
                       </button>
                     </div>
                   ))
                 )
               ) : (
-                alertas.filter(a => a.resolvido && (!alertSearch || a.nome.toLowerCase().includes(alertSearch.toLowerCase()))).length === 0 ? (
+                justifiedAlerts.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
                     <CheckCircle className="w-16 h-16 text-gray-300 mb-4" />
-                    <h4 className="text-xl font-semibold text-gray-700">Nenhum alerta resolvido ainda</h4>
-                    <p className="text-sm text-gray-500 mt-2 max-w-sm">Os alertas resolvidos aparecerão aqui após justificadas as faltas.</p>
+                    <h4 className="text-xl font-semibold text-gray-700">Nenhuma justificativa</h4>
+                    <p className="text-sm text-gray-500 mt-2 max-w-sm">Nenhuma falta foi justificada no mês selecionado.</p>
                   </div>
                 ) : (
-                  alertas.filter(a => a.resolvido && (!alertSearch || a.nome.toLowerCase().includes(alertSearch.toLowerCase()))).map(alerta => (
-                    <div key={alerta.id} className="flex items-start justify-between p-4 rounded-xl border bg-green-50 border-green-100">
+                  justifiedAlerts.map(member => (
+                    <div key={member.id} className="flex items-start justify-between p-4 rounded-xl border bg-green-50 border-green-100">
                       <div className="flex items-start gap-4">
-                        <Avatar name={alerta.nome} size="md" />
+                        <Avatar name={member.nome} size="md" />
                         <div>
-                          <p className="font-semibold">{alerta.nome}</p>
-                          <p className="text-sm text-gray-500">{alerta.secao} - {alerta.faltas} faltas consecutivas</p>
-                          <div className="mt-3 border-t border-green-200/50 pt-3 flex flex-col gap-1.5">
-                            <div className="text-sm">
-                              <span className="font-medium text-green-800">19/04 (Culto):</span>{' '}
-                              <span className="text-green-700/80">Viagem a trabalho</span>
-                            </div>
-                            <div className="text-sm">
-                              <span className="font-medium text-green-800">12/04 (Ensaio):</span>{' '}
-                              <span className="text-green-700/80">Problema de saúde</span>
-                            </div>
-                            <div className="text-sm">
-                              <span className="font-medium text-green-800">05/04 (Culto):</span>{' '}
-                              <span className="text-gray-500 italic">Sem justificativa</span>
-                            </div>
+                          <p className="font-semibold">{member.nome}</p>
+                          <p className="text-sm text-gray-500 mb-2">{member.secao || member.cargo} - {member.justified_absences} {member.justified_absences === 1 ? 'falta justificada' : 'faltas justificadas'}</p>
+                          <div className="space-y-1.5">
+                            {member.justified_list.map((falta, i) => (
+                              <div key={i} className="text-xs text-gray-700 bg-white/60 px-2 py-1.5 rounded-lg border border-green-200/60">
+                                <span className="font-semibold text-green-700 mr-1">
+                                  {falta.call.data ? (falta.call.data.includes('-') ? falta.call.data.split('-').reverse().join('/') : falta.call.data) : ''}:
+                                </span>
+                                {falta.justificativa}
+                              </div>
+                            ))}
                           </div>
                         </div>
                       </div>
-                      <Badge variant="green">Resolvido</Badge>
+                      <button onClick={() => { setJustifyingAlert({ member, mode: 'justificadas' }); }} className="bg-white text-gray-700 border border-gray-200 px-4 py-2 rounded-xl text-sm font-medium hover:bg-gray-50">
+                        Editar
+                      </button>
                     </div>
                   ))
                 )
@@ -449,12 +611,52 @@ export default function MembersPage() {
       </div>
 
       <Modal isOpen={showDrawer} onClose={() => { setShowDrawer(false); setEditingMember(null); }} title={editingMember ? 'Editar Integrante' : 'Novo Integrante'} size="lg">
-        <MemberForm member={editingMember} onSave={(data) => { console.log('Salvo:', data); setShowDrawer(false); setEditingMember(null); }} onCancel={() => { setShowDrawer(false); setEditingMember(null); }} />
+        <MemberForm
+          key={editingMember ? editingMember.id : 'new'}
+          member={editingMember}
+          onSave={async (data) => {
+            try {
+              const payload = {
+                nome: data.nome,
+                telefone: data.telefone ? data.telefone.replace(/\D/g, '') : '',
+                data_nascimento: data.data_nascimento,
+                secao: data.secao,
+                instrumento_voz: (data.instrumentos || []).join(', '),
+                cargo: (data.cargos || []).join(', '),
+                status: data.status
+              }
+              if (editingMember && editingMember.id) {
+                await updateMember(editingMember.id, payload)
+              } else {
+                await addMember(payload)
+              }
+              setShowDrawer(false)
+              setEditingMember(null)
+            } catch (err) {
+              console.error('Erro ao salvar integrante:', err)
+            }
+          }}
+          onCancel={() => { setShowDrawer(false); setEditingMember(null); }}
+          onDelete={async (id) => {
+            if (window.confirm('Tem certeza que deseja excluir este integrante? O histórico dele nas chamadas passadas será preservado de forma segura.')) {
+              try {
+                await removeMember(id)
+                setShowDrawer(false)
+                setEditingMember(null)
+              } catch (err) {
+                console.error('Erro ao excluir integrante:', err)
+                alert('Ocorreu um erro ao excluir o integrante.')
+              }
+            }
+          }}
+        />
       </Modal>
 
-      <Modal isOpen={!!justifyingAlert} onClose={() => setJustifyingAlert(null)} title={`Justificar Faltas - ${justifyingAlert?.nome}`} size="md">
+      <Modal isOpen={!!justifyingAlert} onClose={() => setJustifyingAlert(null)} title={justifyingAlert?.mode === 'justificadas' ? `Editar Justificativas - ${justifyingAlert?.member?.nome}` : `Justificar Faltas - ${justifyingAlert?.member?.nome}`} size="md">
         <div className="space-y-4">
-          <p className="text-sm text-gray-500">Preencha o motivo para cada ausência pendente.</p>
+          <p className="text-sm text-gray-500">
+            {justifyingAlert?.mode === 'justificadas' ? 'Edite os motivos das ausências ou deixe em branco para remover a justificativa.' : 'Preencha o motivo para cada ausência pendente.'}
+          </p>
           <JustificativasList alert={justifyingAlert} onSave={handleSaveJustificativa} onCancel={() => setJustifyingAlert(null)} />
         </div>
       </Modal>
@@ -462,8 +664,9 @@ export default function MembersPage() {
       {editingChamada && (
         <EdicaoDrawer
           chamada={editingChamada}
-          members={mockMembers.filter(m => m.status === 'Ativo')}
+          members={storeMembers.filter(m => m.status === 'Ativo')}
           onSave={handleSaveEdicaoChamada}
+          onDelete={deleteCall}
           onClose={() => setEditingChamada(null)}
         />
       )}
@@ -473,8 +676,11 @@ export default function MembersPage() {
 
 function ChamadaTab({ members, isEditing = false, chamada = null, onSaveEdit = null, onCancelEdit = null }) {
   const attendanceContexts = useSettingsStore((s) => s.attendanceContexts) || []
-  const [dataChamada, setDataChamada] = useState(chamada?.data ? chamada.data.split('/').reverse().join('-') : '2026-04-26')
-  const [contextoChamada, setContextoChamada] = useState(chamada?.tipo || attendanceContexts[0]?.label || 'Ensaio Geral')
+  const saveAttendance = useMembersStore((s) => s.saveAttendance)
+  const showToast = useToastStore((s) => s.showToast)
+
+  const [dataChamada, setDataChamada] = useState(chamada?.data ? chamada.data.split('/').reverse().join('-') : new Date().toISOString().split('T')[0])
+  const [contextoChamada, setContextoChamada] = useState(chamada?.tipo || (attendanceContexts[0]?.label || 'Ensaio Geral'))
   const [presencas, setPresencas] = useState(() => {
     if (chamada?.registros) {
       const map = {}
@@ -492,6 +698,8 @@ function ChamadaTab({ members, isEditing = false, chamada = null, onSaveEdit = n
     return {}
   })
   const [searchChamada, setSearchChamada] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [success, setSuccess] = useState(false)
 
   const filteredMembers = members
     .filter(m => !searchChamada || m.nome.toLowerCase().includes(searchChamada.toLowerCase()))
@@ -504,14 +712,33 @@ function ChamadaTab({ members, isEditing = false, chamada = null, onSaveEdit = n
 
   const updateJustificativa = (id, text) => setJustificativas(prev => ({ ...prev, [id]: text }))
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    const registros = members.map(m => ({
+      membro_id: m.id,
+      presente: presencas[m.id] !== false,
+      justificativa: justificativas[m.id] || ''
+    }))
+
     if (onSaveEdit) {
-      const registros = filteredMembers.map(m => ({
-        membro_id: m.id,
-        presente: presencas[m.id] !== false,
-        justificativa: justificativas[m.id] || ''
-      }))
       onSaveEdit(chamada.id, registros)
+    } else {
+      setLoading(true)
+      try {
+        console.log('Salvando chamada:', { dataChamada, contextoChamada, registros })
+        await saveAttendance(dataChamada, contextoChamada, registros)
+        showToast('Chamada salva com sucesso!', 'success')
+        setSuccess(true)
+        setTimeout(() => {
+          setSuccess(false)
+          setPresencas({})
+          setJustificativas({})
+        }, 3000)
+      } catch (err) {
+        console.error('Erro ao salvar chamada:', err)
+        showToast(err.message || 'Erro ao salvar chamada', 'error')
+      } finally {
+        setLoading(false)
+      }
     }
   }
 
@@ -529,13 +756,16 @@ function ChamadaTab({ members, isEditing = false, chamada = null, onSaveEdit = n
               {attendanceContexts.map(ctx => (
                 <option key={ctx.id} value={ctx.label}>{ctx.label}</option>
               ))}
+              {attendanceContexts.length === 0 && (
+                <option value="Ensaio Geral">Ensaio Geral</option>
+              )}
             </select>
           </div>
           <div className="flex-1 min-w-[200px]">
             <label className="block text-xs font-semibold text-gray-500 uppercase mb-2">Buscar</label>
             <div className="relative">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input type="text" placeholder="Buscar membro..." value={searchChamada} onChange={(e) => setSearchChamada(e.target.value)} className="w-full pl-9 pr-4 py-2 bg-gray-50 border-0 rounded-xl text-sm" />
+              <input type="text" placeholder="Buscar integrante..." value={searchChamada} onChange={(e) => setSearchChamada(e.target.value)} className="w-full pl-9 pr-4 py-2 bg-gray-50 border-0 rounded-xl text-sm" />
             </div>
           </div>
         </div>
@@ -578,19 +808,23 @@ function ChamadaTab({ members, isEditing = false, chamada = null, onSaveEdit = n
         </div>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-md border-t border-gray-200 p-4 flex justify-between items-center z-50">
-        <div className="flex gap-6">
-          <span className="font-bold text-gray-900">{presentes} Presentes</span>
-          <span className="font-bold text-gray-900">{ausentes} Ausentes</span>
-        </div>
-        {isEditing ? (
-          <div className="flex gap-3">
-            <button onClick={onCancelEdit} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200">Cancelar</button>
-            <button onClick={handleSave} className="bg-[#007AFF] text-white px-6 py-2 rounded-xl font-medium hover:bg-blue-600">Salvar Alterações</button>
+      <div className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-md border-t border-gray-200 z-50">
+        <div className="max-w-7xl mx-auto px-8 py-4 flex justify-between items-center w-full">
+          <div className="flex gap-6">
+            <span className="font-bold text-gray-900">{presentes} Presentes</span>
+            <span className="font-bold text-gray-900">{ausentes} Ausentes</span>
           </div>
-        ) : (
-          <button className="bg-[#007AFF] text-white px-6 py-2 rounded-xl font-medium hover:bg-blue-600">Salvar Chamada</button>
-        )}
+          {isEditing ? (
+            <div className="flex gap-3">
+              <button onClick={onCancelEdit} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200">Cancelar</button>
+              <button onClick={handleSave} className="bg-[#007AFF] text-white px-6 py-2 rounded-xl font-medium hover:bg-blue-600">Salvar Alterações</button>
+            </div>
+          ) : (
+            <button onClick={handleSave} disabled={loading} className="bg-[#007AFF] text-white px-6 py-2 rounded-xl font-medium hover:bg-blue-600 disabled:opacity-50 transition-all">
+              {loading ? 'Salvando...' : success ? 'Salvo com sucesso!' : 'Salvar Chamada'}
+            </button>
+          )}
+        </div>
       </div>
       <div className="h-20" />
     </div>
@@ -675,8 +909,24 @@ function EdicaoChamadaForm({ chamada, members, onSave, onCancel }) {
   )
 }
 
-function MemberForm({ member, onSave, onCancel }) {
-  const [form, setForm] = useState(member || { nome: '', telefone: '', data_nascimento: '', secao: '', instrumentos: [], cargos: [], status: 'Ativo' })
+function MemberForm({ member, onSave, onCancel, onDelete }) {
+  const voices = useSettingsStore(s => s.voices) || []
+  const instruments = useSettingsStore(s => s.instruments) || []
+  const positions = useSettingsStore(s => s.positions) || []
+  const statuses = useSettingsStore(s => s.statuses) || []
+
+  const [form, setForm] = useState(() => {
+    if (member) {
+      let formattedPhone = member.telefone || ''
+      if (formattedPhone) {
+        const digits = formattedPhone.replace(/\D/g, '')
+        if (digits.length === 11) formattedPhone = `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`
+        else if (digits.length === 10) formattedPhone = `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`
+      }
+      return { ...member, telefone: formattedPhone }
+    }
+    return { nome: '', telefone: '', data_nascimento: '', secao: '', instrumentos: [], cargos: [], status: 'Ativo' }
+  })
 
   const formInstrumentos = form?.instrumentos || []
   const formCargos = form?.cargos || []
@@ -684,8 +934,8 @@ function MemberForm({ member, onSave, onCancel }) {
   const [showInstDropdown, setShowInstDropdown] = useState(false)
   const [showCargoDropdown, setShowCargoDropdown] = useState(false)
 
-  const instrumentosDisponiveis = ['Violino', 'Flauta', 'Clarinete', 'Trompete', 'Violão', 'Piano', 'Violoncelo']
-  const cargosDisponiveis = ['Músico', 'Regente', 'Coordenadora', 'Auxiliar']
+  const instrumentosDisponiveis = instruments.map(i => i.label)
+  const cargosDisponiveis = positions.map(p => p.label)
 
   const addInstrumento = (inst) => {
     if (inst && !formInstrumentos.includes(inst)) {
@@ -725,16 +975,25 @@ function MemberForm({ member, onSave, onCancel }) {
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="block text-xs font-semibold text-gray-500 uppercase mb-2">Telefone</label>
-          <input type="text" value={form.telefone || ''} onChange={(e) => setForm(f => ({ ...f, telefone: e.target.value }))} className="w-full px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm" placeholder="(00) 00000-0000" />
+          <input type="text" value={form.telefone || ''} onChange={(e) => {
+            let val = e.target.value.replace(/\D/g, '')
+            if (val.length > 11) val = val.slice(0, 11)
+            let formatted = val
+            if (val.length > 2 && val.length <= 6) {
+              formatted = `(${val.slice(0, 2)}) ${val.slice(2)}`
+            } else if (val.length > 6 && val.length <= 10) {
+              formatted = `(${val.slice(0, 2)}) ${val.slice(2, 6)}-${val.slice(6)}`
+            } else if (val.length > 10) {
+              formatted = `(${val.slice(0, 2)}) ${val.slice(2, 7)}-${val.slice(7)}`
+            }
+            setForm(f => ({ ...f, telefone: formatted }))
+          }} className="w-full px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm" placeholder="(00) 00000-0000" />
         </div>
         <div>
           <label className="block text-xs font-semibold text-gray-500 uppercase mb-2">Voz</label>
           <select value={form.secao || ''} onChange={(e) => setForm(f => ({ ...f, secao: e.target.value }))} className="w-full px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm">
             <option value="">Selecionar...</option>
-            <option value="Soprano">Soprano</option>
-            <option value="Contralto">Contralto</option>
-            <option value="Tenor">Tenor</option>
-            <option value="Baixo">Baixo</option>
+            {voices.map(v => <option key={v.id} value={v.label}>{v.label}</option>)}
           </select>
         </div>
       </div>
@@ -796,13 +1055,16 @@ function MemberForm({ member, onSave, onCancel }) {
       <div>
         <label className="block text-xs font-semibold text-gray-500 uppercase mb-2">Status</label>
         <select value={form.status || 'Ativo'} onChange={(e) => setForm(f => ({ ...f, status: e.target.value }))} className="w-full px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm">
-          <option value="Ativo">Ativo</option>
-          <option value="Em Licença">Em Licença</option>
-          <option value="Inativo">Inativo</option>
+          {statuses.map(s => <option key={s.id} value={s.label}>{s.label}</option>)}
         </select>
       </div>
 
       <div className="flex gap-3 pt-4 border-t border-gray-100">
+        {member && onDelete && (
+          <button type="button" onClick={() => onDelete(member.id)} className="flex items-center justify-center bg-red-50 text-red-600 px-4 py-3 rounded-xl font-medium hover:bg-red-100 transition-colors" title="Excluir Integrante">
+            <Trash2 size={20} />
+          </button>
+        )}
         <button onClick={onCancel} className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-xl font-medium hover:bg-gray-200">Cancelar</button>
         <button onClick={() => onSave(form)} className="flex-1 bg-[#007AFF] text-white py-3 rounded-xl font-medium hover:bg-blue-600">{member ? 'Salvar Alterações' : 'Cadastrar'}</button>
       </div>
@@ -811,36 +1073,49 @@ function MemberForm({ member, onSave, onCancel }) {
 }
 
 function JustificativasList({ alert, onSave, onCancel }) {
-  const mockFaltas = [
-    { id: 1, data: '19/04', contexto: 'Culto de Celebração' },
-    { id: 2, data: '12/04', contexto: 'Ensaio Geral' },
-    { id: 3, data: '05/04', contexto: 'Culto Dominical' },
-  ]
+  const member = alert?.member;
+  const mode = alert?.mode;
+  const faltas = mode === 'pendentes' ? (member?.unjustified_list || []) : (member?.justified_list || []);
 
-  const [justificativas, setJustificativas] = useState({})
+  const [justificativas, setJustificativas] = useState(() => {
+    const initial = {};
+    if (mode === 'justificadas') {
+      faltas.forEach(f => {
+        initial[f.call.id] = f.justificativa;
+      });
+    }
+    return initial;
+  });
 
-  const updateJustificativa = (faltaId, texto) => {
-    setJustificativas(prev => ({ ...prev, [faltaId]: texto }))
+  const updateJustificativa = (chamadaId, texto) => {
+    setJustificativas(prev => ({ ...prev, [chamadaId]: texto }))
   }
 
   const handleSalvar = () => {
-    const texto = Object.values(justificativas).filter(t => t).join('; ') || 'Faltas justificadas'
-    onSave(alert.id, texto)
+    onSave(member.id, justificativas)
+  }
+
+  if (faltas.length === 0) return <p className="text-sm text-gray-500">Nenhuma falta para exibir.</p>
+
+  const formatarData = (data) => {
+    if (!data) return ''
+    if (data.includes('-')) return data.split('-').reverse().join('/')
+    return data
   }
 
   return (
     <div className="space-y-3">
-      {mockFaltas.map(falta => (
-        <div key={falta.id} className="bg-gray-50 rounded-xl p-3 border border-gray-100">
+      {faltas.map(falta => (
+        <div key={falta.call.id} className="bg-gray-50 rounded-xl p-3 border border-gray-100">
           <div className="flex items-center gap-2 mb-2">
-            <span className="font-semibold text-gray-700 text-sm">{falta.data}</span>
-            <span className="text-xs text-gray-500">- {falta.contexto}</span>
+            <span className="font-semibold text-gray-700 text-sm">{formatarData(falta.call.data)}</span>
+            <span className="text-xs text-gray-500">- {falta.call.contexto || falta.call.tipo}</span>
           </div>
           <input
             type="text"
             placeholder="Motivo (opcional)..."
-            value={justificativas[falta.id] || ''}
-            onChange={(e) => updateJustificativa(falta.id, e.target.value)}
+            value={justificativas[falta.call.id] || ''}
+            onChange={(e) => updateJustificativa(falta.call.id, e.target.value)}
             className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
           />
         </div>
@@ -850,53 +1125,77 @@ function JustificativasList({ alert, onSave, onCancel }) {
           Cancelar
         </button>
         <button onClick={handleSalvar} className="flex-1 bg-[#007AFF] text-white py-3 rounded-xl font-medium hover:bg-blue-600">
-          Salvar Justificativas
+          {mode === 'justificadas' ? 'Salvar Alterações' : 'Salvar Justificativas'}
         </button>
       </div>
     </div>
   )
 }
 
-function EdicaoDrawer({ chamada, members, onSave, onClose }) {
+function EdicaoDrawer({ chamada, members, onSave, onDelete, onClose }) {
+  console.log('EdicaoDrawer received:', { chamada: { id: chamada?.id, data: chamada?.data, registros: chamada?.registros_json }, membersCount: members?.length })
+
   const attendanceContexts = useSettingsStore((s) => s.attendanceContexts) || []
+  const registrosChamada = chamada?.registros_json || chamada?.registros || []
+  const temRegistros = registrosChamada && registrosChamada.length > 0
+
   const [presencas, setPresencas] = useState(() => {
     const map = {}
-    if (chamada?.registros) {
-      chamada.registros.forEach(r => { map[r.membro_id] = r.presente })
+    if (temRegistros) {
+      registrosChamada.forEach(r => { map[r.membro_id] = r.presente })
     }
     return map
   })
   const [justificativas, setJustificativas] = useState(() => {
     const map = {}
-    if (chamada?.registros) {
-      chamada.registros.forEach(r => { map[r.membro_id] = r.justificativa || '' })
+    if (temRegistros) {
+      registrosChamada.forEach(r => { map[r.membro_id] = r.justificativa || '' })
     }
     return map
   })
   const [search, setSearch] = useState('')
-  const [contexto, setContexto] = useState(chamada?.tipo || chamada?.contexto || attendanceContexts[0]?.label || 'Ensaio Geral')
+  const [contexto, setContexto] = useState(chamada?.contexto || chamada?.tipo || 'Ensaio Geral')
 
   const filteredMembers = members
     .filter(m => !search || m.nome.toLowerCase().includes(search.toLowerCase()))
     .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
 
-  const presentes = filteredMembers.filter(m => presencas[m.id] !== false).length
-  const ausentes = filteredMembers.filter(m => presencas[m.id] === false).length
+  const presenteKey = temRegistros ? (m) => presencas[m.id] !== false : () => true
+  const ausenteKey = temRegistros ? (m) => presencas[m.id] === false : () => false
+
+  const presentes = filteredMembers.filter(m => presenteKey(m)).length
+  const ausentes = filteredMembers.filter(m => ausenteKey(m)).length
 
   const togglePresenca = (id) => setPresencas(p => ({ ...p, [id]: p[id] === false ? true : false }))
   const updateJustificativa = (id, text) => setJustificativas(prev => ({ ...prev, [id]: text }))
 
-  const handleSalvar = () => {
+  const handleSalvar = async () => {
     const registros = filteredMembers.map(m => ({
       membro_id: m.id,
       presente: presencas[m.id] !== false,
       justificativa: justificativas[m.id] || ''
     }))
-    onSave(chamada.id, registros, contexto)
+    console.log('Salvando chamada:', { chamadaId: chamada.id, registros, contexto })
+    try {
+      await onSave(chamada.id, registros, contexto)
+      onClose()
+    } catch (err) {
+      console.error('Erro ao salvar:', err)
+    }
   }
 
-  const [dia, mes, ano] = chamada.data.split('/')
-  const titulo = `Editando Chamada - ${dia}/${mes}/${ano}`
+  const formatarDataEdicao = (data) => {
+    if (!data) return 'Data inválida'
+    if (data.includes('/')) {
+      const [dia, mes, ano] = data.split('/')
+      return `${dia}/${mes}/${ano}`
+    }
+    const dateObj = new Date(data)
+    if (isNaN(dateObj.getTime())) return data
+    return dateObj.toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+  }
+
+  const titulo = `Editando Chamada - ${formatarDataEdicao(chamada.data)}`
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -914,7 +1213,7 @@ function EdicaoDrawer({ chamada, members, onSave, onClose }) {
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
-                placeholder="Buscar membro..."
+                placeholder="Buscar integrante..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full pl-9 pr-4 py-2 bg-gray-50 border-0 rounded-lg text-sm"
@@ -928,6 +1227,10 @@ function EdicaoDrawer({ chamada, members, onSave, onClose }) {
               {attendanceContexts.map(ctx => (
                 <option key={ctx.id} value={ctx.label}>{ctx.label}</option>
               ))}
+              <option value="Ensaio Geral">Ensaio Geral</option>
+              <option value="Culto Dominical">Culto Dominical</option>
+              <option value="Culto de Celebração">Culto de Celebração</option>
+              <option value="Ensaio de Naipe">Ensaio de Naipe</option>
             </select>
           </div>
 
@@ -971,6 +1274,7 @@ function EdicaoDrawer({ chamada, members, onSave, onClose }) {
             <span className="font-bold text-gray-900">{ausentes} Ausentes</span>
           </div>
           <div className="flex gap-3">
+            <button onClick={() => { if (confirm('Tem certeza que deseja excluir esta chamada?')) { onDelete(chamada.id).then(onClose).catch(console.error) } }} className="px-4 py-2 bg-red-50 text-red-600 rounded-xl font-medium hover:bg-red-100">Excluir</button>
             <button onClick={onClose} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200">Cancelar</button>
             <button onClick={handleSalvar} className="px-6 py-2 bg-[#007AFF] text-white rounded-xl font-medium hover:bg-blue-600">Salvar Alterações</button>
           </div>

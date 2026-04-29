@@ -2,12 +2,13 @@ import { create } from 'zustand'
 
 const useToastStore = create((set, get) => ({
     message: '',
+    type: 'success',
     isVisible: false,
     isExiting: false,
     timeoutId: null,
     exitTimeoutId: null,
 
-    showToast: (msg) => {
+    showToast: (msg, type = 'success') => {
         const state = get()
 
         // Limpa temporizadores antigos caso o usuário clique muito rápido em várias ações
@@ -15,7 +16,7 @@ const useToastStore = create((set, get) => ({
         if (state.exitTimeoutId) clearTimeout(state.exitTimeoutId)
 
         // Mostra o toast com a nova mensagem
-        set({ message: msg, isVisible: true, isExiting: false })
+        set({ message: msg, type, isVisible: true, isExiting: false })
 
         // Configura o tempo para iniciar a saída (3 segundos)
         const timeoutId = setTimeout(() => {

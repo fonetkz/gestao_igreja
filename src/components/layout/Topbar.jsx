@@ -17,6 +17,7 @@ export default function Topbar({ title = 'Gestão Igreja', searchPlaceholder, on
   const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef(null)
+  const [logoError, setLogoError] = useState(false)
   const location = useLocation()
 
   const [isDarkMode, setIsDarkMode] = useState(() => {
@@ -60,9 +61,18 @@ export default function Topbar({ title = 'Gestão Igreja', searchPlaceholder, on
         <div className="flex items-center justify-between">
           {/* Logo */}
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl bg-[#007AFF] flex items-center justify-center shadow-lg shadow-blue-500/20">
-              <Music size={16} className="text-white" />
-            </div>
+            {!logoError ? (
+              <img
+                src="/logo.png"
+                alt="Logo do Sistema"
+                className="w-8 h-8 object-contain rounded-lg"
+                onError={() => setLogoError(true)}
+              />
+            ) : (
+              <div className="w-8 h-8 rounded-xl bg-[#007AFF] flex items-center justify-center shadow-lg shadow-blue-500/20">
+                <Music size={16} className="text-white" />
+              </div>
+            )}
             <h2 className="text-lg font-bold text-gray-900 dark:text-white hidden sm:block">{title}</h2>
           </div>
 
@@ -76,8 +86,8 @@ export default function Topbar({ title = 'Gestão Igreja', searchPlaceholder, on
                   key={item.to}
                   to={item.to}
                   className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${isActive
-                      ? 'bg-gray-100 dark:bg-gray-700/50 text-gray-900 dark:text-white'
-                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700/30'
+                    ? 'bg-gray-100 dark:bg-gray-700/50 text-gray-900 dark:text-white'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700/30'
                     }`}
                 >
                   <Icon size={16} />
@@ -139,7 +149,7 @@ export default function Topbar({ title = 'Gestão Igreja', searchPlaceholder, on
                 <div className="absolute right-0 mt-2 w-56 bg-white/95 dark:bg-[#2C2C2E]/95 backdrop-blur-xl rounded-2xl border border-gray-100 dark:border-gray-700/50 shadow-lg overflow-hidden animate-slide-down">
                   <div className="p-2 flex flex-col gap-1">
                     <Link
-                      to="/conta"
+                      to="/configuracoes"
                       onClick={() => setMenuOpen(false)}
                       className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
                     >

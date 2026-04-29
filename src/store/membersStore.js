@@ -121,7 +121,8 @@ const useMembersStore = create((set, get) => ({
   updateAttendance: async (chamadaId, updates) => {
     try {
       const payload = {
-        registros_json: JSON.stringify(updates.registros_json)
+        registros_json: JSON.stringify(updates.registros_json),
+        contexto: updates.contexto
       }
       const { data } = await api.patch(`/api/chamadas/${chamadaId}`, payload)
 
