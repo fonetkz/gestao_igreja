@@ -116,16 +116,45 @@ export default function DashboardPage() {
   // Presença por seção
   const sectionData = useMemo(() => {
     const sections = {}
-    members.filter(m => m.status === 'Ativo').forEach(m => {
+    const activeMembersList = members.filter(m => m.status === 'Ativo')
+    const memberToSection = {}
+
+    activeMembersList.forEach(m => {
       const sec = m.secao || m.instrumento_voz || 'Outros'
-      if (!sections[sec]) sections[sec] = { count: 0 }
+      if (!sections[sec]) sections[sec] = { count: 0, total_calls: 0, presences: 0 }
       sections[sec].count++
+      memberToSection[m.id] = sec
     })
+
+    storeAttendance.forEach(call => {
+      let isSelectedMonth = false
+      if (call.data) {
+        if (call.data.includes('-') && call.data.startsWith(selectedMonth)) isSelectedMonth = true
+        else if (call.data.includes('/')) {
+          const [d, mo, y] = call.data.split('/')
+          if (`${y}-${mo}` === selectedMonth) isSelectedMonth = true
+        }
+      }
+      if (isSelectedMonth) {
+        const regs = call.registros_json || call.registros || []
+        regs.forEach(r => {
+          const sec = memberToSection[r.membro_id]
+          if (sec && sections[sec]) {
+            sections[sec].total_calls++
+            if (r.presente) sections[sec].presences++
+          }
+        })
+      }
+    })
+
     return Object.entries(sections)
-      .map(([nome, data]) => ({ nome, membros: data.count, presenca: overallRate || 0 }))
+      .map(([nome, data]) => {
+        const presenca = data.total_calls > 0 ? Math.round((data.presences / data.total_calls) * 100) : 0
+        return { nome, membros: data.count, presenca }
+      })
       .sort((a, b) => b.membros - a.membros)
-      .slice(0, 6)
-  }, [members, overallRate])
+      .slice(0, 4)
+  }, [members, storeAttendance, selectedMonth])
 
   // Gráfico
   const chartData = useMemo(() => {
@@ -203,41 +232,47 @@ export default function DashboardPage() {
         {/* Charts Area */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Frequency Chart */}
-          <div className="apple-card p-6 lg:col-span-2">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Frequência Geral</h3>
-            <div className="h-[200px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="colorPresenca" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#007AFF" stopOpacity={0.2} />
-                      <stop offset="95%" stopColor="#007AFF" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="4 4" stroke="#E5E5EA" vertical={false} />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#8E8E93', fontSize: 11, fontWeight: 500 }} dy={8} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fill: '#8E8E93', fontSize: 11 }} domain={[0, 100]} tickFormatter={(v) => `${v}%`} />
-                  <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#C7C7CC', strokeWidth: 1 }} />
-                  <Area type="monotone" dataKey="presenca" stroke="#007AFF" strokeWidth={2.5} fill="url(#colorPresenca)" />
-                </AreaChart>
-              </ResponsiveContainer>
+          <div className="apple-card p-6 lg:col-span-2 flex flex-col h-full">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 shrink-0">Frequência Geral</h3>
+            <div className="flex-1 w-full relative min-h-[240px]">
+              <div className="absolute inset-0">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="colorPresenca" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#007AFF" stopOpacity={0.2} />
+                        <stop offset="95%" stopColor="#007AFF" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="4 4" stroke="#E5E5EA" vertical={false} />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#8E8E93', fontSize: 11, fontWeight: 500 }} dy={8} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#8E8E93', fontSize: 11 }} domain={[0, 100]} tickFormatter={(v) => `${v}%`} />
+                    <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#C7C7CC', strokeWidth: 1 }} />
+                    <Area type="monotone" dataKey="presenca" stroke="#007AFF" strokeWidth={2.5} fill="url(#colorPresenca)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
             </div>
 
             {/* Presence by Section */}
             {sectionData.length > 0 && (
-              <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-700">
+              <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-700 shrink-0">
                 <h4 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">Integrantes por Seção</h4>
                 <div className="space-y-3">
                   {sectionData.map((section) => (
                     <div key={section.nome} className="flex items-center gap-4">
-                      <span className="w-24 text-sm font-medium text-gray-700 dark:text-gray-300 truncate">{section.nome}</span>
-                      <div className="flex-1 h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-[#007AFF] rounded-full transition-all duration-500"
-                          style={{ width: `${Math.min((section.membros / Math.max(activeMembers, 1)) * 100, 100)}%` }}
-                        />
+                      <div className="w-28 shrink-0">
+                        <p className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">{section.nome}</p>
+                        <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">{section.membros} {section.membros === 1 ? 'integrante' : 'integrantes'}</p>
                       </div>
-                      <span className="w-8 text-sm font-semibold text-gray-900 dark:text-white text-right">{section.membros}</span>
+                      <div className="flex-1 h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                        <div className={`h-full rounded-full transition-all duration-500 ${section.presenca >= 75 ? 'bg-green-500' : section.presenca >= 50 ? 'bg-amber-500' : 'bg-red-500'}`} style={{ width: `${section.presenca}%` }} />
+                      </div>
+                      <div className="w-10 text-right shrink-0">
+                        <span className={`text-xs font-bold ${section.presenca >= 75 ? 'text-green-600 dark:text-green-400' : section.presenca >= 50 ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400'}`}>
+                          {section.presenca}%
+                        </span>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -246,10 +281,10 @@ export default function DashboardPage() {
           </div>
 
           {/* Right Column - Alerts & Birthdays */}
-          <div className="space-y-6">
+          <div className="flex flex-col gap-6 h-full">
             {/* Alerts Card */}
-            <div className="apple-card p-5">
-              <div className="flex items-center justify-between mb-4">
+            <div className="apple-card p-5 flex flex-col flex-1">
+              <div className="flex items-center justify-between mb-4 shrink-0">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
                     <AlertTriangle size={20} className="text-red-500 dark:text-red-400" strokeWidth={2} />
@@ -264,27 +299,29 @@ export default function DashboardPage() {
                 </Link>
               </div>
 
-              <div className="space-y-3">
+              <div className={`flex-1 flex flex-col ${problematicMembers.length === 0 ? 'justify-center' : ''}`}>
                 {problematicMembers.length === 0 ? (
-                  <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-6">Nenhum alerta no momento.</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 text-center">Nenhum alerta no momento.</p>
                 ) : (
-                  problematicMembers.slice(0, 5).map((m) => (
-                    <div key={m.id} className="flex items-center gap-3 p-3 rounded-xl bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-800/30">
-                      <Avatar name={m.nome} size="sm" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-gray-900 dark:text-white">{m.nome}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">{m.secao || m.instrumento_voz}</p>
+                  <div className="space-y-3 w-full">
+                    {problematicMembers.slice(0, 3).map((m) => (
+                      <div key={m.id} className="flex items-center gap-3 p-3 rounded-xl bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-800/30">
+                        <Avatar name={m.nome} size="sm" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-gray-900 dark:text-white">{m.nome}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">{m.secao || m.instrumento_voz}</p>
+                        </div>
+                        <span className="badge-apple bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400">{m.unjustified_absences} faltas</span>
                       </div>
-                      <span className="badge-apple bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400">{m.unjustified_absences} faltas</span>
-                    </div>
-                  ))
+                    ))}
+                  </div>
                 )}
               </div>
             </div>
 
             {/* Birthdays Card */}
-            <div className="apple-card p-5">
-              <div className="flex items-center justify-between mb-4">
+            <div className="apple-card p-5 flex flex-col flex-1">
+              <div className="flex items-center justify-between mb-4 shrink-0">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-pink-100 dark:bg-pink-900/30 flex items-center justify-center">
                     <Cake size={20} className="text-pink-500 dark:text-pink-400" strokeWidth={2} />
@@ -299,37 +336,39 @@ export default function DashboardPage() {
                 </Link>
               </div>
 
-              <div className="space-y-3">
+              <div className={`flex-1 flex flex-col ${birthdayMembers.length === 0 ? 'justify-center' : ''}`}>
                 {birthdayMembers.length === 0 ? (
-                  <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-6">Nenhum aniversariante este mês</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 text-center">Nenhum aniversariante este mês</p>
                 ) : (
-                  birthdayMembers.slice(0, 5).map((m) => {
-                    let day = '?'
-                    let month = '?'
-                    if (m.data_nascimento) {
-                      if (m.data_nascimento.includes('-')) {
-                        const parts = m.data_nascimento.split('-')
-                        day = parts[2]
-                        month = parts[1]
-                      } else if (m.data_nascimento.includes('/')) {
-                        const parts = m.data_nascimento.split('/')
-                        day = parts[0]
-                        month = parts[1]
+                  <div className="space-y-3 w-full">
+                    {birthdayMembers.slice(0, 3).map((m) => {
+                      let day = '?'
+                      let month = '?'
+                      if (m.data_nascimento) {
+                        if (m.data_nascimento.includes('-')) {
+                          const parts = m.data_nascimento.split('-')
+                          day = parts[2]
+                          month = parts[1]
+                        } else if (m.data_nascimento.includes('/')) {
+                          const parts = m.data_nascimento.split('/')
+                          day = parts[0]
+                          month = parts[1]
+                        }
                       }
-                    }
-                    return (
-                      <div key={m.id} className="flex items-center gap-3 p-3 rounded-xl bg-pink-50 dark:bg-pink-900/10 border border-pink-100 dark:border-pink-800/30">
-                        <Avatar name={m.nome} size="sm" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-gray-900 dark:text-white">{m.nome}</p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">{m.secao || m.instrumento_voz}</p>
+                      return (
+                        <div key={m.id} className="flex items-center gap-3 p-3 rounded-xl bg-pink-50 dark:bg-pink-900/10 border border-pink-100 dark:border-pink-800/30">
+                          <Avatar name={m.nome} size="sm" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-gray-900 dark:text-white">{m.nome}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">{m.secao || m.instrumento_voz}</p>
+                          </div>
+                          <span className="text-sm font-bold text-pink-600 dark:text-pink-400 bg-white dark:bg-gray-800 px-2.5 py-1 rounded-lg border border-pink-100 dark:border-pink-800/50 shadow-sm">
+                            {String(day).padStart(2, '0')}/{String(month).padStart(2, '0')}
+                          </span>
                         </div>
-                        <span className="text-sm font-bold text-pink-600 dark:text-pink-400 bg-white dark:bg-gray-800 px-2.5 py-1 rounded-lg border border-pink-100 dark:border-pink-800/50 shadow-sm">
-                          {String(day).padStart(2, '0')}/{String(month).padStart(2, '0')}
-                        </span>
-                      </div>
-                    )
-                  })
+                      )
+                    })}
+                  </div>
                 )}
               </div>
             </div>
