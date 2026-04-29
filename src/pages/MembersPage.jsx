@@ -7,12 +7,12 @@ import useToastStore from '../store/toastStore'
 
 function Badge({ children, variant = 'default' }) {
   const variants = {
-    blue: 'bg-blue-50 text-blue-700',
-    purple: 'bg-purple-50 text-purple-700',
-    default: 'bg-slate-100 text-slate-700',
-    green: 'bg-green-100 text-green-700',
-    yellow: 'bg-amber-100 text-amber-700',
-    red: 'bg-red-100 text-red-700',
+    blue: 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400',
+    purple: 'bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400',
+    default: 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300',
+    green: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
+    yellow: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400',
+    red: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400',
   }
   return <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${variants[variant] || variants.default}`}>{children}</span>
 }
@@ -30,11 +30,11 @@ function Modal({ isOpen, onClose, title, children, size = 'lg' }) {
   const sizeClasses = { sm: 'max-w-md', md: 'max-w-lg', lg: 'max-w-2xl', xl: 'max-w-4xl' }
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-gray-900/30 backdrop-blur-sm" onClick={onClose} />
-      <div className={`relative bg-white rounded-3xl shadow-2xl w-full ${sizeClasses[size]} overflow-hidden`}>
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gray-50">
-          <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
-          <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl"><X size={20} /></button>
+      <div className="absolute inset-0 bg-gray-900/30 dark:bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className={`relative bg-white dark:bg-[#2C2C2E] rounded-3xl shadow-2xl w-full ${sizeClasses[size]} overflow-hidden`}>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-[#1C1C1E]">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{title}</h2>
+          <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl"><X size={20} /></button>
         </div>
         <div className="p-6 max-h-[70vh] overflow-y-auto">{children}</div>
       </div>
@@ -234,30 +234,30 @@ export default function MembersPage() {
   }
 
   return (
-    <div className="min-h-screen pb-12">
+    <div className="min-h-screen pb-12 bg-[#F5F5F7] dark:bg-[#1C1C1E]">
       <Topbar title="Gestão Igreja" />
       <div className="px-8 max-w-7xl mx-auto mt-8">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-3xl font-semibold text-gray-900">Integrantes</h1>
-            <p className="text-gray-500 mt-1">Gerencie o corpo musical e coralistas.</p>
+            <h1 className="text-3xl font-semibold text-gray-900 dark:text-white">Integrantes</h1>
+            <p className="text-gray-500 dark:text-gray-400 mt-1">Gerencie o corpo musical e coralistas.</p>
           </div>
           <button onClick={() => setShowDrawer(true)} className="bg-[#007AFF] text-white px-4 py-2 rounded-xl font-medium flex items-center gap-2 hover:bg-blue-600">
             <Plus size={18} /> Novo Integrante
           </button>
         </div>
 
-        <div className="flex gap-1 mb-6 bg-gray-100 p-1 rounded-xl w-fit">
-          <button onClick={() => setActiveTab('lista')} className={`px-4 py-2 rounded-lg text-sm font-medium ${activeTab === 'lista' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'}`}>
+        <div className="flex gap-1 mb-6 bg-gray-100 dark:bg-gray-800 p-1 rounded-xl w-fit">
+          <button onClick={() => setActiveTab('lista')} className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'lista' ? 'bg-white dark:bg-[#2C2C2E] text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}>
             <Users2 size={16} className="inline mr-2" />Lista
           </button>
-          <button onClick={() => setActiveTab('chamada')} className={`px-4 py-2 rounded-lg text-sm font-medium ${activeTab === 'chamada' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'}`}>
+          <button onClick={() => setActiveTab('chamada')} className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'chamada' ? 'bg-white dark:bg-[#2C2C2E] text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}>
             <ClipboardList size={16} className="inline mr-2" />Chamada
           </button>
-          <button onClick={() => setActiveTab('historico')} className={`px-4 py-2 rounded-lg text-sm font-medium ${activeTab === 'historico' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'}`}>
+          <button onClick={() => setActiveTab('historico')} className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'historico' ? 'bg-white dark:bg-[#2C2C2E] text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}>
             <History size={16} className="inline mr-2" />Histórico
           </button>
-          <button onClick={() => setActiveTab('alertas')} className={`px-4 py-2 rounded-lg text-sm font-medium ${activeTab === 'alertas' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'}`}>
+          <button onClick={() => setActiveTab('alertas')} className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'alertas' ? 'bg-white dark:bg-[#2C2C2E] text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}>
             <Bell size={16} className="inline mr-2" />Alertas
           </button>
         </div>
@@ -266,109 +266,109 @@ export default function MembersPage() {
           <div className="space-y-4">
             {/* Cards de Métricas */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-              <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm group">
+              <div className="bg-white dark:bg-[#2C2C2E] rounded-2xl border border-gray-100 dark:border-gray-700 p-4 shadow-sm group">
                 <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center mb-3 transition-transform duration-300 group-hover:scale-110"><Users2 size={20} /></div>
-                <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
-                <p className="text-[11px] font-semibold text-gray-500 mt-1 uppercase tracking-wider">Total</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.total}</p>
+                <p className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 mt-1 uppercase tracking-wider">Total</p>
               </div>
-              <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm group">
+              <div className="bg-white dark:bg-[#2C2C2E] rounded-2xl border border-gray-100 dark:border-gray-700 p-4 shadow-sm group">
                 <div className="w-10 h-10 rounded-xl bg-green-50 text-green-600 flex items-center justify-center mb-3 transition-transform duration-300 group-hover:scale-110"><CheckCircle size={20} /></div>
-                <p className="text-2xl font-bold text-gray-900">{stats.ativos}</p>
-                <p className="text-[11px] font-semibold text-gray-500 mt-1 uppercase tracking-wider">Ativos</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.ativos}</p>
+                <p className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 mt-1 uppercase tracking-wider">Ativos</p>
               </div>
-              <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm group">
+              <div className="bg-white dark:bg-[#2C2C2E] rounded-2xl border border-gray-100 dark:border-gray-700 p-4 shadow-sm group">
                 <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center mb-3 transition-transform duration-300 group-hover:scale-110"><Clock size={20} /></div>
-                <p className="text-2xl font-bold text-gray-900">{stats.licenca}</p>
-                <p className="text-[11px] font-semibold text-gray-500 mt-1 uppercase tracking-wider">Licença</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.licenca}</p>
+                <p className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 mt-1 uppercase tracking-wider">Licença</p>
               </div>
-              <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm group">
+              <div className="bg-white dark:bg-[#2C2C2E] rounded-2xl border border-gray-100 dark:border-gray-700 p-4 shadow-sm group">
                 <div className="w-10 h-10 rounded-xl bg-red-50 text-red-600 flex items-center justify-center mb-3 transition-transform duration-300 group-hover:scale-110"><XCircle size={20} /></div>
-                <p className="text-2xl font-bold text-gray-900">{stats.inativos}</p>
-                <p className="text-[11px] font-semibold text-gray-500 mt-1 uppercase tracking-wider">Inativos</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.inativos}</p>
+                <p className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 mt-1 uppercase tracking-wider">Inativos</p>
               </div>
-              <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm group">
+              <div className="bg-white dark:bg-[#2C2C2E] rounded-2xl border border-gray-100 dark:border-gray-700 p-4 shadow-sm group">
                 <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center mb-3 transition-transform duration-300 group-hover:scale-110"><Music size={20} /></div>
-                <p className="text-2xl font-bold text-gray-900">{stats.orquestra}</p>
-                <p className="text-[11px] font-semibold text-gray-500 mt-1 uppercase tracking-wider">Orquestra</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.orquestra}</p>
+                <p className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 mt-1 uppercase tracking-wider">Orquestra</p>
               </div>
-              <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm group">
+              <div className="bg-white dark:bg-[#2C2C2E] rounded-2xl border border-gray-100 dark:border-gray-700 p-4 shadow-sm group">
                 <div className="w-10 h-10 rounded-xl bg-pink-50 text-pink-600 flex items-center justify-center mb-3 transition-transform duration-300 group-hover:scale-110"><Cake size={20} /></div>
-                <p className="text-2xl font-bold text-gray-900">{stats.aniversariantes}</p>
-                <p className="text-[11px] font-semibold text-gray-500 mt-1 uppercase tracking-wider">Aniversários</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.aniversariantes}</p>
+                <p className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 mt-1 uppercase tracking-wider">Aniversários</p>
               </div>
             </div>
 
             {/* Filtros Justificados */}
-            <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
+            <div className="bg-white dark:bg-[#2C2C2E] rounded-2xl border border-gray-100 dark:border-gray-700 p-4 shadow-sm">
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
                 <div className="relative">
                   <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                  <input type="text" placeholder="Buscar..." value={searchText} onChange={(e) => setSearchText(e.target.value)} className="w-full pl-9 pr-4 py-2 bg-gray-50 border-0 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/30 focus:bg-white outline-none transition-all" />
+                  <input type="text" placeholder="Buscar..." value={searchText} onChange={(e) => setSearchText(e.target.value)} className="w-full pl-9 pr-4 py-2 bg-gray-50 dark:bg-[#3A3A3C] border-0 rounded-xl text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-blue-500/30 focus:bg-white dark:focus:bg-[#48484A] outline-none transition-all" />
                 </div>
-                <select value={vozFilter} onChange={(e) => setVozFilter(e.target.value)} className="w-full px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm">
+                <select value={vozFilter} onChange={(e) => setVozFilter(e.target.value)} className="w-full px-3 py-2 bg-gray-50 dark:bg-[#3A3A3C] border-0 rounded-xl text-sm text-gray-900 dark:text-gray-100">
                   <option value="">Todas as vozes</option>
                   {voices.map(v => <option key={v.id} value={v.label}>{v.label}</option>)}
                 </select>
-                <select value={instrumentoFilter} onChange={(e) => setInstrumentoFilter(e.target.value)} className="w-full px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm">
+                <select value={instrumentoFilter} onChange={(e) => setInstrumentoFilter(e.target.value)} className="w-full px-3 py-2 bg-gray-50 dark:bg-[#3A3A3C] border-0 rounded-xl text-sm text-gray-900 dark:text-gray-100">
                   <option value="">Todos os instrum.</option>
                   {instruments.map(v => <option key={v.id} value={v.label}>{v.label}</option>)}
                 </select>
-                <select value={funcaoFilter} onChange={(e) => setFuncaoFilter(e.target.value)} className="w-full px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm">
+                <select value={funcaoFilter} onChange={(e) => setFuncaoFilter(e.target.value)} className="w-full px-3 py-2 bg-gray-50 dark:bg-[#3A3A3C] border-0 rounded-xl text-sm text-gray-900 dark:text-gray-100">
                   <option value="">Todas as funções</option>
                   {positions.map(v => <option key={v.id} value={v.label}>{v.label}</option>)}
                 </select>
-                <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="w-full px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm">
+                <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="w-full px-3 py-2 bg-gray-50 dark:bg-[#3A3A3C] border-0 rounded-xl text-sm text-gray-900 dark:text-gray-100">
                   <option value="">Todos os status</option>
                   {statuses.map(v => <option key={v.id} value={v.label}>{v.label}</option>)}
                 </select>
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="bg-white dark:bg-[#2C2C2E] rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
               <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-100">
+                <thead className="bg-gray-50 dark:bg-[#1C1C1E] border-b border-gray-100 dark:border-gray-700">
                   <tr>
-                    <th className="text-left text-xs font-semibold text-gray-500 uppercase px-4 py-3 cursor-pointer hover:bg-gray-200 transition-colors select-none" onClick={() => handleSort('nome')}>
+                    <th className="text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase px-4 py-3 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors select-none" onClick={() => handleSort('nome')}>
                       <div className="flex items-center gap-1">Integrante {sortConfig.key === 'nome' && (sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />)}</div>
                     </th>
-                    <th className="text-left text-xs font-semibold text-gray-500 uppercase px-4 py-3">
+                    <th className="text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase px-4 py-3">
                       Contato
                     </th>
-                    <th className="text-left text-xs font-semibold text-gray-500 uppercase px-4 py-3 cursor-pointer hover:bg-gray-200 transition-colors select-none" onClick={() => handleSort('data_nascimento')}>
+                    <th className="text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase px-4 py-3 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors select-none" onClick={() => handleSort('data_nascimento')}>
                       <div className="flex items-center gap-1">Nascimento {sortConfig.key === 'data_nascimento' && (sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />)}</div>
                     </th>
-                    <th className="text-left text-xs font-semibold text-gray-500 uppercase px-4 py-3 cursor-pointer hover:bg-gray-200 transition-colors select-none" onClick={() => handleSort('secao')}>
+                    <th className="text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase px-4 py-3 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors select-none" onClick={() => handleSort('secao')}>
                       <div className="flex items-center gap-1">Voz {sortConfig.key === 'secao' && (sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />)}</div>
                     </th>
-                    <th className="text-left text-xs font-semibold text-gray-500 uppercase px-4 py-3 cursor-pointer hover:bg-gray-200 transition-colors select-none" onClick={() => handleSort('instrumento_voz')}>
+                    <th className="text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase px-4 py-3 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors select-none" onClick={() => handleSort('instrumento_voz')}>
                       <div className="flex items-center gap-1">Instrumento {sortConfig.key === 'instrumento_voz' && (sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />)}</div>
                     </th>
-                    <th className="text-left text-xs font-semibold text-gray-500 uppercase px-4 py-3 cursor-pointer hover:bg-gray-200 transition-colors select-none" onClick={() => handleSort('cargo')}>
+                    <th className="text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase px-4 py-3 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors select-none" onClick={() => handleSort('cargo')}>
                       <div className="flex items-center gap-1">Função {sortConfig.key === 'cargo' && (sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />)}</div>
                     </th>
-                    <th className="text-left text-xs font-semibold text-gray-500 uppercase px-4 py-3 cursor-pointer hover:bg-gray-200 transition-colors select-none" onClick={() => handleSort('status')}>
+                    <th className="text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase px-4 py-3 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors select-none" onClick={() => handleSort('status')}>
                       <div className="flex items-center gap-1">Status {sortConfig.key === 'status' && (sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />)}</div>
                     </th>
-                    <th className="text-right text-xs font-semibold text-gray-500 uppercase px-4 py-3">Ações</th>
+                    <th className="text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase px-4 py-3">Ações</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-50">
+                <tbody className="divide-y divide-gray-50 dark:divide-gray-700/30">
                   {filteredMembers.length === 0 ? (
                     <tr>
                       <td colSpan="8" className="px-4 py-12 text-center">
                         <div className="flex flex-col items-center justify-center">
                           <Search size={40} className="text-gray-300 mb-3" />
-                          <p className="text-base font-semibold text-gray-700">Nenhum integrante encontrado</p>
-                          <p className="text-sm text-gray-500 mt-1">Tente ajustar os filtros ou o termo de busca.</p>
+                          <p className="text-base font-semibold text-gray-700 dark:text-gray-300">Nenhum integrante encontrado</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Tente ajustar os filtros ou o termo de busca.</p>
                         </div>
                       </td>
                     </tr>
                   ) : (
                     filteredMembers.map(member => (
-                      <tr key={member.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3"><div className="flex items-center gap-3"><Avatar name={member.nome} size="sm" /><div className="flex items-center gap-1.5"><span className="font-medium">{member.nome}</span>{isAniversarioMes(member.data_nascimento) && <Cake size={14} className="text-amber-400" title="Aniversariante do Mês" />}</div></div></td>
-                        <td className="px-4 py-3 text-sm text-gray-600">{formatarTelefone(member.telefone)}</td>
-                        <td className="px-4 py-3 text-sm text-gray-500">{formatarDataNascimento(member.data_nascimento)}</td>
+                      <tr key={member.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30">
+                        <td className="px-4 py-3"><div className="flex items-center gap-3"><Avatar name={member.nome} size="sm" /><div className="flex items-center gap-1.5"><span className="font-medium text-gray-900 dark:text-white">{member.nome}</span>{isAniversarioMes(member.data_nascimento) && <Cake size={14} className="text-amber-400" title="Aniversariante do Mês" />}</div></div></td>
+                        <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">{formatarTelefone(member.telefone)}</td>
+                        <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{formatarDataNascimento(member.data_nascimento)}</td>
                         <td className="px-4 py-3">{member.secao ? <Badge variant="blue">{member.secao}</Badge> : <span className="text-gray-400">—</span>}</td>
                         <td className="px-4 py-3">{member.instrumento_voz ? <Badge variant="purple">{member.instrumento_voz}</Badge> : <span className="text-gray-400">—</span>}</td>
                         <td className="px-4 py-3"><Badge variant="default">{member.cargo}</Badge></td>
@@ -381,7 +381,7 @@ export default function MembersPage() {
                               cargos: member.cargo ? member.cargo.split(', ') : []
                             });
                             setShowDrawer(true);
-                          }} className="p-2 rounded-lg hover:bg-gray-100 text-gray-400"><Edit2 size={16} /></button>
+                          }} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 dark:text-gray-500"><Edit2 size={16} /></button>
                         </td>
                       </tr>
                     ))
@@ -395,9 +395,9 @@ export default function MembersPage() {
         {activeTab === 'chamada' && <ChamadaTab members={storeMembers.filter(m => m.status === 'Ativo')} />}
 
         {activeTab === 'historico' && (
-          <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+          <div className="bg-white dark:bg-[#2C2C2E] rounded-2xl border border-gray-100 dark:border-gray-700 p-6 shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
-              <h3 className="text-lg font-semibold">Histórico de Chamadas</h3>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Histórico de Chamadas</h3>
               <div className="flex flex-wrap items-center gap-3">
                 <div className="relative">
                   <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -406,13 +406,13 @@ export default function MembersPage() {
                     placeholder="Buscar por nome..."
                     value={historicoNameFilter}
                     onChange={(e) => setHistoricoNameFilter(e.target.value)}
-                    className="pl-9 pr-4 py-2 bg-gray-50 border-0 rounded-xl text-sm w-48"
+                    className="pl-9 pr-4 py-2 bg-gray-50 dark:bg-[#3A3A3C] border-0 rounded-xl text-sm text-gray-900 dark:text-gray-100 w-48"
                   />
                 </div>
                 <select
                   value={historicoFilter}
                   onChange={(e) => setHistoricoFilter(e.target.value)}
-                  className="px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm"
+                  className="px-3 py-2 bg-gray-50 dark:bg-[#3A3A3C] border-0 rounded-xl text-sm text-gray-900 dark:text-gray-100"
                 >
                   <option value="">Todos os contextos</option>
                   {attendanceContexts.map(ctx => (
@@ -423,7 +423,7 @@ export default function MembersPage() {
                   type="date"
                   value={historicoDateFilter}
                   onChange={(e) => setHistoricoDateFilter(e.target.value)}
-                  className="px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm"
+                  className="px-3 py-2 bg-gray-50 dark:bg-[#3A3A3C] border-0 rounded-xl text-sm text-gray-900 dark:text-gray-100"
                 />
               </div>
             </div>
@@ -448,8 +448,8 @@ export default function MembersPage() {
                 .length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
                   <History size={40} className="text-gray-300 mb-3" />
-                  <p className="text-base font-semibold text-gray-700">Nenhum histórico encontrado</p>
-                  <p className="text-sm text-gray-500 mt-1">As chamadas salvas aparecerão aqui.</p>
+                  <p className="text-base font-semibold text-gray-700 dark:text-gray-300">Nenhum histórico encontrado</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">As chamadas salvas aparecerão aqui.</p>
                 </div>
               ) : (
                 storeAttendance
@@ -487,10 +487,10 @@ export default function MembersPage() {
                     }
 
                     return (
-                      <div key={item.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                      <div key={item.id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-[#3A3A3C] rounded-xl">
                         <div>
-                          <p className="font-semibold">{dataFormatada}</p>
-                          <p className="text-sm text-gray-500">{item.contexto}</p>
+                          <p className="font-semibold text-gray-900 dark:text-white">{dataFormatada}</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">{item.contexto}</p>
                         </div>
                         <div className="flex items-center gap-6">
                           <div className="text-center">
@@ -502,10 +502,10 @@ export default function MembersPage() {
                             <p className="text-xs text-gray-500">Ausentes</p>
                           </div>
                           <div className="text-center">
-                            <p className="text-lg font-semibold text-gray-900">{registros.length > 0 ? Math.round((presentes / registros.length) * 100) : 0}%</p>
+                            <p className="text-lg font-semibold text-gray-900 dark:text-white">{registros.length > 0 ? Math.round((presentes / registros.length) * 100) : 0}%</p>
                             <p className="text-xs text-gray-500">Presença</p>
                           </div>
-                          <button onClick={() => setEditingChamada(item)} className="ml-4 p-2 text-sm font-medium text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Editar">
+                          <button onClick={() => setEditingChamada(item)} className="ml-4 p-2 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors" title="Editar">
                             <Edit2 size={18} />
                           </button>
                         </div>
@@ -518,19 +518,19 @@ export default function MembersPage() {
         )}
 
         {activeTab === 'alertas' && (
-          <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
+          <div className="bg-white dark:bg-[#2C2C2E] rounded-2xl border border-gray-100 dark:border-gray-700 p-5 shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
-              <h3 className="text-lg font-semibold">Alertas de Frequência</h3>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Alertas de Frequência</h3>
               <div className="flex flex-wrap items-center gap-3">
                 <input
                   type="month"
                   value={alertMonth}
                   onChange={(e) => setAlertMonth(e.target.value)}
-                  className="px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 outline-none focus:ring-2 focus:ring-blue-500/30"
+                  className="px-3 py-1.5 bg-white dark:bg-[#3A3A3C] border border-gray-200 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 outline-none focus:ring-2 focus:ring-blue-500/30"
                 />
-                <div className="flex bg-gray-100 p-1 rounded-lg">
-                  <button onClick={() => setAlertSubTab('pendentes')} className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${alertSubTab === 'pendentes' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>Pendentes</button>
-                  <button onClick={() => setAlertSubTab('justificadas')} className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${alertSubTab === 'justificadas' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>Justificadas</button>
+                <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
+                  <button onClick={() => setAlertSubTab('pendentes')} className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${alertSubTab === 'pendentes' ? 'bg-white dark:bg-[#2C2C2E] text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>Pendentes</button>
+                  <button onClick={() => setAlertSubTab('justificadas')} className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${alertSubTab === 'justificadas' ? 'bg-white dark:bg-[#2C2C2E] text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>Justificadas</button>
                 </div>
               </div>
             </div>
@@ -542,7 +542,7 @@ export default function MembersPage() {
                   placeholder="Buscar por nome..."
                   value={alertSearch}
                   onChange={(e) => setAlertSearch(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 bg-gray-50 border-0 rounded-xl text-sm"
+                  className="w-full pl-9 pr-4 py-2 bg-gray-50 dark:bg-[#3A3A3C] border-0 rounded-xl text-sm text-gray-900 dark:text-gray-100"
                 />
               </div>
             </div>
@@ -552,20 +552,20 @@ export default function MembersPage() {
                 pendingAlerts.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
                     <BellRing className="w-16 h-16 text-gray-300 mb-4" />
-                    <h4 className="text-xl font-semibold text-gray-700">Tudo tranquilo por aqui!</h4>
-                    <p className="text-sm text-gray-500 mt-2 max-w-sm">Nenhum integrante com 2+ faltas não justificadas no mês selecionado.</p>
+                    <h4 className="text-xl font-semibold text-gray-700 dark:text-gray-300">Tudo tranquilo por aqui!</h4>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 max-w-sm">Nenhum integrante com 2+ faltas não justificadas no mês selecionado.</p>
                   </div>
                 ) : (
                   pendingAlerts.map(member => (
-                    <div key={member.id} className="flex items-start justify-between p-4 rounded-xl border bg-red-50 border-red-100">
+                    <div key={member.id} className="flex items-start justify-between p-4 rounded-xl border bg-red-50 dark:bg-red-900/10 border-red-100 dark:border-red-800/30">
                       <div className="flex items-start gap-4">
                         <Avatar name={member.nome} size="md" />
                         <div>
-                          <p className="font-semibold">{member.nome}</p>
-                          <p className="text-sm text-gray-500">{member.secao || member.cargo} - {member.unjustified_absences} faltas não justificadas</p>
+                          <p className="font-semibold text-gray-900 dark:text-white">{member.nome}</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">{member.secao || member.cargo} - {member.unjustified_absences} faltas não justificadas</p>
                         </div>
                       </div>
-                      <button onClick={() => { setJustifyingAlert({ member, mode: 'pendentes' }); }} className="bg-white text-red-600 border border-red-200 px-4 py-2 rounded-xl text-sm font-medium hover:bg-red-50 transition-colors">
+                      <button onClick={() => { setJustifyingAlert({ member, mode: 'pendentes' }); }} className="bg-white dark:bg-[#2C2C2E] text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800/50 px-4 py-2 rounded-xl text-sm font-medium hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
                         Justificar
                       </button>
                     </div>
@@ -575,20 +575,20 @@ export default function MembersPage() {
                 justifiedAlerts.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
                     <CheckCircle className="w-16 h-16 text-gray-300 mb-4" />
-                    <h4 className="text-xl font-semibold text-gray-700">Nenhuma justificativa</h4>
-                    <p className="text-sm text-gray-500 mt-2 max-w-sm">Nenhuma falta foi justificada no mês selecionado.</p>
+                    <h4 className="text-xl font-semibold text-gray-700 dark:text-gray-300">Nenhuma justificativa</h4>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 max-w-sm">Nenhuma falta foi justificada no mês selecionado.</p>
                   </div>
                 ) : (
                   justifiedAlerts.map(member => (
-                    <div key={member.id} className="flex items-start justify-between p-4 rounded-xl border bg-green-50 border-green-100">
+                    <div key={member.id} className="flex items-start justify-between p-4 rounded-xl border bg-green-50 dark:bg-green-900/10 border-green-100 dark:border-green-800/30">
                       <div className="flex items-start gap-4">
                         <Avatar name={member.nome} size="md" />
                         <div>
-                          <p className="font-semibold">{member.nome}</p>
-                          <p className="text-sm text-gray-500 mb-2">{member.secao || member.cargo} - {member.justified_absences} {member.justified_absences === 1 ? 'falta justificada' : 'faltas justificadas'}</p>
+                          <p className="font-semibold text-gray-900 dark:text-white">{member.nome}</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">{member.secao || member.cargo} - {member.justified_absences} {member.justified_absences === 1 ? 'falta justificada' : 'faltas justificadas'}</p>
                           <div className="space-y-1.5">
                             {member.justified_list.map((falta, i) => (
-                              <div key={i} className="text-xs text-gray-700 bg-white/60 px-2 py-1.5 rounded-lg border border-green-200/60">
+                              <div key={i} className="text-xs text-gray-700 dark:text-gray-300 bg-white/60 dark:bg-[#3A3A3C]/60 px-2 py-1.5 rounded-lg border border-green-200/60 dark:border-green-700/30">
                                 <span className="font-semibold text-green-700 mr-1">
                                   {falta.call.data ? (falta.call.data.includes('-') ? falta.call.data.split('-').reverse().join('/') : falta.call.data) : ''}:
                                 </span>
@@ -598,7 +598,7 @@ export default function MembersPage() {
                           </div>
                         </div>
                       </div>
-                      <button onClick={() => { setJustifyingAlert({ member, mode: 'justificadas' }); }} className="bg-white text-gray-700 border border-gray-200 px-4 py-2 rounded-xl text-sm font-medium hover:bg-gray-50">
+                      <button onClick={() => { setJustifyingAlert({ member, mode: 'justificadas' }); }} className="bg-white dark:bg-[#2C2C2E] text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600 px-4 py-2 rounded-xl text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700">
                         Editar
                       </button>
                     </div>
@@ -654,7 +654,7 @@ export default function MembersPage() {
 
       <Modal isOpen={!!justifyingAlert} onClose={() => setJustifyingAlert(null)} title={justifyingAlert?.mode === 'justificadas' ? `Editar Justificativas - ${justifyingAlert?.member?.nome}` : `Justificar Faltas - ${justifyingAlert?.member?.nome}`} size="md">
         <div className="space-y-4">
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
             {justifyingAlert?.mode === 'justificadas' ? 'Edite os motivos das ausências ou deixe em branco para remover a justificativa.' : 'Preencha o motivo para cada ausência pendente.'}
           </p>
           <JustificativasList alert={justifyingAlert} onSave={handleSaveJustificativa} onCancel={() => setJustifyingAlert(null)} />
@@ -744,15 +744,15 @@ function ChamadaTab({ members, isEditing = false, chamada = null, onSaveEdit = n
 
   return (
     <div className="space-y-6">
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+      <div className="bg-white dark:bg-[#2C2C2E] rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-4">
         <div className="flex flex-wrap items-end gap-4">
           <div>
-            <label className="block text-xs font-semibold text-gray-500 uppercase mb-2">Data</label>
-            <input type="date" value={dataChamada} onChange={(e) => setDataChamada(e.target.value)} className="px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm" />
+            <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Data</label>
+            <input type="date" value={dataChamada} onChange={(e) => setDataChamada(e.target.value)} className="px-3 py-2 bg-gray-50 dark:bg-[#3A3A3C] border-0 rounded-xl text-sm text-gray-900 dark:text-gray-100" />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-gray-500 uppercase mb-2">Contexto</label>
-            <select value={contextoChamada} onChange={(e) => setContextoChamada(e.target.value)} className="px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm">
+            <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Contexto</label>
+            <select value={contextoChamada} onChange={(e) => setContextoChamada(e.target.value)} className="px-3 py-2 bg-gray-50 dark:bg-[#3A3A3C] border-0 rounded-xl text-sm text-gray-900 dark:text-gray-100">
               {attendanceContexts.map(ctx => (
                 <option key={ctx.id} value={ctx.label}>{ctx.label}</option>
               ))}
@@ -762,17 +762,17 @@ function ChamadaTab({ members, isEditing = false, chamada = null, onSaveEdit = n
             </select>
           </div>
           <div className="flex-1 min-w-[200px]">
-            <label className="block text-xs font-semibold text-gray-500 uppercase mb-2">Buscar</label>
+            <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Buscar</label>
             <div className="relative">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input type="text" placeholder="Buscar integrante..." value={searchChamada} onChange={(e) => setSearchChamada(e.target.value)} className="w-full pl-9 pr-4 py-2 bg-gray-50 border-0 rounded-xl text-sm" />
+              <input type="text" placeholder="Buscar integrante..." value={searchChamada} onChange={(e) => setSearchChamada(e.target.value)} className="w-full pl-9 pr-4 py-2 bg-gray-50 dark:bg-[#3A3A3C] border-0 rounded-xl text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400" />
             </div>
           </div>
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="divide-y divide-gray-100">
+      <div className="bg-white dark:bg-[#2C2C2E] rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+        <div className="divide-y divide-gray-100 dark:divide-gray-700">
           {filteredMembers.map(member => {
             const presente = presencas[member.id] !== false
             const showJustificativa = presencas[member.id] === false
@@ -798,7 +798,7 @@ function ChamadaTab({ members, isEditing = false, chamada = null, onSaveEdit = n
                       placeholder="Adicionar motivo da falta (opcional)"
                       value={justificativas[member.id] || ''}
                       onChange={(e) => updateJustificativa(member.id, e.target.value)}
-                      className="w-full px-3 py-2 bg-gray-50 border-0 rounded-lg text-sm"
+                      className="w-full px-3 py-2 bg-gray-50 dark:bg-[#3A3A3C] border-0 rounded-lg text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400"
                     />
                   </div>
                 )}
@@ -808,15 +808,15 @@ function ChamadaTab({ members, isEditing = false, chamada = null, onSaveEdit = n
         </div>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-md border-t border-gray-200 z-50">
+      <div className="fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-[#1C1C1E]/80 backdrop-blur-md border-t border-gray-200 dark:border-gray-700 z-50">
         <div className="max-w-7xl mx-auto px-8 py-4 flex justify-between items-center w-full">
           <div className="flex gap-6">
-            <span className="font-bold text-gray-900">{presentes} Presentes</span>
-            <span className="font-bold text-gray-900">{ausentes} Ausentes</span>
+            <span className="font-bold text-gray-900 dark:text-white">{presentes} Presentes</span>
+            <span className="font-bold text-gray-900 dark:text-white">{ausentes} Ausentes</span>
           </div>
           {isEditing ? (
             <div className="flex gap-3">
-              <button onClick={onCancelEdit} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200">Cancelar</button>
+              <button onClick={onCancelEdit} className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-xl font-medium hover:bg-gray-200 dark:hover:bg-gray-600">Cancelar</button>
               <button onClick={handleSave} className="bg-[#007AFF] text-white px-6 py-2 rounded-xl font-medium hover:bg-blue-600">Salvar Alterações</button>
             </div>
           ) : (
@@ -858,37 +858,37 @@ function EdicaoChamadaForm({ chamada, members, onSave, onCancel }) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl">
+      <div className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-[#3A3A3C] rounded-xl">
         <div className="text-center">
           <p className="text-2xl font-bold text-green-600">{presentes}</p>
-          <p className="text-xs text-gray-500">Presentes</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">Presentes</p>
         </div>
         <div className="text-center">
           <p className="text-2xl font-bold text-red-500">{ausentes}</p>
-          <p className="text-xs text-gray-500">Ausentes</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">Ausentes</p>
         </div>
       </div>
 
       <div className="space-y-2 max-h-[50vh] overflow-y-auto">
         {registros.map(reg => (
-          <div key={reg.membro_id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+          <div key={reg.membro_id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-[#3A3A3C] rounded-xl">
             <div className="flex items-center gap-3">
               <Avatar name={getMemberName(reg.membro_id)} size="sm" />
               <div>
-                <p className="font-medium">{getMemberName(reg.membro_id)}</p>
-                <p className="text-xs text-gray-500">{getMemberRole(reg.membro_id)}</p>
+                <p className="font-medium text-gray-900 dark:text-white">{getMemberName(reg.membro_id)}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{getMemberRole(reg.membro_id)}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => updateRegistro(reg.membro_id, { presente: true, justificativa: '' })}
-                className={`w-12 h-8 rounded-lg font-semibold text-sm transition-all ${reg.presente ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-400 hover:bg-green-50 hover:text-green-600'}`}
+                className={`w-12 h-8 rounded-lg font-semibold text-sm transition-all ${reg.presente ? 'bg-green-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-400 hover:bg-green-50 dark:hover:bg-green-900/30 hover:text-green-600'}`}
               >
                 P
               </button>
               <button
                 onClick={() => updateRegistro(reg.membro_id, { presente: false })}
-                className={`w-12 h-8 rounded-lg font-semibold text-sm transition-all ${!reg.presente ? 'bg-red-500 text-white' : 'bg-gray-100 text-gray-400 hover:bg-red-50 hover:text-red-600'}`}
+                className={`w-12 h-8 rounded-lg font-semibold text-sm transition-all ${!reg.presente ? 'bg-red-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-400 hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-600'}`}
               >
                 F
               </button>
@@ -897,11 +897,11 @@ function EdicaoChamadaForm({ chamada, members, onSave, onCancel }) {
         ))}
       </div>
 
-      <div className="flex gap-3 pt-4 border-t border-gray-100">
+      <div className="flex gap-3 pt-4 border-t border-gray-100 dark:border-gray-700">
         <button onClick={() => onSave(chamada.id, registros)} className="flex-1 bg-[#007AFF] text-white py-3 rounded-xl font-medium hover:bg-blue-600">
           Salvar Alterações
         </button>
-        <button onClick={onCancel} className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-xl font-medium hover:bg-gray-200">
+        <button onClick={onCancel} className="flex-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-3 rounded-xl font-medium hover:bg-gray-200 dark:hover:bg-gray-600">
           Cancelar
         </button>
       </div>
@@ -963,18 +963,18 @@ function MemberForm({ member, onSave, onCancel, onDelete }) {
     <div className="space-y-6">
       <div className="grid grid-cols-3 gap-4">
         <div className="col-span-2">
-          <label className="block text-xs font-semibold text-gray-500 uppercase mb-2">Nome</label>
-          <input type="text" value={form.nome || ''} onChange={(e) => setForm(f => ({ ...f, nome: e.target.value }))} className="w-full px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm" placeholder="Nome completo" />
+          <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Nome</label>
+          <input type="text" value={form.nome || ''} onChange={(e) => setForm(f => ({ ...f, nome: e.target.value }))} className="w-full px-3 py-2 bg-gray-50 dark:bg-[#3A3A3C] border-0 rounded-xl text-sm text-gray-900 dark:text-gray-100" placeholder="Nome completo" />
         </div>
         <div>
-          <label className="block text-xs font-semibold text-gray-500 uppercase mb-2">Nascimento</label>
-          <input type="date" value={form.data_nascimento || ''} onChange={(e) => setForm(f => ({ ...f, data_nascimento: e.target.value }))} className="w-full px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm" />
+          <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Nascimento</label>
+          <input type="date" value={form.data_nascimento || ''} onChange={(e) => setForm(f => ({ ...f, data_nascimento: e.target.value }))} className="w-full px-3 py-2 bg-gray-50 dark:bg-[#3A3A3C] border-0 rounded-xl text-sm text-gray-900 dark:text-gray-100" />
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-xs font-semibold text-gray-500 uppercase mb-2">Telefone</label>
+          <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Telefone</label>
           <input type="text" value={form.telefone || ''} onChange={(e) => {
             let val = e.target.value.replace(/\D/g, '')
             if (val.length > 11) val = val.slice(0, 11)
@@ -987,11 +987,11 @@ function MemberForm({ member, onSave, onCancel, onDelete }) {
               formatted = `(${val.slice(0, 2)}) ${val.slice(2, 7)}-${val.slice(7)}`
             }
             setForm(f => ({ ...f, telefone: formatted }))
-          }} className="w-full px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm" placeholder="(00) 00000-0000" />
+          }} className="w-full px-3 py-2 bg-gray-50 dark:bg-[#3A3A3C] border-0 rounded-xl text-sm text-gray-900 dark:text-gray-100" placeholder="(00) 00000-0000" />
         </div>
         <div>
-          <label className="block text-xs font-semibold text-gray-500 uppercase mb-2">Voz</label>
-          <select value={form.secao || ''} onChange={(e) => setForm(f => ({ ...f, secao: e.target.value }))} className="w-full px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm">
+          <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Voz</label>
+          <select value={form.secao || ''} onChange={(e) => setForm(f => ({ ...f, secao: e.target.value }))} className="w-full px-3 py-2 bg-gray-50 dark:bg-[#3A3A3C] border-0 rounded-xl text-sm text-gray-900 dark:text-gray-100">
             <option value="">Selecionar...</option>
             {voices.map(v => <option key={v.id} value={v.label}>{v.label}</option>)}
           </select>
@@ -1000,13 +1000,13 @@ function MemberForm({ member, onSave, onCancel, onDelete }) {
 
       <div className="grid grid-cols-2 gap-4">
         <div className="relative">
-          <label className="block text-xs font-semibold text-gray-500 uppercase mb-2">Instrumentos</label>
+          <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Instrumentos</label>
           <div
             onClick={() => setShowInstDropdown(!showInstDropdown)}
-            className="w-full px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm min-h-[42px] cursor-pointer flex flex-wrap gap-1"
+            className="w-full px-3 py-2 bg-gray-50 dark:bg-[#3A3A3C] border-0 rounded-xl text-sm min-h-[42px] cursor-pointer flex flex-wrap gap-1"
           >
             {formInstrumentos.length === 0 ? (
-              <span className="text-gray-400">Selecionar...</span>
+              <span className="text-gray-400 dark:text-gray-500">Selecionar...</span>
             ) : (
               formInstrumentos.map(inst => (
                 <span key={inst} className="inline-flex items-center gap-1 bg-purple-100 text-purple-700 px-2 py-1 rounded-full text-xs">
@@ -1017,22 +1017,22 @@ function MemberForm({ member, onSave, onCancel, onDelete }) {
             )}
           </div>
           {showInstDropdown && (
-            <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-40 overflow-y-auto">
+            <div className="absolute z-10 w-full mt-1 bg-white dark:bg-[#2C2C2E] border border-gray-200 dark:border-gray-600 rounded-xl shadow-lg max-h-40 overflow-y-auto">
               {instrumentosDisponiveis.map(inst => (
-                <div key={inst} onClick={() => addInstrumento(inst)} className="px-3 py-2 hover:bg-gray-50 cursor-pointer text-sm">{inst}</div>
+                <div key={inst} onClick={() => addInstrumento(inst)} className="px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer text-sm text-gray-900 dark:text-gray-100">{inst}</div>
               ))}
             </div>
           )}
         </div>
 
         <div className="relative">
-          <label className="block text-xs font-semibold text-gray-500 uppercase mb-2">Funções</label>
+          <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Funções</label>
           <div
             onClick={() => setShowCargoDropdown(!showCargoDropdown)}
-            className="w-full px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm min-h-[42px] cursor-pointer flex flex-wrap gap-1"
+            className="w-full px-3 py-2 bg-gray-50 dark:bg-[#3A3A3C] border-0 rounded-xl text-sm min-h-[42px] cursor-pointer flex flex-wrap gap-1"
           >
             {formCargos.length === 0 ? (
-              <span className="text-gray-400">Selecionar...</span>
+              <span className="text-gray-400 dark:text-gray-500">Selecionar...</span>
             ) : (
               formCargos.map(cargo => (
                 <span key={cargo} className="inline-flex items-center gap-1 bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs">
@@ -1043,9 +1043,9 @@ function MemberForm({ member, onSave, onCancel, onDelete }) {
             )}
           </div>
           {showCargoDropdown && (
-            <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-40 overflow-y-auto">
+            <div className="absolute z-10 w-full mt-1 bg-white dark:bg-[#2C2C2E] border border-gray-200 dark:border-gray-600 rounded-xl shadow-lg max-h-40 overflow-y-auto">
               {cargosDisponiveis.map(cargo => (
-                <div key={cargo} onClick={() => addCargo(cargo)} className="px-3 py-2 hover:bg-gray-50 cursor-pointer text-sm">{cargo}</div>
+                <div key={cargo} onClick={() => addCargo(cargo)} className="px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer text-sm text-gray-900 dark:text-gray-100">{cargo}</div>
               ))}
             </div>
           )}
@@ -1053,19 +1053,19 @@ function MemberForm({ member, onSave, onCancel, onDelete }) {
       </div>
 
       <div>
-        <label className="block text-xs font-semibold text-gray-500 uppercase mb-2">Status</label>
-        <select value={form.status || 'Ativo'} onChange={(e) => setForm(f => ({ ...f, status: e.target.value }))} className="w-full px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm">
+        <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Status</label>
+        <select value={form.status || 'Ativo'} onChange={(e) => setForm(f => ({ ...f, status: e.target.value }))} className="w-full px-3 py-2 bg-gray-50 dark:bg-[#3A3A3C] border-0 rounded-xl text-sm text-gray-900 dark:text-gray-100">
           {statuses.map(s => <option key={s.id} value={s.label}>{s.label}</option>)}
         </select>
       </div>
 
-      <div className="flex gap-3 pt-4 border-t border-gray-100">
+      <div className="flex gap-3 pt-4 border-t border-gray-100 dark:border-gray-700">
         {member && onDelete && (
-          <button type="button" onClick={() => onDelete(member.id)} className="flex items-center justify-center bg-red-50 text-red-600 px-4 py-3 rounded-xl font-medium hover:bg-red-100 transition-colors" title="Excluir Integrante">
+          <button type="button" onClick={() => onDelete(member.id)} className="flex items-center justify-center bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 px-4 py-3 rounded-xl font-medium hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors" title="Excluir Integrante">
             <Trash2 size={20} />
           </button>
         )}
-        <button onClick={onCancel} className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-xl font-medium hover:bg-gray-200">Cancelar</button>
+        <button onClick={onCancel} className="flex-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-3 rounded-xl font-medium hover:bg-gray-200 dark:hover:bg-gray-600">Cancelar</button>
         <button onClick={() => onSave(form)} className="flex-1 bg-[#007AFF] text-white py-3 rounded-xl font-medium hover:bg-blue-600">{member ? 'Salvar Alterações' : 'Cadastrar'}</button>
       </div>
     </div>
@@ -1095,7 +1095,7 @@ function JustificativasList({ alert, onSave, onCancel }) {
     onSave(member.id, justificativas)
   }
 
-  if (faltas.length === 0) return <p className="text-sm text-gray-500">Nenhuma falta para exibir.</p>
+  if (faltas.length === 0) return <p className="text-sm text-gray-500 dark:text-gray-400">Nenhuma falta para exibir.</p>
 
   const formatarData = (data) => {
     if (!data) return ''
@@ -1106,22 +1106,22 @@ function JustificativasList({ alert, onSave, onCancel }) {
   return (
     <div className="space-y-3">
       {faltas.map(falta => (
-        <div key={falta.call.id} className="bg-gray-50 rounded-xl p-3 border border-gray-100">
+        <div key={falta.call.id} className="bg-gray-50 dark:bg-[#3A3A3C] rounded-xl p-3 border border-gray-100 dark:border-gray-700">
           <div className="flex items-center gap-2 mb-2">
-            <span className="font-semibold text-gray-700 text-sm">{formatarData(falta.call.data)}</span>
-            <span className="text-xs text-gray-500">- {falta.call.contexto || falta.call.tipo}</span>
+            <span className="font-semibold text-gray-700 dark:text-gray-300 text-sm">{formatarData(falta.call.data)}</span>
+            <span className="text-xs text-gray-500 dark:text-gray-400">- {falta.call.contexto || falta.call.tipo}</span>
           </div>
           <input
             type="text"
             placeholder="Motivo (opcional)..."
             value={justificativas[falta.call.id] || ''}
             onChange={(e) => updateJustificativa(falta.call.id, e.target.value)}
-            className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+            className="w-full px-3 py-2 bg-white dark:bg-[#2C2C2E] border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
           />
         </div>
       ))}
       <div className="flex gap-3 pt-2">
-        <button onClick={onCancel} className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-xl font-medium hover:bg-gray-200">
+        <button onClick={onCancel} className="flex-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-3 rounded-xl font-medium hover:bg-gray-200 dark:hover:bg-gray-600">
           Cancelar
         </button>
         <button onClick={handleSalvar} className="flex-1 bg-[#007AFF] text-white py-3 rounded-xl font-medium hover:bg-blue-600">
@@ -1199,16 +1199,16 @@ function EdicaoDrawer({ chamada, members, onSave, onDelete, onClose }) {
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-4xl bg-white rounded-2xl shadow-2xl flex flex-col max-h-[85vh] overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-white">
-          <h2 className="text-xl font-bold text-gray-900">{titulo}</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-full p-2 transition-colors">
+      <div className="w-full max-w-4xl bg-white dark:bg-[#1C1C1E] rounded-2xl shadow-2xl flex flex-col max-h-[85vh] overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100 dark:border-[#3A3A3C] flex justify-between items-center bg-white dark:bg-[#1C1C1E]">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white">{titulo}</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-700 bg-gray-100 dark:bg-[#3A3A3C] hover:bg-gray-200 dark:hover:bg-[#48484A] rounded-full p-2 transition-colors">
             <X size={20} />
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6 bg-[#F5F5F7]">
-          <div className="bg-white rounded-xl shadow-sm p-3 mb-3 flex flex-col sm:flex-row gap-3">
+        <div className="flex-1 overflow-y-auto p-6 bg-[#F5F5F7] dark:bg-[#000000]">
+          <div className="bg-white dark:bg-[#2C2C2E] rounded-xl shadow-sm p-3 mb-3 flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
@@ -1216,13 +1216,13 @@ function EdicaoDrawer({ chamada, members, onSave, onDelete, onClose }) {
                 placeholder="Buscar integrante..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 bg-gray-50 border-0 rounded-lg text-sm"
+                className="w-full pl-9 pr-4 py-2 bg-gray-50 dark:bg-[#3A3A3C] border-0 rounded-lg text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500"
               />
             </div>
             <select
               value={contexto}
               onChange={(e) => setContexto(e.target.value)}
-              className="px-3 py-2 bg-gray-50 border-0 rounded-lg text-sm sm:w-48 outline-none focus:ring-2 focus:ring-blue-500/30"
+              className="px-3 py-2 bg-gray-50 dark:bg-[#3A3A3C] border-0 rounded-lg text-sm sm:w-36 outline-none text-gray-900 dark:text-gray-100"
             >
               {attendanceContexts.map(ctx => (
                 <option key={ctx.id} value={ctx.label}>{ctx.label}</option>
@@ -1238,18 +1238,18 @@ function EdicaoDrawer({ chamada, members, onSave, onDelete, onClose }) {
             const presente = presencas[member.id] !== false
             const showJustificativa = presencas[member.id] === false
             return (
-              <div key={member.id} className="bg-white rounded-xl shadow-sm p-3 mb-3">
+              <div key={member.id} className="bg-white dark:bg-[#2C2C2E] rounded-xl shadow-sm p-3 mb-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <Avatar name={member.nome} size="sm" />
                     <div>
-                      <p className="font-medium">{member.nome}</p>
-                      <p className="text-xs text-gray-500">{member.secao || member.instrumento_voz || 'Músico'}</p>
+                      <p className="font-medium text-gray-900 dark:text-white">{member.nome}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{member.secao || member.instrumento_voz || 'Músico'}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <button onClick={() => togglePresenca(member.id)} className={`w-10 h-10 rounded-full font-semibold text-sm transition-all ${presente ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-400 hover:bg-green-100 hover:text-green-600'}`}>P</button>
-                    <button onClick={() => togglePresenca(member.id)} className={`w-10 h-10 rounded-full font-semibold text-sm transition-all ${!presente ? 'bg-red-500 text-white' : 'bg-gray-100 text-gray-400 hover:bg-red-100 hover:text-red-600'}`}>F</button>
+                    <button onClick={() => togglePresenca(member.id)} className={`w-10 h-10 rounded-full font-semibold text-sm transition-all ${presente ? 'bg-green-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-400 hover:bg-green-100 dark:hover:bg-green-900/30 hover:text-green-600'}`}>P</button>
+                    <button onClick={() => togglePresenca(member.id)} className={`w-10 h-10 rounded-full font-semibold text-sm transition-all ${!presente ? 'bg-red-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-400 hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-600'}`}>F</button>
                   </div>
                 </div>
                 {showJustificativa && (
@@ -1259,7 +1259,7 @@ function EdicaoDrawer({ chamada, members, onSave, onDelete, onClose }) {
                       placeholder="Adicionar motivo da falta (opcional)"
                       value={justificativas[member.id] || ''}
                       onChange={(e) => updateJustificativa(member.id, e.target.value)}
-                      className="w-full px-3 py-2 bg-gray-50 border-0 rounded-lg text-sm"
+                      className="w-full px-3 py-2 bg-gray-50 dark:bg-[#3A3A3C] border-0 rounded-lg text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400"
                     />
                   </div>
                 )}
@@ -1268,14 +1268,14 @@ function EdicaoDrawer({ chamada, members, onSave, onDelete, onClose }) {
           })}
         </div>
 
-        <div className="px-6 py-4 border-t border-gray-100 bg-white flex justify-between items-center">
+        <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-700 bg-white dark:bg-[#1C1C1E] flex justify-between items-center">
           <div className="flex gap-6">
-            <span className="font-bold text-gray-900">{presentes} Presentes</span>
-            <span className="font-bold text-gray-900">{ausentes} Ausentes</span>
+            <span className="font-bold text-gray-900 dark:text-white">{presentes} Presentes</span>
+            <span className="font-bold text-gray-900 dark:text-white">{ausentes} Ausentes</span>
           </div>
           <div className="flex gap-3">
-            <button onClick={() => { if (confirm('Tem certeza que deseja excluir esta chamada?')) { onDelete(chamada.id).then(onClose).catch(console.error) } }} className="px-4 py-2 bg-red-50 text-red-600 rounded-xl font-medium hover:bg-red-100">Excluir</button>
-            <button onClick={onClose} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200">Cancelar</button>
+            <button onClick={() => { if (confirm('Tem certeza que deseja excluir esta chamada?')) { onDelete(chamada.id).then(onClose).catch(console.error) } }} className="px-4 py-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl font-medium hover:bg-red-100 dark:hover:bg-red-900/30">Excluir</button>
+            <button onClick={onClose} className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-xl font-medium hover:bg-gray-200 dark:hover:bg-gray-600">Cancelar</button>
             <button onClick={handleSalvar} className="px-6 py-2 bg-[#007AFF] text-white rounded-xl font-medium hover:bg-blue-600">Salvar Alterações</button>
           </div>
         </div>

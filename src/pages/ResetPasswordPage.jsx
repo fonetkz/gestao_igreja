@@ -80,7 +80,7 @@ export default function ResetPasswordPage() {
             }}
           />
         </div>
-        <div className="absolute inset-0 bg-gradient-to-t from-primary-dark/80 via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#151D5A]/80 via-transparent to-transparent" />
 
         <div className="relative z-10 flex flex-col justify-center px-16 py-12 w-full">
           <div className="max-w-md">
@@ -98,12 +98,12 @@ export default function ResetPasswordPage() {
       </div>
 
       {/* ===== Right Panel — 40% ===== */}
-      <div className="flex-1 lg:w-[40%] bg-surface dark:bg-slate-900 flex flex-col transition-colors duration-300">
+      <div className="flex-1 lg:w-[40%] bg-[#F5F5F7] dark:bg-[#1C1C1E] flex flex-col transition-colors duration-300">
         <div className="flex-1 flex items-center justify-center px-8 py-12">
           <div className="w-full max-w-sm">
             <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700 p-8 transition-colors duration-300">
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">Redefinir Senha</h2>
-              <p className="text-sm text-text-muted dark:text-slate-400 mb-8">
+              <p className="text-sm text-gray-500 dark:text-slate-400 mb-8">
                 Digite sua nova senha de acesso
               </p>
 
@@ -113,12 +113,12 @@ export default function ResetPasswordPage() {
                     <CheckCircle className="h-8 w-8 text-emerald-600" />
                   </div>
                   <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Senha alterada!</h3>
-                  <p className="text-sm text-text-muted dark:text-slate-400 mb-6">
+                  <p className="text-sm text-gray-500 dark:text-slate-400 mb-6">
                     Sua senha foi redefinida com sucesso. Redirecionando para o login...
                   </p>
                   <button
                     onClick={() => navigate('/login')}
-                    className="btn-primary w-full"
+                    className="btn-apple-primary w-full"
                   >
                     Fazer Login Agora
                   </button>
@@ -161,7 +161,7 @@ export default function ResetPasswordPage() {
 
                   {/* Error */}
                   {error && (
-                    <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-2.5 text-sm text-danger animate-slide-up">
+                    <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 rounded-lg px-4 py-2.5 text-sm text-red-500 dark:text-red-400 animate-slide-up">
                       {error}
                     </div>
                   )}
@@ -170,10 +170,10 @@ export default function ResetPasswordPage() {
                   <button
                     type="submit"
                     disabled={loading || !token}
-                    className="w-full bg-primary hover:bg-primary-light text-white font-semibold py-3.5 rounded-lg
+                    className="w-full bg-slate-900 dark:bg-blue-600 hover:bg-slate-800 dark:hover:bg-blue-500 text-white font-bold py-3.5 rounded-xl
                                flex items-center justify-center gap-2 transition-all duration-200
                                disabled:opacity-50 disabled:cursor-not-allowed
-                               shadow-lg shadow-primary/25 active:scale-[0.98]"
+                               shadow-lg shadow-slate-900/20 dark:shadow-blue-900/20 hover:shadow-xl hover:-translate-y-0.5 active:scale-[0.98]"
                   >
                     {loading ? (
                       <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
@@ -194,7 +194,7 @@ export default function ResetPasswordPage() {
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-8 py-4 text-text-muted dark:text-slate-500">
+        <div className="flex items-center justify-between px-8 py-4 text-gray-500 dark:text-slate-500">
           <span className="text-[11px] font-medium uppercase tracking-[2px]">
             © 2024 Choir Deck
           </span>
