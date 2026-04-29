@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Bell, LayoutDashboard, Search, ChevronDown, Users, Music, LogOut, Pencil, Settings, Sun, Moon } from 'lucide-react'
 import Avatar from '../ui/Avatar'
 import useAuthStore from '../../store/authStore'
+import useMembersStore from '../../store/membersStore'
 
 const pageItems = [
   { to: '/dashboard', label: 'Painel', icon: LayoutDashboard },
@@ -13,6 +14,8 @@ const pageItems = [
 
 export default function Topbar({ title = 'Gestão Igreja', searchPlaceholder, onSearch }) {
   const user = useAuthStore((s) => s.user)
+  const members = useMembersStore((s) => s.members) || []
+  const attendance = useMembersStore((s) => s.attendance) || []
   const logout = useAuthStore((s) => s.logout)
   const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
@@ -38,6 +41,35 @@ export default function Topbar({ title = 'Gestão Igreja', searchPlaceholder, on
       localStorage.setItem('choir_deck_theme', 'light')
     }
   }
+
+  const hasAlerts = useMemo(() => {
+    if (!members.length || !attendance.length) return false
+    const currentMonth = new Date().toISOString().slice(0, 7)
+
+    for (const member of members) {
+      if (member.status !== 'Ativo') continue
+      let unjustifiedCount = 0
+      for (const call of attendance) {
+        let isThisMonth = false
+        if (call.data) {
+          if (call.data.includes('-') && call.data.startsWith(currentMonth)) isThisMonth = true
+          else if (call.data.includes('/')) {
+            const [d, mo, y] = call.data.split('/')
+            if (`${y}-${mo}` === currentMonth) isThisMonth = true
+          }
+        }
+        if (isThisMonth) {
+          const regs = call.registros_json || call.registros || []
+          const reg = regs.find(r => String(r.membro_id) === String(member.id))
+          if (reg && !reg.presente && (!reg.justificativa || reg.justificativa.trim() === '')) {
+            unjustifiedCount++
+            if (unjustifiedCount >= 2) return true // Retorna verdadeiro na primeira ocorrência encontrada
+          }
+        }
+      }
+    }
+    return false
+  }, [members, attendance])
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -124,9 +156,12 @@ export default function Topbar({ title = 'Gestão Igreja', searchPlaceholder, on
             {/* Notifications */}
             <Link
               to="/membros?view=alertas"
-              className="p-2.5 rounded-xl text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-all duration-200"
+              className="relative p-2.5 rounded-xl text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-all duration-200"
             >
               <Bell size={18} />
+              {hasAlerts && (
+                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white/50 dark:ring-[#1C1C1E]/50" />
+              )}
             </Link>
 
             <div className="w-px h-5 bg-gray-200 dark:bg-gray-700 mx-1" />

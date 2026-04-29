@@ -100,7 +100,7 @@ function ProgrammedHymnItem({ hymn, index, onRemove, onMove, isFirst, isLast, on
             <select
               value={hymn.regente || ''}
               onChange={(e) => onUpdateRegente(hymn.id, e.target.value)}
-              className="text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-md px-2 py-1 text-gray-700 dark:text-gray-300 focus:outline-none focus:border-blue-400"
+              className="select-apple text-xs py-1"
             >
               <option value="">Nenhum</option>
               {conductors.map(c => <option key={c.id} value={c.nome}>{c.nome}</option>)}
@@ -284,14 +284,14 @@ function HistoricoTab({ onEditarProgramacao, onExcluirProgramacao }) {
               value={searchTerm}
               placeholder="Buscar por Hino..."
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-4 py-2.5 rounded-xl border text-sm font-medium transition-all duration-200 focus:outline-none bg-slate-50 dark:bg-slate-900/50 text-slate-900 dark:text-white border-slate-200 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-400"
+              className="input-apple pl-10 w-full"
             />
           </div>
           <div className="w-full md:w-56">
             <select
               value={filterTipoReuniao}
               onChange={(e) => setFilterTipoReuniao(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-xl border text-sm font-medium transition-all duration-200 focus:outline-none bg-slate-50 dark:bg-slate-900/50 text-slate-900 dark:text-white border-slate-200 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-400"
+              className="select-apple w-full"
             >
               <option value="">Tipo de Reunião (Todos)</option>
               {meetingTypes.map(t => <option key={t.id} value={t.label}>{t.label}</option>)}
@@ -302,7 +302,7 @@ function HistoricoTab({ onEditarProgramacao, onExcluirProgramacao }) {
               type="date"
               value={searchDate}
               onChange={(e) => setSearchDate(e.target.value)}
-              className="w-full px-3 py-2.5 rounded-xl border text-sm font-medium transition-all duration-200 focus:outline-none bg-slate-50 dark:bg-slate-900/50 text-slate-900 dark:text-white border-slate-200 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-400"
+              className="input-apple w-full"
             />
           </div>
         </div>
@@ -310,7 +310,7 @@ function HistoricoTab({ onEditarProgramacao, onExcluirProgramacao }) {
           <select
             value={filterTipoHino}
             onChange={(e) => setFilterTipoHino(e.target.value)}
-            className="w-full px-4 py-2.5 rounded-xl border text-sm font-medium transition-all duration-200 focus:outline-none bg-slate-50 dark:bg-slate-900/50 text-slate-900 dark:text-white border-slate-200 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-400"
+            className="select-apple w-full"
           >
             <option value="">Tipo de Hino (Todos)</option>
             {hymnTypes.map(t => <option key={t.id} value={t.label}>{t.label}</option>)}
@@ -318,7 +318,7 @@ function HistoricoTab({ onEditarProgramacao, onExcluirProgramacao }) {
           <select
             value={filterRegente}
             onChange={(e) => setFilterRegente(e.target.value)}
-            className="w-full px-4 py-2.5 rounded-xl border text-sm font-medium transition-all duration-200 focus:outline-none bg-slate-50 dark:bg-slate-900/50 text-slate-900 dark:text-white border-slate-200 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-400"
+            className="select-apple w-full"
           >
             <option value="">Regente (Todos)</option>
             {conductors.map(c => <option key={c.id} value={c.nome}>{c.nome}</option>)}
@@ -599,7 +599,7 @@ function ProgramacaoForm({ programacaoEditando, onLimparEdicao, onCancelarEdicao
               </h3>
               <div className="relative mb-3 shrink-0">
                 <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Buscar por número ou título..." className="input-apple pl-9" />
+                <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Buscar por número ou título..." className="input-apple pl-10 w-full" />
               </div>
               <button onClick={() => { setEditingHymn(null); setHymnModalOpen(true); }} className="w-full mb-3 text-sm font-medium text-[#007AFF] hover:text-[#0062CC] flex items-center justify-center gap-1 py-2 rounded-xl border border-dashed border-[#007AFF]/30 hover:border-[#007AFF] hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors shrink-0">
                 <Plus size={16} /> Novo Hino
@@ -730,7 +730,7 @@ export default function ProgrammingPage() {
     <div className="min-h-screen pb-12 bg-[#F5F5F7] dark:bg-[#1C1C1E]">
       <Topbar title="Gestão Igreja" />
       <div className="px-8 max-w-7xl mx-auto mt-8">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-semibold text-gray-900 dark:text-white">Programação</h1>
             <p className="text-gray-500 dark:text-gray-400 mt-1">Monte e gerencie a ordem da reunião.</p>

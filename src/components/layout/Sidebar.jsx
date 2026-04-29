@@ -20,16 +20,16 @@ export default function Sidebar() {
   }
 
   return (
-    <aside className="sidebar fixed left-0 top-0 bottom-0 w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col z-40 shadow-sm transition-colors duration-300">
+    <aside className="sidebar fixed left-0 top-0 bottom-0 w-64 bg-white dark:bg-[#1C1C1E] border-r border-gray-200 dark:border-gray-700/50 flex flex-col z-40 shadow-sm transition-colors duration-300">
       {/* Logo Section */}
-      <div className="px-6 py-6 border-b border-slate-200 dark:border-slate-800">
+      <div className="px-6 py-6 border-b border-gray-200 dark:border-gray-700/50">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-slate-900 to-slate-700 rounded-xl flex items-center justify-center shadow-md">
-            <Music size={20} className="text-white" strokeWidth={2.5} />
+          <div className="w-10 h-10 bg-gradient-to-br from-gray-900 to-gray-700 dark:from-white dark:to-gray-300 rounded-xl flex items-center justify-center shadow-md">
+            <Music size={20} className="text-white dark:text-gray-900" strokeWidth={2.5} />
           </div>
           <div className="flex-1">
-            <h1 className="text-base font-bold text-slate-900 dark:text-white">Sacred Gallery</h1>
-            <p className="text-[11px] font-semibold uppercase tracking-[1px] text-slate-400 dark:text-slate-500 mt-0.5">
+            <h1 className="text-base font-bold text-gray-900 dark:text-white">Sacred Gallery</h1>
+            <p className="text-[11px] font-semibold uppercase tracking-[1px] text-gray-400 dark:text-gray-500 mt-0.5">
               Gestão
             </p>
           </div>
@@ -44,8 +44,8 @@ export default function Sidebar() {
             to={item.to}
             className={({ isActive }) =>
               isActive
-                ? 'nav-item-active nav-item dark:bg-slate-800 dark:text-white'
-                : 'nav-item dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-slate-200'
+                ? 'nav-item-active nav-item dark:bg-gray-700/50 dark:text-white'
+                : 'nav-item dark:text-gray-400 dark:hover:bg-gray-700/30 dark:hover:text-gray-200'
             }
           >
             <item.icon size={18} strokeWidth={2.2} />
@@ -55,8 +55,8 @@ export default function Sidebar() {
       </nav>
 
       {/* Footer Section */}
-      <div className="px-4 py-4 border-t border-slate-200 dark:border-slate-800 space-y-1">
-        <button className="nav-item w-full justify-between dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-slate-200">
+      <div className="px-4 py-4 border-t border-gray-200 dark:border-gray-700/50 space-y-1">
+        <button className="nav-item w-full justify-between dark:text-gray-400 dark:hover:bg-gray-700/30 dark:hover:text-gray-200">
           <div className="flex items-center gap-3">
             <HelpCircle size={18} strokeWidth={2.2} />
             <span>Suporte</span>

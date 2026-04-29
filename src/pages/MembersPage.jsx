@@ -1,4 +1,5 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Search, Edit2, Plus, ClipboardList, History, Bell, Users2, MessageSquare, Check, X, Cake, CheckCircle, BellRing, Clock, XCircle, Music, ChevronUp, ChevronDown, Trash2 } from 'lucide-react'
 import Topbar from '../components/layout/Topbar'
 import useMembersStore from '../store/membersStore'
@@ -9,7 +10,7 @@ function Badge({ children, variant = 'default' }) {
   const variants = {
     blue: 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400',
     purple: 'bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400',
-    default: 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300',
+    default: 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300',
     green: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
     yellow: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400',
     red: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400',
@@ -95,8 +96,9 @@ const formatarTelefone = (phone) => {
 }
 
 export default function MembersPage() {
+  const [searchParams, setSearchParams] = useSearchParams()
   const [sortConfig, setSortConfig] = useState({ key: 'nome', direction: 'asc' })
-  const [activeTab, setActiveTab] = useState('lista')
+  const [activeTab, setActiveTab] = useState(searchParams.get('view') || 'lista')
   const [showDrawer, setShowDrawer] = useState(false)
   const [editingMember, setEditingMember] = useState(null)
   const [editingChamada, setEditingChamada] = useState(null)
@@ -126,6 +128,22 @@ export default function MembersPage() {
   const positions = useSettingsStore((s) => s.positions) || []
   const statuses = useSettingsStore((s) => s.statuses) || []
   const attendanceContexts = useSettingsStore((s) => s.attendanceContexts) || []
+
+  useEffect(() => {
+    const view = searchParams.get('view')
+    if (view && view !== activeTab) {
+      setActiveTab(view)
+    }
+  }, [searchParams])
+
+  const handleTabChange = (tab) => {
+    setActiveTab(tab)
+    if (searchParams.has('view')) {
+      const newParams = new URLSearchParams(searchParams)
+      newParams.delete('view')
+      setSearchParams(newParams)
+    }
+  }
 
   const filteredMembers = storeMembers.filter(member => {
     if (searchText) {
@@ -237,27 +255,27 @@ export default function MembersPage() {
     <div className="min-h-screen pb-12 bg-[#F5F5F7] dark:bg-[#1C1C1E]">
       <Topbar title="Gestão Igreja" />
       <div className="px-8 max-w-7xl mx-auto mt-8">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-semibold text-gray-900 dark:text-white">Integrantes</h1>
             <p className="text-gray-500 dark:text-gray-400 mt-1">Gerencie o corpo musical e coralistas.</p>
           </div>
-          <button onClick={() => setShowDrawer(true)} className="bg-[#007AFF] text-white px-4 py-2 rounded-xl font-medium flex items-center gap-2 hover:bg-blue-600">
+          <button onClick={() => setShowDrawer(true)} className="btn-apple-primary">
             <Plus size={18} /> Novo Integrante
           </button>
         </div>
 
         <div className="flex gap-1 mb-6 bg-gray-100 dark:bg-gray-800 p-1 rounded-xl w-fit">
-          <button onClick={() => setActiveTab('lista')} className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'lista' ? 'bg-white dark:bg-[#2C2C2E] text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}>
+          <button onClick={() => handleTabChange('lista')} className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'lista' ? 'bg-white dark:bg-[#2C2C2E] text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}>
             <Users2 size={16} className="inline mr-2" />Lista
           </button>
-          <button onClick={() => setActiveTab('chamada')} className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'chamada' ? 'bg-white dark:bg-[#2C2C2E] text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}>
+          <button onClick={() => handleTabChange('chamada')} className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'chamada' ? 'bg-white dark:bg-[#2C2C2E] text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}>
             <ClipboardList size={16} className="inline mr-2" />Chamada
           </button>
-          <button onClick={() => setActiveTab('historico')} className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'historico' ? 'bg-white dark:bg-[#2C2C2E] text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}>
+          <button onClick={() => handleTabChange('historico')} className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'historico' ? 'bg-white dark:bg-[#2C2C2E] text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}>
             <History size={16} className="inline mr-2" />Histórico
           </button>
-          <button onClick={() => setActiveTab('alertas')} className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'alertas' ? 'bg-white dark:bg-[#2C2C2E] text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}>
+          <button onClick={() => handleTabChange('alertas')} className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'alertas' ? 'bg-white dark:bg-[#2C2C2E] text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}>
             <Bell size={16} className="inline mr-2" />Alertas
           </button>
         </div>
@@ -266,35 +284,59 @@ export default function MembersPage() {
           <div className="space-y-4">
             {/* Cards de Métricas */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-              <div className="bg-white dark:bg-[#2C2C2E] rounded-2xl border border-gray-100 dark:border-gray-700 p-4 shadow-sm group">
-                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center mb-3 transition-transform duration-300 group-hover:scale-110"><Users2 size={20} /></div>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.total}</p>
-                <p className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 mt-1 uppercase tracking-wider">Total</p>
+              <div className="metric-card animate-slide-up group">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 transition-transform duration-300 group-hover:scale-110">
+                    <Users2 size={24} strokeWidth={2} />
+                  </div>
+                </div>
+                <p className="text-4xl font-bold text-gray-900 dark:text-white">{stats.total}</p>
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mt-1">Total</p>
               </div>
-              <div className="bg-white dark:bg-[#2C2C2E] rounded-2xl border border-gray-100 dark:border-gray-700 p-4 shadow-sm group">
-                <div className="w-10 h-10 rounded-xl bg-green-50 text-green-600 flex items-center justify-center mb-3 transition-transform duration-300 group-hover:scale-110"><CheckCircle size={20} /></div>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.ativos}</p>
-                <p className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 mt-1 uppercase tracking-wider">Ativos</p>
+              <div className="metric-card animate-slide-up group">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 transition-transform duration-300 group-hover:scale-110">
+                    <CheckCircle size={24} strokeWidth={2} />
+                  </div>
+                </div>
+                <p className="text-4xl font-bold text-gray-900 dark:text-white">{stats.ativos}</p>
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mt-1">Ativos</p>
               </div>
-              <div className="bg-white dark:bg-[#2C2C2E] rounded-2xl border border-gray-100 dark:border-gray-700 p-4 shadow-sm group">
-                <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center mb-3 transition-transform duration-300 group-hover:scale-110"><Clock size={20} /></div>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.licenca}</p>
-                <p className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 mt-1 uppercase tracking-wider">Licença</p>
+              <div className="metric-card animate-slide-up group">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 transition-transform duration-300 group-hover:scale-110">
+                    <Clock size={24} strokeWidth={2} />
+                  </div>
+                </div>
+                <p className="text-4xl font-bold text-gray-900 dark:text-white">{stats.licenca}</p>
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mt-1">Licença</p>
               </div>
-              <div className="bg-white dark:bg-[#2C2C2E] rounded-2xl border border-gray-100 dark:border-gray-700 p-4 shadow-sm group">
-                <div className="w-10 h-10 rounded-xl bg-red-50 text-red-600 flex items-center justify-center mb-3 transition-transform duration-300 group-hover:scale-110"><XCircle size={20} /></div>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.inativos}</p>
-                <p className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 mt-1 uppercase tracking-wider">Inativos</p>
+              <div className="metric-card animate-slide-up group">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 transition-transform duration-300 group-hover:scale-110">
+                    <XCircle size={24} strokeWidth={2} />
+                  </div>
+                </div>
+                <p className="text-4xl font-bold text-gray-900 dark:text-white">{stats.inativos}</p>
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mt-1">Inativos</p>
               </div>
-              <div className="bg-white dark:bg-[#2C2C2E] rounded-2xl border border-gray-100 dark:border-gray-700 p-4 shadow-sm group">
-                <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center mb-3 transition-transform duration-300 group-hover:scale-110"><Music size={20} /></div>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.orquestra}</p>
-                <p className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 mt-1 uppercase tracking-wider">Orquestra</p>
+              <div className="metric-card animate-slide-up group">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 transition-transform duration-300 group-hover:scale-110">
+                    <Music size={24} strokeWidth={2} />
+                  </div>
+                </div>
+                <p className="text-4xl font-bold text-gray-900 dark:text-white">{stats.orquestra}</p>
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mt-1">Orquestra</p>
               </div>
-              <div className="bg-white dark:bg-[#2C2C2E] rounded-2xl border border-gray-100 dark:border-gray-700 p-4 shadow-sm group">
-                <div className="w-10 h-10 rounded-xl bg-pink-50 text-pink-600 flex items-center justify-center mb-3 transition-transform duration-300 group-hover:scale-110"><Cake size={20} /></div>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.aniversariantes}</p>
-                <p className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 mt-1 uppercase tracking-wider">Aniversários</p>
+              <div className="metric-card animate-slide-up group">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400 transition-transform duration-300 group-hover:scale-110">
+                    <Cake size={24} strokeWidth={2} />
+                  </div>
+                </div>
+                <p className="text-4xl font-bold text-gray-900 dark:text-white">{stats.aniversariantes}</p>
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mt-1">Aniversários</p>
               </div>
             </div>
 
@@ -303,21 +345,21 @@ export default function MembersPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
                 <div className="relative">
                   <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                  <input type="text" placeholder="Buscar..." value={searchText} onChange={(e) => setSearchText(e.target.value)} className="w-full pl-9 pr-4 py-2 bg-gray-50 dark:bg-[#3A3A3C] border-0 rounded-xl text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-blue-500/30 focus:bg-white dark:focus:bg-[#48484A] outline-none transition-all" />
+                  <input type="text" placeholder="Buscar..." value={searchText} onChange={(e) => setSearchText(e.target.value)} className="input-apple pl-9" />
                 </div>
-                <select value={vozFilter} onChange={(e) => setVozFilter(e.target.value)} className="w-full px-3 py-2 bg-gray-50 dark:bg-[#3A3A3C] border-0 rounded-xl text-sm text-gray-900 dark:text-gray-100">
+                <select value={vozFilter} onChange={(e) => setVozFilter(e.target.value)} className="select-apple">
                   <option value="">Todas as vozes</option>
                   {voices.map(v => <option key={v.id} value={v.label}>{v.label}</option>)}
                 </select>
-                <select value={instrumentoFilter} onChange={(e) => setInstrumentoFilter(e.target.value)} className="w-full px-3 py-2 bg-gray-50 dark:bg-[#3A3A3C] border-0 rounded-xl text-sm text-gray-900 dark:text-gray-100">
+                <select value={instrumentoFilter} onChange={(e) => setInstrumentoFilter(e.target.value)} className="select-apple">
                   <option value="">Todos os instrum.</option>
                   {instruments.map(v => <option key={v.id} value={v.label}>{v.label}</option>)}
                 </select>
-                <select value={funcaoFilter} onChange={(e) => setFuncaoFilter(e.target.value)} className="w-full px-3 py-2 bg-gray-50 dark:bg-[#3A3A3C] border-0 rounded-xl text-sm text-gray-900 dark:text-gray-100">
+                <select value={funcaoFilter} onChange={(e) => setFuncaoFilter(e.target.value)} className="select-apple">
                   <option value="">Todas as funções</option>
                   {positions.map(v => <option key={v.id} value={v.label}>{v.label}</option>)}
                 </select>
-                <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="w-full px-3 py-2 bg-gray-50 dark:bg-[#3A3A3C] border-0 rounded-xl text-sm text-gray-900 dark:text-gray-100">
+                <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="select-apple">
                   <option value="">Todos os status</option>
                   {statuses.map(v => <option key={v.id} value={v.label}>{v.label}</option>)}
                 </select>
@@ -406,13 +448,13 @@ export default function MembersPage() {
                     placeholder="Buscar por nome..."
                     value={historicoNameFilter}
                     onChange={(e) => setHistoricoNameFilter(e.target.value)}
-                    className="pl-9 pr-4 py-2 bg-gray-50 dark:bg-[#3A3A3C] border-0 rounded-xl text-sm text-gray-900 dark:text-gray-100 w-48"
+                    className="input-apple pl-10 w-48"
                   />
                 </div>
                 <select
                   value={historicoFilter}
                   onChange={(e) => setHistoricoFilter(e.target.value)}
-                  className="px-3 py-2 bg-gray-50 dark:bg-[#3A3A3C] border-0 rounded-xl text-sm text-gray-900 dark:text-gray-100"
+                  className="select-apple"
                 >
                   <option value="">Todos os contextos</option>
                   {attendanceContexts.map(ctx => (
@@ -423,7 +465,7 @@ export default function MembersPage() {
                   type="date"
                   value={historicoDateFilter}
                   onChange={(e) => setHistoricoDateFilter(e.target.value)}
-                  className="px-3 py-2 bg-gray-50 dark:bg-[#3A3A3C] border-0 rounded-xl text-sm text-gray-900 dark:text-gray-100"
+                  className="input-apple"
                 />
               </div>
             </div>
@@ -526,7 +568,7 @@ export default function MembersPage() {
                   type="month"
                   value={alertMonth}
                   onChange={(e) => setAlertMonth(e.target.value)}
-                  className="px-3 py-1.5 bg-white dark:bg-[#3A3A3C] border border-gray-200 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 outline-none focus:ring-2 focus:ring-blue-500/30"
+                  className="input-apple w-48"
                 />
                 <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
                   <button onClick={() => setAlertSubTab('pendentes')} className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${alertSubTab === 'pendentes' ? 'bg-white dark:bg-[#2C2C2E] text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>Pendentes</button>
@@ -542,7 +584,7 @@ export default function MembersPage() {
                   placeholder="Buscar por nome..."
                   value={alertSearch}
                   onChange={(e) => setAlertSearch(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 bg-gray-50 dark:bg-[#3A3A3C] border-0 rounded-xl text-sm text-gray-900 dark:text-gray-100"
+                  className="input-apple pl-10 w-full"
                 />
               </div>
             </div>
@@ -748,11 +790,11 @@ function ChamadaTab({ members, isEditing = false, chamada = null, onSaveEdit = n
         <div className="flex flex-wrap items-end gap-4">
           <div>
             <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Data</label>
-            <input type="date" value={dataChamada} onChange={(e) => setDataChamada(e.target.value)} className="px-3 py-2 bg-gray-50 dark:bg-[#3A3A3C] border-0 rounded-xl text-sm text-gray-900 dark:text-gray-100" />
+            <input type="date" value={dataChamada} onChange={(e) => setDataChamada(e.target.value)} className="input-apple w-auto" />
           </div>
           <div>
             <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Contexto</label>
-            <select value={contextoChamada} onChange={(e) => setContextoChamada(e.target.value)} className="px-3 py-2 bg-gray-50 dark:bg-[#3A3A3C] border-0 rounded-xl text-sm text-gray-900 dark:text-gray-100">
+            <select value={contextoChamada} onChange={(e) => setContextoChamada(e.target.value)} className="select-apple w-auto">
               {attendanceContexts.map(ctx => (
                 <option key={ctx.id} value={ctx.label}>{ctx.label}</option>
               ))}
@@ -765,7 +807,7 @@ function ChamadaTab({ members, isEditing = false, chamada = null, onSaveEdit = n
             <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Buscar</label>
             <div className="relative">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input type="text" placeholder="Buscar integrante..." value={searchChamada} onChange={(e) => setSearchChamada(e.target.value)} className="w-full pl-9 pr-4 py-2 bg-gray-50 dark:bg-[#3A3A3C] border-0 rounded-xl text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400" />
+              <input type="text" placeholder="Buscar integrante..." value={searchChamada} onChange={(e) => setSearchChamada(e.target.value)} className="input-apple pl-10 w-full" />
             </div>
           </div>
         </div>
@@ -798,7 +840,7 @@ function ChamadaTab({ members, isEditing = false, chamada = null, onSaveEdit = n
                       placeholder="Adicionar motivo da falta (opcional)"
                       value={justificativas[member.id] || ''}
                       onChange={(e) => updateJustificativa(member.id, e.target.value)}
-                      className="w-full px-3 py-2 bg-gray-50 dark:bg-[#3A3A3C] border-0 rounded-lg text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400"
+                      className="input-apple text-sm"
                     />
                   </div>
                 )}
@@ -964,11 +1006,11 @@ function MemberForm({ member, onSave, onCancel, onDelete }) {
       <div className="grid grid-cols-3 gap-4">
         <div className="col-span-2">
           <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Nome</label>
-          <input type="text" value={form.nome || ''} onChange={(e) => setForm(f => ({ ...f, nome: e.target.value }))} className="w-full px-3 py-2 bg-gray-50 dark:bg-[#3A3A3C] border-0 rounded-xl text-sm text-gray-900 dark:text-gray-100" placeholder="Nome completo" />
+          <input type="text" value={form.nome || ''} onChange={(e) => setForm(f => ({ ...f, nome: e.target.value }))} className="input-apple w-full" placeholder="Nome completo" />
         </div>
         <div>
           <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Nascimento</label>
-          <input type="date" value={form.data_nascimento || ''} onChange={(e) => setForm(f => ({ ...f, data_nascimento: e.target.value }))} className="w-full px-3 py-2 bg-gray-50 dark:bg-[#3A3A3C] border-0 rounded-xl text-sm text-gray-900 dark:text-gray-100" />
+          <input type="date" value={form.data_nascimento || ''} onChange={(e) => setForm(f => ({ ...f, data_nascimento: e.target.value }))} className="input-apple w-full" />
         </div>
       </div>
 
@@ -987,11 +1029,11 @@ function MemberForm({ member, onSave, onCancel, onDelete }) {
               formatted = `(${val.slice(0, 2)}) ${val.slice(2, 7)}-${val.slice(7)}`
             }
             setForm(f => ({ ...f, telefone: formatted }))
-          }} className="w-full px-3 py-2 bg-gray-50 dark:bg-[#3A3A3C] border-0 rounded-xl text-sm text-gray-900 dark:text-gray-100" placeholder="(00) 00000-0000" />
+          }} className="input-apple w-full" placeholder="(00) 00000-0000" />
         </div>
         <div>
           <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Voz</label>
-          <select value={form.secao || ''} onChange={(e) => setForm(f => ({ ...f, secao: e.target.value }))} className="w-full px-3 py-2 bg-gray-50 dark:bg-[#3A3A3C] border-0 rounded-xl text-sm text-gray-900 dark:text-gray-100">
+          <select value={form.secao || ''} onChange={(e) => setForm(f => ({ ...f, secao: e.target.value }))} className="select-apple w-full">
             <option value="">Selecionar...</option>
             {voices.map(v => <option key={v.id} value={v.label}>{v.label}</option>)}
           </select>
@@ -1003,7 +1045,7 @@ function MemberForm({ member, onSave, onCancel, onDelete }) {
           <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Instrumentos</label>
           <div
             onClick={() => setShowInstDropdown(!showInstDropdown)}
-            className="w-full px-3 py-2 bg-gray-50 dark:bg-[#3A3A3C] border-0 rounded-xl text-sm min-h-[42px] cursor-pointer flex flex-wrap gap-1"
+            className="input-apple w-full min-h-[42px] cursor-pointer flex flex-wrap gap-1"
           >
             {formInstrumentos.length === 0 ? (
               <span className="text-gray-400 dark:text-gray-500">Selecionar...</span>
@@ -1029,7 +1071,7 @@ function MemberForm({ member, onSave, onCancel, onDelete }) {
           <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Funções</label>
           <div
             onClick={() => setShowCargoDropdown(!showCargoDropdown)}
-            className="w-full px-3 py-2 bg-gray-50 dark:bg-[#3A3A3C] border-0 rounded-xl text-sm min-h-[42px] cursor-pointer flex flex-wrap gap-1"
+            className="input-apple w-full min-h-[42px] cursor-pointer flex flex-wrap gap-1"
           >
             {formCargos.length === 0 ? (
               <span className="text-gray-400 dark:text-gray-500">Selecionar...</span>
@@ -1054,7 +1096,7 @@ function MemberForm({ member, onSave, onCancel, onDelete }) {
 
       <div>
         <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Status</label>
-        <select value={form.status || 'Ativo'} onChange={(e) => setForm(f => ({ ...f, status: e.target.value }))} className="w-full px-3 py-2 bg-gray-50 dark:bg-[#3A3A3C] border-0 rounded-xl text-sm text-gray-900 dark:text-gray-100">
+        <select value={form.status || 'Ativo'} onChange={(e) => setForm(f => ({ ...f, status: e.target.value }))} className="select-apple w-full">
           {statuses.map(s => <option key={s.id} value={s.label}>{s.label}</option>)}
         </select>
       </div>
@@ -1116,7 +1158,7 @@ function JustificativasList({ alert, onSave, onCancel }) {
             placeholder="Motivo (opcional)..."
             value={justificativas[falta.call.id] || ''}
             onChange={(e) => updateJustificativa(falta.call.id, e.target.value)}
-            className="w-full px-3 py-2 bg-white dark:bg-[#2C2C2E] border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+            className="input-apple text-sm"
           />
         </div>
       ))}
@@ -1216,13 +1258,13 @@ function EdicaoDrawer({ chamada, members, onSave, onDelete, onClose }) {
                 placeholder="Buscar integrante..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 bg-gray-50 dark:bg-[#3A3A3C] border-0 rounded-lg text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                className="input-apple pl-10 w-full"
               />
             </div>
             <select
               value={contexto}
               onChange={(e) => setContexto(e.target.value)}
-              className="px-3 py-2 bg-gray-50 dark:bg-[#3A3A3C] border-0 rounded-lg text-sm sm:w-36 outline-none text-gray-900 dark:text-gray-100"
+              className="select-apple sm:w-36"
             >
               {attendanceContexts.map(ctx => (
                 <option key={ctx.id} value={ctx.label}>{ctx.label}</option>
@@ -1259,7 +1301,7 @@ function EdicaoDrawer({ chamada, members, onSave, onDelete, onClose }) {
                       placeholder="Adicionar motivo da falta (opcional)"
                       value={justificativas[member.id] || ''}
                       onChange={(e) => updateJustificativa(member.id, e.target.value)}
-                      className="w-full px-3 py-2 bg-gray-50 dark:bg-[#3A3A3C] border-0 rounded-lg text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400"
+                      className="input-apple text-sm"
                     />
                   </div>
                 )}

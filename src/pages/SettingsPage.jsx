@@ -116,7 +116,6 @@ const sectionConfigs = [
   { listName: 'instruments', title: 'Instrumentos', icon: Music },
   { listName: 'statuses', title: 'Situações do Integrante', icon: Award },
   { listName: 'positions', title: 'Cargos e Funções', icon: Award },
-  { listName: 'conductors', title: 'Regentes', icon: Users },
   { listName: 'hymnSections', title: 'Seções de Hinos', icon: Award },
   { listName: 'attendanceContexts', title: 'Contextos de Chamada', icon: Check },
 ]
@@ -248,15 +247,17 @@ export default function SettingsPage() {
       <Topbar title="Gestão Igreja" />
 
       <div className="px-8 max-w-7xl mx-auto mt-8">
-        <div className="mb-6">
-          <h1 className="text-3xl font-semibold text-gray-900 dark:text-white">Configurações</h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-1">Gerencie suas informações e preferências do sistema.</p>
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-3xl font-semibold text-gray-900 dark:text-white">Configurações</h1>
+            <p className="text-gray-500 dark:text-gray-400 mt-1">Gerencie suas informações e preferências do sistema.</p>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Sidebar */}
           <div className="lg:col-span-1">
-            <div className="apple-card p-2">
+            <div className="apple-card p-2 flex flex-col gap-1">
               {sidebarItems.map((item) => {
                 const Icon = item.icon
                 const isActive = activeSection === item.id
@@ -541,7 +542,7 @@ export default function SettingsPage() {
 
             {/* ── Tabelas Auxiliares ── */}
             {activeSection === 'tabelas' && (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
                   Personalize as opções disponíveis nos formulários do sistema. Todas as alterações são salvas automaticamente.
                 </p>

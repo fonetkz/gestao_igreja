@@ -65,9 +65,6 @@ const defaultSettings = {
     { id: 3, value: 'corista', label: 'Corista' },
     { id: 4, value: 'musico', label: 'Músico' },
   ],
-  conductors: [
-    { id: 1, value: 'Elen Márcia', label: 'Elen Márcia' },
-  ],
   printThemes: [
     {
       id: 1,
@@ -124,7 +121,6 @@ const useSettingsStore = create((set, get) => ({
         voices: state.voices,
         instruments: state.instruments,
         positions: state.positions,
-        conductors: state.conductors,
       }
       await api.put('/api/config/global_settings', { valor: payload })
     } catch (error) {
