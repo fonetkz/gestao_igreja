@@ -260,9 +260,11 @@ export default function MembersPage() {
             <h1 className="text-3xl font-semibold text-gray-900 dark:text-white">Integrantes</h1>
             <p className="text-gray-500 dark:text-gray-400 mt-1">Gerencie o corpo musical e coralistas.</p>
           </div>
-          <button onClick={() => setShowDrawer(true)} className="btn-apple-primary">
-            <Plus size={18} /> Novo Integrante
-          </button>
+          {activeTab === 'lista' && (
+            <button onClick={() => setShowDrawer(true)} className="btn-apple-primary">
+              <Plus size={18} /> Novo Integrante
+            </button>
+          )}
         </div>
 
         <div className="flex gap-1 mb-6 bg-gray-100 dark:bg-gray-800 p-1 rounded-xl w-fit">
