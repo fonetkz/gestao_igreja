@@ -79,7 +79,6 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,
-    name="SacredGallery",
     name="GestaoIgreja",
     debug=False,
     bootloader_ignore_signals=False,
@@ -97,6 +96,5 @@ coll = COLLECT(
     strip=False,
     upx=True,
     upx_exclude=[],
-    name="SacredGallery",
     name="GestaoIgreja",
 )
