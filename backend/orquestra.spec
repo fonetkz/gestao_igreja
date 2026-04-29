@@ -80,12 +80,13 @@ exe = EXE(
     [],
     exclude_binaries=True,
     name="SacredGallery",
+    name="GestaoIgreja",
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
     console=False,  # Sem janela de console
-    icon=None,      # Adicionar .ico aqui se desejar
+    icon=str(BACKEND_DIR / "icone.ico"),
 )
 
 coll = COLLECT(
@@ -97,4 +98,5 @@ coll = COLLECT(
     upx=True,
     upx_exclude=[],
     name="SacredGallery",
+    name="GestaoIgreja",
 )
