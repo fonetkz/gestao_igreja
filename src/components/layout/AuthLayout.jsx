@@ -29,7 +29,7 @@ export default function AuthLayout() {
   }
 
   return (
-    <div className="min-h-screen bg-surface dark:bg-slate-900 transition-colors duration-300">
+    <div className="min-h-screen bg-[#F5F5F7] dark:bg-[#1C1C1E] transition-colors duration-300">
       <main className="min-h-screen">
         <Outlet />
       </main>

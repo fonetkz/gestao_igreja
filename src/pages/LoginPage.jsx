@@ -266,7 +266,7 @@ export default function LoginPage() {
         </div>
 
         {/* Gradient overlay from bottom */}
-        <div className="absolute inset-0 bg-gradient-to-t from-primary-dark/80 via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#151D5A]/80 via-transparent to-transparent" />
 
         {/* Content */}
         <div className="relative z-10 flex flex-col justify-center px-16 py-12 w-full">
@@ -427,7 +427,7 @@ export default function LoginPage() {
                         <button
                           type="submit"
                           disabled={loading}
-                          className="w-full bg-primary hover:bg-primary-light text-white font-semibold py-3.5 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-primary/25 active:scale-[0.98]"
+                          className="w-full bg-slate-900 dark:bg-blue-600 hover:bg-slate-800 dark:hover:bg-blue-500 text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-slate-900/20 dark:shadow-blue-900/20 hover:shadow-xl hover:-translate-y-0.5 active:scale-[0.98]"
                         >
                           {loading ? (
                             <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
@@ -551,7 +551,7 @@ export default function LoginPage() {
                           setError('')
                           setMessage('')
                         }}
-                        className="text-[10px] font-bold uppercase tracking-wider text-primary hover:text-primary-light transition-colors"
+                        className="text-[10px] font-bold uppercase tracking-wider text-[#007AFF] hover:text-[#0062CC] transition-colors"
                       >
                         Esqueceu?
                       </button>
@@ -573,7 +573,7 @@ export default function LoginPage() {
                           onChange={(e) => setRememberMe(e.target.checked)}
                           className="w-4 h-4 rounded border-gray-300 dark:border-slate-600 dark:bg-slate-900 text-primary focus:ring-primary transition-colors cursor-pointer"
                         />
-                        <span className="text-sm text-text-muted dark:text-slate-400 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">Lembrar meu e-mail</span>
+                        <span className="text-sm text-gray-500 dark:text-slate-400 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">Lembrar meu e-mail</span>
                       </label>
                     </div>
                   </div>
@@ -618,13 +618,13 @@ export default function LoginPage() {
 
               {/* Request Access */}
               {!isForgotPasswordMode && (
-                <p className="text-center text-sm text-text-muted dark:text-slate-400 mt-6">
+                <p className="text-center text-sm text-gray-500 dark:text-slate-400 mt-6">
                   Novo por aqui?{' '}
                   <a
                     href="https://wa.me/5517991825818?text=Olá%20gostaria%20de%20solicitar%20meu%20acesso"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="font-semibold text-gray-900 dark:text-white hover:text-primary dark:hover:text-primary-light transition-colors inline-block"
+                    className="font-semibold text-gray-900 dark:text-white hover:text-[#007AFF] dark:hover:text-blue-400 transition-colors inline-block"
                   >
                     Solicitar Acesso
                   </a>
@@ -635,7 +635,7 @@ export default function LoginPage() {
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-8 py-4 text-text-muted dark:text-slate-500">
+        <div className="flex items-center justify-between px-8 py-4 text-gray-500 dark:text-slate-500">
           <span className="text-[11px] font-medium uppercase tracking-[2px]">
             © 2024 Choir Deck
           </span>

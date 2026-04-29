@@ -573,7 +573,7 @@ function ProgramacaoForm({ programacaoEditando, onLimparEdicao, onCancelarEdicao
           <div className="flex flex-wrap items-center gap-4">
             <div className="flex items-center gap-2">
               <label className="label-uppercase">Data</label>
-              <input type="date" value={serviceDate} onChange={(e) => setServiceDate(e.target.value)} className="input-apple w-auto" style={{ colorScheme: 'light' }} />
+              <input type="date" value={serviceDate} onChange={(e) => setServiceDate(e.target.value)} className="input-apple w-auto" />
             </div>
             <div className="flex items-center gap-2">
               <label className="label-uppercase">Tipo de Reunião</label>

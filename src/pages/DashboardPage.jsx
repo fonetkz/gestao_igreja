@@ -169,7 +169,7 @@ export default function DashboardPage() {
   }, [storeAttendance])
 
   return (
-    <div className="min-h-screen pb-12">
+    <div className="min-h-screen pb-12 bg-[#F5F5F7] dark:bg-[#1C1C1E]">
       <Topbar title="Gestão Igreja" />
 
       <div className="px-8 max-w-7xl mx-auto mt-8">
