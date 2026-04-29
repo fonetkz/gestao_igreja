@@ -85,7 +85,7 @@ exe = EXE(
     strip=False,
     upx=True,
     console=False,  # Sem janela de console
-    icon=str(BACKEND_DIR / "icone.ico"),
+    icon=None,
 )
 
 coll = COLLECT(
