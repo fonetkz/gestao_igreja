@@ -12,6 +12,7 @@ from typing import Sequence
 
 # Adiciona o diretório pai ao path para imports
 base_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, base_dir)
 sys.path.insert(0, os.path.dirname(base_dir))
 
 from fastapi import Depends, FastAPI, HTTPException, Request

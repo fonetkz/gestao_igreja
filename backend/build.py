@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-SPEC_FILE = ROOT / "backend" / "orquestra.spec"
+SPEC_FILE = ROOT / "backend" / "GestaoIgreja.spec"
 
 
 def run(cmd: list[str], cwd: Path | None = None) -> None:
