@@ -48,7 +48,7 @@ except Exception as e:
     logger.error(f"Erro ao importar uvicorn: {e}", exc_info=True)
 
 try:
-    from backend.config import API_HOST, API_PORT
+    from backend.config import API_HOST, API_PORT, _is_frozen
     logger.info(f"Config carregada: HOST={API_HOST}, PORT={API_PORT}")
 except Exception as e:
     logger.error(f"Erro ao importar config: {e}", exc_info=True)
