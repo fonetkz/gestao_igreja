@@ -7,7 +7,7 @@ import useMembersStore from '../../store/membersStore'
 
 const pageItems = [
   { to: '/dashboard', label: 'Painel', icon: LayoutDashboard },
-  { to: '/membros', label: 'Membros', icon: Users },
+  { to: '/membros', label: 'Integrantes', icon: Users },
   { to: '/programacao', label: 'Programação', icon: Music },
   { to: '/configuracoes', label: 'Configurações', icon: Settings },
 ]
@@ -29,17 +29,20 @@ export default function Topbar({ title = 'Gestão Igreja', searchPlaceholder, on
     } catch { return false }
   })
 
-  const toggleDarkMode = () => {
-    const next = !isDarkMode
-    setIsDarkMode(next)
+  // Sincroniza o tema na montagem e sempre que isDarkMode mudar
+  useEffect(() => {
     const root = document.documentElement
-    if (next) {
+    if (isDarkMode) {
       root.classList.add('dark')
       localStorage.setItem('gestao_igreja_theme', 'dark')
     } else {
       root.classList.remove('dark')
       localStorage.setItem('gestao_igreja_theme', 'light')
     }
+  }, [isDarkMode])
+
+  const toggleDarkMode = () => {
+    setIsDarkMode(prev => !prev)
   }
 
   const hasAlerts = useMemo(() => {
@@ -150,7 +153,7 @@ export default function Topbar({ title = 'Gestão Igreja', searchPlaceholder, on
               className="p-2.5 rounded-xl text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-all duration-200"
               title={isDarkMode ? 'Modo Claro' : 'Modo Escuro'}
             >
-              {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
+              {isDarkMode ? <Moon size={18} /> : <Sun size={18} />}
             </button>
 
             {/* Notifications */}
@@ -184,7 +187,7 @@ export default function Topbar({ title = 'Gestão Igreja', searchPlaceholder, on
                 <div className="absolute right-0 mt-2 w-56 bg-white/95 dark:bg-[#2C2C2E]/95 backdrop-blur-xl rounded-2xl border border-gray-100 dark:border-gray-700/50 shadow-lg overflow-hidden animate-slide-down">
                   <div className="p-2 flex flex-col gap-1">
                     <Link
-                      to="/configuracoes"
+                      to="/configuracoes?section=perfil"
                       onClick={() => setMenuOpen(false)}
                       className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
                     >

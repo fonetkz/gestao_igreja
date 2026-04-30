@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Plus, Trash2, Check, User, Lock, Eye, EyeOff, Save, Shield, ChevronDown, Music, Users, Calendar, Award, Edit2, X, Loader2, Mail, AlertTriangle, CheckCircle } from 'lucide-react'
 import Topbar from '../components/layout/Topbar'
 import useAuthStore from '../store/authStore'
@@ -122,7 +123,9 @@ const sectionConfigs = [
 
 // ─── Página principal ───────────────────────────────────────────────────────
 export default function SettingsPage() {
-  const [activeSection, setActiveSection] = useState('perfil')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const sectionFromUrl = searchParams.get('section')
+  const [activeSection, setActiveSection] = useState(sectionFromUrl || 'tabelas')
 
   const user = useAuthStore((s) => s.user)
   const updateProfile = useAuthStore((s) => s.updateProfile)
@@ -149,6 +152,11 @@ export default function SettingsPage() {
   const [isForgotPwdMode, setIsForgotPwdMode] = useState(false)
   const [pwdResetCode, setPwdResetCode] = useState('')
   const [isPwdLoading, setIsPwdLoading] = useState(false)
+
+  const handleSectionChange = (sectionId) => {
+    setActiveSection(sectionId)
+    setSearchParams({})
+  }
 
   const handleSaveProfile = async () => {
     if (!localName.trim() || !localEmail.trim()) return
@@ -237,9 +245,9 @@ export default function SettingsPage() {
   }
 
   const sidebarItems = [
+    { id: 'tabelas', label: 'Tabelas Auxiliares', icon: Award },
     { id: 'perfil', label: 'Meu Perfil', icon: User },
     { id: 'seguranca', label: 'Segurança', icon: Lock },
-    { id: 'tabelas', label: 'Tabelas Auxiliares', icon: Award },
   ]
 
   return (
@@ -264,7 +272,7 @@ export default function SettingsPage() {
                 return (
                   <button
                     key={item.id}
-                    onClick={() => setActiveSection(item.id)}
+                    onClick={() => handleSectionChange(item.id)}
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${isActive
                       ? 'bg-gray-100 dark:bg-gray-700/50 text-gray-900 dark:text-white'
                       : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700/30'

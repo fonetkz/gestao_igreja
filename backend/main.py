@@ -10,11 +10,6 @@ from collections.abc import AsyncGenerator
 from pathlib import Path
 from typing import Sequence
 
-# Adiciona o diretório pai ao path para imports
-base_dir = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, base_dir)
-sys.path.insert(0, os.path.dirname(base_dir))
-
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
@@ -40,10 +35,11 @@ def _compare_dates(d1_str, d2_str):
         print(f'Date compare error: {e}')
         return False
 
-from config import DIST_DIR
-from email_service import send_password_reset_email, send_email_change_code
-from database import get_session, init_db
-from models import (
+from backend.config import DIST_DIR
+from backend.config import API_PORT
+from backend.email_service import send_password_reset_email, send_email_change_code
+from backend.database import get_session, init_db
+from backend.models import (
     Chamada,
     ChamadaCreate,
     ChamadaRead,
@@ -74,7 +70,7 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
 
 
 # Configuração de CORS seguro
-ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "").split(",") if os.getenv("ALLOWED_ORIGINS") else ["http://localhost:5173", "http://localhost:39100"]
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "").split(",") if os.getenv("ALLOWED_ORIGINS") else ["http://localhost:5173", f"http://localhost:{API_PORT}"]
 
 app = FastAPI(
     title="Gestão Igreja API",

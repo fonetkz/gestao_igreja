@@ -83,7 +83,7 @@ class MembroUpdate(SQLModel):
 # ═══════════════════════════════════════════════════════════
 
 class HinoBase(SQLModel):
-    numero: str = Field(max_length=10, index=True)
+    numero: str = Field(max_length=50, index=True)
     titulo: str = Field(max_length=200, index=True)
     tonalidade: str = Field(default="", max_length=20)
     data_ultima_apresentacao: Optional[str] = Field(default=None, max_length=10)

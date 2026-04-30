@@ -34,7 +34,7 @@ echo ========================================
 echo.
 
 cd /d "%PROJECT_ROOT%backend"
-call python app.py
+start "" python app.py
 
 if errorlevel 1 (
     echo.
