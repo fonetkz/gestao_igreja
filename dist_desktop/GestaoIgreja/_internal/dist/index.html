@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Gestão Igreja — Sistema completo de gestão de coral e orquestra" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet" />
+  <title>Gestão Igreja</title>
+<script>
+    try {
+      // Limpa sessão de login ao iniciar (para exe standalone)
+      localStorage.removeItem('gestao_igreja_token');
+      localStorage.removeItem('gestao_igreja_user');
+
+      // Força modo claro por padrão
+      const savedTheme = localStorage.getItem('gestao_igreja_theme');
+      if (savedTheme === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else {
+        localStorage.setItem('gestao_igreja_theme', 'light');
+        document.documentElement.classList.remove('dark');
+      }
+    } catch (e) { }
+  </script>
+  <script type="module" crossorigin src="/assets/index-m0-YnEn_.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-BCM4mejW.css">
+</head>
+
+<body class="bg-[#F5F5F7] dark:bg-[#1C1C1E] text-[#1C1C1E] dark:text-gray-100 transition-colors duration-300">
+  <div id="root"></div>
+</body>
+
+</html>
