@@ -8,13 +8,7 @@ from collections.abc import Generator
 from sqlalchemy import Engine
 from sqlalchemy import text
 from sqlmodel import Session, create_engine
-
-# Adiciona o diretório pai ao path para imports
-base_dir = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, base_dir)
-sys.path.insert(0, os.path.dirname(base_dir))
-
-from config import DATABASE_URL, DB_PATH
+from backend.config import DATABASE_URL, DB_PATH
 
 _engine: Engine | None = None
 
@@ -34,7 +28,7 @@ def get_engine() -> Engine:
 def init_db() -> None:
     """Cria todas as tabelas caso não existam."""
     # Importa modelos para forçar o registro no metadata do SQLModel
-    from models import (  # noqa: F401
+    from backend.models import (  # noqa: F401
         Chamada,
         Configuracao,
         HinoBase,

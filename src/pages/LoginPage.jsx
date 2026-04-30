@@ -32,6 +32,18 @@ export default function LoginPage() {
     return false
   })
 
+  // Sincroniza o tema na montagem e sempre que isDarkMode mudar
+  useEffect(() => {
+    const root = window.document.documentElement
+    if (isDarkMode) {
+      root.classList.add('dark')
+      localStorage.setItem('gestao_igreja_theme', 'dark')
+    } else {
+      root.classList.remove('dark')
+      localStorage.setItem('gestao_igreja_theme', 'light')
+    }
+  }, [isDarkMode])
+
   const login = useAuthStore((s) => s.login)
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
   const navigate = useNavigate()
@@ -603,7 +615,7 @@ export default function LoginPage() {
               className="p-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-slate-800 transition-colors text-gray-500 dark:text-slate-400"
               title="Alternar Tema"
             >
-              {isDarkMode ? <Sun size={16} /> : <Moon size={16} />}
+              {isDarkMode ? <Moon size={16} /> : <Sun size={16} />}
             </button>
             <Shield size={16} className="text-gray-400 dark:text-slate-600" />
             <Globe size={16} className="text-gray-400 dark:text-slate-600" />
