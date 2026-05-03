@@ -139,12 +139,13 @@ function HymnModal({ isOpen, onClose, onSave, editingHymn }) {
     setErrors({})
   }, [editingHymn, isOpen])
 
-  const handleSubmit = (e) => {
-    e.preventDefault()
+  const handleSave = () => {
+    console.log('HymnModal: Saving form:', form)
     const newErrors = {}
     if (!form.numero.trim()) newErrors.numero = 'Número obrigatório'
     if (!form.titulo.trim()) newErrors.titulo = 'Título obrigatório'
     if (Object.keys(newErrors).length) { setErrors(newErrors); return }
+    console.log('HymnModal: Calling onSave with:', { ...form, numero: form.numero.toUpperCase(), titulo: form.titulo.toUpperCase() }, editingHymn?.id)
     onSave({
       ...form,
       numero: form.numero.toUpperCase(),
@@ -154,7 +155,7 @@ function HymnModal({ isOpen, onClose, onSave, editingHymn }) {
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={editingHymn ? "Editar Hino" : "Cadastrar Novo Hino"} size="md">
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={(e) => { e.preventDefault(); handleSave() }} className="space-y-4">
         <div>
           <label className="label-uppercase mb-2 block">Número</label>
           <input type="text" value={form.numero} onChange={(e) => setForm(f => ({ ...f, numero: e.target.value }))} placeholder="Ex: 001" className={`input-apple uppercase ${errors.numero ? 'ring-2 ring-red-400' : ''}`} />
@@ -170,7 +171,7 @@ function HymnModal({ isOpen, onClose, onSave, editingHymn }) {
           <Select
             options={[
               { value: '', label: 'Selecione o tipo...' },
-              ...hymnTypes.map(t => ({ value: t.value, label: t.label })),
+              ...hymnTypes,
               ...(form.tonalidade && !hymnTypes.find(t => t.value === form.tonalidade) ? [{ value: form.tonalidade, label: `${form.tonalidade} (Legado)` }] : [])
             ]}
             value={form.tonalidade}
@@ -600,7 +601,7 @@ function ProgramacaoForm({ programacaoEditando, onLimparEdicao, onCancelarEdicao
                   <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-8">Nenhum hino encontrado</p>
                 ) : (
                   filteredHymns.map((hymn) => (
-                    <HymnResultItem key={hymn.id} hymn={hymn} onAdd={handleAddHymn} isAdded={todayProgram.includes(hymn.id)} onEdit={openEditHymn} />
+                    <HymnResultItem key={hymn.id} hymn={hymn} onAdd={handleAddHymn} isAdded={todayProgram.some(item => typeof item === 'object' ? item.id === hymn.id : item === hymn.id)} onEdit={openEditHymn} />
                   ))
                 )}
               </div>

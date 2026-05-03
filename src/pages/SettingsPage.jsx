@@ -551,9 +551,9 @@ export default function SettingsPage() {
             {/* ── Tabelas Auxiliares ── */}
             {activeSection === 'tabelas' && (
               <div className="space-y-4">
-                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                {/* <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
                   Personalize as opções disponíveis nos formulários do sistema. Todas as alterações são salvas automaticamente.
-                </p>
+                </p> */}
                 {sectionConfigs.map((cfg) => (
                   <AccordionItem key={cfg.listName} {...cfg} />
                 ))}
