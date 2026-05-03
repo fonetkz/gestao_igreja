@@ -171,8 +171,215 @@ function PrintSidebar({ sidebarHymns, canvasSections, onDragStart, onBack }) {
   )
 }
 function PrintToolbar() { return <div className="mb-6 h-10 bg-gray-100 dark:bg-gray-800 rounded-xl animate-pulse" /> }
-function PrintHeader() { return <div className="h-32 bg-gray-50 dark:bg-gray-800/30 rounded-xl mb-4 animate-pulse" /> }
-function PrintSection() { return <div className="h-20 bg-gray-50 dark:bg-gray-800/30 rounded-xl mb-2 animate-pulse" /> }
+function PrintHeader({ headerConfig, onChange }) {
+  return (
+    <div className="text-center pb-5 mb-6" style={{ borderBottom: '2px solid #1a2b42' }}>
+      <div className="relative w-32 h-16 mx-auto mb-3 group">
+        {headerConfig.imageUrl ? (
+          <img
+            src={headerConfig.imageUrl}
+            alt="Logo"
+            className="w-full h-full object-contain"
+            onError={e => { e.currentTarget.style.display = 'none' }}
+          />
+        ) : (
+          <div className="w-full h-full rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center">
+            <Church size={24} className="text-gray-300" />
+          </div>
+        )}
+      </div>
+
+      <div className="mb-2">
+        <input
+          type="text"
+          placeholder="URL da imagem / logo"
+          value={headerConfig.imageUrl}
+          onChange={e => onChange('imageUrl', e.target.value)}
+          className="w-full max-w-xs text-[10px] text-center text-gray-400 bg-transparent border-b border-gray-100 focus:outline-none focus:border-[#007AFF] transition-colors placeholder:text-gray-200 pb-0.5"
+        />
+      </div>
+
+      <input
+        type="text"
+        value={headerConfig.title}
+        onChange={e => onChange('title', e.target.value)}
+        placeholder="Título principal"
+        className="text-xl font-extrabold text-[#1a2b42] text-center bg-transparent w-full focus:outline-none hover:bg-gray-50 focus:bg-gray-50 rounded transition-colors px-2 py-0.5"
+        style={{ letterSpacing: '0.5px' }}
+      />
+      <input
+        type="text"
+        value={headerConfig.subtitle}
+        onChange={e => onChange('subtitle', e.target.value)}
+        placeholder="Subtítulo (tipo de reunião)"
+        className="text-xs font-semibold text-gray-500 uppercase text-center bg-transparent w-full focus:outline-none hover:bg-gray-50 focus:bg-gray-50 rounded transition-colors mt-1 px-2 py-0.5"
+        style={{ letterSpacing: '2px' }}
+      />
+      <input
+        type="text"
+        value={headerConfig.date}
+        onChange={e => onChange('date', e.target.value)}
+        placeholder="Data"
+        className="text-xs text-gray-400 text-center bg-transparent w-full focus:outline-none hover:bg-gray-50 focus:bg-gray-50 rounded transition-colors mt-0.5 px-2 py-0.5"
+      />
+      <input
+        type="text"
+        value={headerConfig.location}
+        onChange={e => onChange('location', e.target.value)}
+        placeholder="Localização"
+        className="text-xs text-gray-400 text-center bg-transparent w-full focus:outline-none hover:bg-gray-50 focus:bg-gray-50 rounded transition-colors mt-0.5 px-2 py-0.5"
+      />
+    </div>
+  )
+}
+function PrintHymnCard({ hymn, sectionId, index, onRemove, onToggleVisibility, onDragStart, onDragOver, onDragEnd }) {
+  return (
+    <div
+      draggable
+      onDragStart={e => onDragStart(e, { type: 'canvas', hymnId: hymn.id, sectionId, index })}
+      onDragOver={e => onDragOver(e, sectionId, index)}
+      onDragEnd={onDragEnd}
+      className="group flex items-start gap-2 p-3 bg-white rounded-xl border border-gray-100 hover:shadow-sm hover:border-[#007AFF]/20 transition-all cursor-grab active:cursor-grabbing select-none"
+    >
+      <GripVertical size={13} className="text-gray-300 mt-0.5 shrink-0 group-hover:text-gray-400" />
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {hymn.showNumber && (
+            <span className="text-[#007AFF] font-bold text-xs">#{hymn.numero}</span>
+          )}
+          <span className="font-semibold text-gray-900 text-xs">{hymn.titulo}</span>
+          {hymn.showType && hymn.tonalidade && (
+            <span className="text-[9px] bg-gray-100 px-1.5 py-0.5 rounded-full text-gray-500 font-bold uppercase tracking-tight">
+              {hymn.tonalidade}
+            </span>
+          )}
+        </div>
+        {hymn.showRegente && hymn.regente && (
+          <p className="text-[10px] text-[#007AFF] font-medium mt-0.5">Reg: {hymn.regente}</p>
+        )}
+      </div>
+      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+        <button
+          onClick={() => onToggleVisibility(sectionId, hymn.id, 'showRegente')}
+          title="Mostrar/ocultar regente"
+          className={`w-6 h-6 rounded-lg flex items-center justify-center transition-colors ${hymn.showRegente ? 'text-[#007AFF] bg-blue-50' : 'text-gray-300 hover:text-gray-500'}`}
+        >
+          <User size={11} />
+        </button>
+        <button
+          onClick={() => onToggleVisibility(sectionId, hymn.id, 'showNumber')}
+          title="Mostrar/ocultar número"
+          className={`w-6 h-6 rounded-lg flex items-center justify-center transition-colors ${hymn.showNumber ? 'text-[#007AFF] bg-blue-50' : 'text-gray-300 hover:text-gray-500'}`}
+        >
+          <Hash size={11} />
+        </button>
+        <button
+          onClick={() => onToggleVisibility(sectionId, hymn.id, 'showType')}
+          title="Mostrar/ocultar tipo"
+          className={`w-6 h-6 rounded-lg flex items-center justify-center transition-colors ${hymn.showType ? 'text-[#007AFF] bg-blue-50' : 'text-gray-300 hover:text-gray-500'}`}
+        >
+          <Tag size={11} />
+        </button>
+        <button
+          onClick={() => onRemove(sectionId, hymn.id)}
+          className="w-6 h-6 rounded-lg flex items-center justify-center text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors"
+        >
+          <Trash2 size={11} />
+        </button>
+      </div>
+    </div>
+  )
+}
+function PrintSection({
+  section, canvasSections, dragOver,
+  onRenameSection, onRemoveSection,
+  onDrop, onDragOver, onDragLeave,
+  onHymnRemove, onToggleVisibility,
+  onCardDragStart, onCardDragOver, onCardDragEnd
+}) {
+  const [editing, setEditing] = useState(false)
+  const [name, setName] = useState(section.name)
+  const inputRef = useRef(null)
+  const isOver = dragOver === section.id
+
+  useEffect(() => {
+    if (editing) inputRef.current?.focus()
+  }, [editing])
+
+  const commit = () => {
+    const trimmed = name.trim()
+    if (trimmed) onRenameSection(section.id, trimmed)
+    else setName(section.name)
+    setEditing(false)
+  }
+
+  return (
+    <div className="mb-3">
+      <div className="flex items-center gap-2 mb-1.5 group/header">
+        <div className="w-1 h-3.5 bg-[#007AFF]/40 rounded-full shrink-0" />
+        {editing ? (
+          <input
+            ref={inputRef}
+            value={name}
+            onChange={e => setName(e.target.value)}
+            onBlur={commit}
+            onKeyDown={e => {
+              if (e.key === 'Enter') commit()
+              if (e.key === 'Escape') { setName(section.name); setEditing(false) }
+            }}
+            className="text-[11px] font-bold uppercase tracking-widest text-gray-700 bg-transparent border-b border-[#007AFF] focus:outline-none w-40 pb-0.5"
+          />
+        ) : (
+          <button
+            onClick={() => setEditing(true)}
+            className="text-[11px] font-bold uppercase tracking-widest text-gray-600 hover:text-[#007AFF] transition-colors flex items-center gap-1.5"
+          >
+            {section.name}
+            <span className="text-[9px] normal-case tracking-normal font-normal text-gray-300 opacity-0 group-hover/header:opacity-100 transition-opacity">editar</span>
+          </button>
+        )}
+        {section.hymns.length === 0 && canvasSections.length > 1 && (
+          <button
+            onClick={() => onRemoveSection(section.id)}
+            className="ml-auto opacity-0 group-hover/header:opacity-100 w-5 h-5 rounded-lg flex items-center justify-center text-gray-300 hover:text-red-400 hover:bg-red-50 transition-all"
+          >
+            <X size={11} />
+          </button>
+        )}
+      </div>
+
+      <div
+        onDragOver={e => onDragOver(e, section.id)}
+        onDragLeave={onDragLeave}
+        onDrop={e => onDrop(e, section.id)}
+        className={`min-h-[52px] rounded-xl border-2 border-dashed transition-all flex flex-col gap-1.5 p-1.5 ${
+          isOver
+            ? 'border-[#007AFF] bg-blue-50/60'
+            : 'border-gray-100 hover:border-gray-200'
+        }`}
+      >
+        {section.hymns.length === 0 && (
+          <p className="text-[10px] text-gray-300 text-center py-2.5 pointer-events-none select-none">
+            Arraste hinos aqui
+          </p>
+        )}
+        {section.hymns.map((hymn, index) => (
+          <PrintHymnCard
+            key={`${hymn.id}-${index}`}
+            hymn={hymn}
+            sectionId={section.id}
+            index={index}
+            onRemove={onHymnRemove}
+            onToggleVisibility={onToggleVisibility}
+            onDragStart={onCardDragStart}
+            onDragOver={onCardDragOver}
+            onDragEnd={onCardDragEnd}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
 function TemplateModal() { return null }
 
 // ─── HymnPrintPage ────────────────────────────────────────────────────────────
