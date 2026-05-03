@@ -313,21 +313,21 @@ export default function MembersPage() {
             {/* Cards de Métricas */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
               {[
-                { key: 'total',         label: 'Total',        value: stats.total,           icon: <Users2 size={24} strokeWidth={2} />,    color: 'blue' },
-                { key: 'ativos',        label: 'Ativos',       value: stats.ativos,          icon: <CheckCircle size={24} strokeWidth={2} />, color: 'green' },
-                { key: 'licenca',       label: 'Licença',      value: stats.licenca,         icon: <Clock size={24} strokeWidth={2} />,     color: 'amber' },
-                { key: 'inativos',      label: 'Inativos',     value: stats.inativos,        icon: <XCircle size={24} strokeWidth={2} />,   color: 'red' },
-                { key: 'orquestra',     label: 'Orquestra',    value: stats.orquestra,       icon: <Music size={24} strokeWidth={2} />,     color: 'purple' },
-                { key: 'aniversarios',  label: 'Aniversários', value: stats.aniversariantes, icon: <Cake size={24} strokeWidth={2} />,      color: 'pink' },
+                { key: 'total', label: 'Total', value: stats.total, icon: <Users2 size={24} strokeWidth={2} />, color: 'blue' },
+                { key: 'ativos', label: 'Ativos', value: stats.ativos, icon: <CheckCircle size={24} strokeWidth={2} />, color: 'green' },
+                { key: 'licenca', label: 'Licença', value: stats.licenca, icon: <Clock size={24} strokeWidth={2} />, color: 'amber' },
+                { key: 'inativos', label: 'Inativos', value: stats.inativos, icon: <XCircle size={24} strokeWidth={2} />, color: 'red' },
+                { key: 'orquestra', label: 'Orquestra', value: stats.orquestra, icon: <Music size={24} strokeWidth={2} />, color: 'purple' },
+                { key: 'aniversarios', label: 'Aniversários', value: stats.aniversariantes, icon: <Cake size={24} strokeWidth={2} />, color: 'pink' },
               ].map(({ key, label, value, icon, color }) => {
                 const isActive = activeMetric === key
                 const colorMap = {
-                  blue:   { icon: 'bg-blue-100   dark:bg-blue-900/30   text-blue-600   dark:text-blue-400',   ring: 'ring-2 ring-blue-400   dark:ring-blue-500' },
-                  green:  { icon: 'bg-green-100  dark:bg-green-900/30  text-green-600  dark:text-green-400',  ring: 'ring-2 ring-green-400  dark:ring-green-500' },
-                  amber:  { icon: 'bg-amber-100  dark:bg-amber-900/30  text-amber-600  dark:text-amber-400',  ring: 'ring-2 ring-amber-400  dark:ring-amber-500' },
-                  red:    { icon: 'bg-red-100    dark:bg-red-900/30    text-red-600    dark:text-red-400',    ring: 'ring-2 ring-red-400    dark:ring-red-500' },
+                  blue: { icon: 'bg-blue-100   dark:bg-blue-900/30   text-blue-600   dark:text-blue-400', ring: 'ring-2 ring-blue-400   dark:ring-blue-500' },
+                  green: { icon: 'bg-green-100  dark:bg-green-900/30  text-green-600  dark:text-green-400', ring: 'ring-2 ring-green-400  dark:ring-green-500' },
+                  amber: { icon: 'bg-amber-100  dark:bg-amber-900/30  text-amber-600  dark:text-amber-400', ring: 'ring-2 ring-amber-400  dark:ring-amber-500' },
+                  red: { icon: 'bg-red-100    dark:bg-red-900/30    text-red-600    dark:text-red-400', ring: 'ring-2 ring-red-400    dark:ring-red-500' },
                   purple: { icon: 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400', ring: 'ring-2 ring-purple-400 dark:ring-purple-500' },
-                  pink:   { icon: 'bg-pink-100   dark:bg-pink-900/30   text-pink-600   dark:text-pink-400',   ring: 'ring-2 ring-pink-400   dark:ring-pink-500' },
+                  pink: { icon: 'bg-pink-100   dark:bg-pink-900/30   text-pink-600   dark:text-pink-400', ring: 'ring-2 ring-pink-400   dark:ring-pink-500' },
                 }
                 const c = colorMap[color]
                 return (
@@ -429,11 +429,8 @@ export default function MembersPage() {
               <table className="w-full">
                 <thead className="bg-gray-50 dark:bg-[#1C1C1E] border-b border-gray-100 dark:border-gray-700">
                   <tr>
-                    <th className="text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase px-4 py-3 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors select-none" onClick={() => handleSort('nome')}>
+                    <th className="text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase px-4 py-3 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors select-none w-80" onClick={() => handleSort('nome')}>
                       <div className="flex items-center gap-1">Integrante {sortConfig.key === 'nome' && (sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />)}</div>
-                    </th>
-                    <th className="text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase px-4 py-3">
-                      Contato
                     </th>
                     <th className="text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase px-4 py-3 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors select-none" onClick={() => handleSort('data_nascimento')}>
                       <div className="flex items-center gap-1">Nascimento {sortConfig.key === 'data_nascimento' && (sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />)}</div>
@@ -456,7 +453,7 @@ export default function MembersPage() {
                 <tbody className="divide-y divide-gray-50 dark:divide-gray-700/30">
                   {filteredMembers.length === 0 ? (
                     <tr>
-                      <td colSpan="8" className="px-4 py-12 text-center">
+                      <td colSpan="7" className="px-4 py-12 text-center">
                         <div className="flex flex-col items-center justify-center">
                           <Search size={40} className="text-gray-300 mb-3" />
                           <p className="text-base font-semibold text-gray-700 dark:text-gray-300">Nenhum integrante encontrado</p>
@@ -467,8 +464,18 @@ export default function MembersPage() {
                   ) : (
                     filteredMembers.map(member => (
                       <tr key={member.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30">
-                        <td className="px-4 py-3 whitespace-nowrap"><div className="flex items-center gap-3"><Avatar name={member.nome} size="sm" /><div className="flex items-center gap-1.5"><span className="font-medium text-gray-900 dark:text-white">{toTitleCase(member.nome)}</span>{isAniversarioMes(member.data_nascimento) && <Cake size={14} className="text-amber-400" title="Aniversariante do Mês" />}</div></div></td>
-                        <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">{formatarTelefone(member.telefone)}</td>
+                        <td className="px-4 py-3 w-76 max-w-0">
+                          <div className="flex items-center gap-3">
+                            <Avatar name={member.nome} size="sm" />
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <span className="font-medium text-gray-900 dark:text-white truncate" title={toTitleCase(member.nome)}>{toTitleCase(member.nome)}</span>
+                                {isAniversarioMes(member.data_nascimento) && <Cake size={13} className="text-amber-400 shrink-0" title="Aniversariante do Mês" />}
+                              </div>
+                              {member.telefone && <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{formatarTelefone(member.telefone)}</p>}
+                            </div>
+                          </div>
+                        </td>
                         <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{formatarDataNascimento(member.data_nascimento)}</td>
                         <td className="px-4 py-3">{member.secao ? <Badge variant="blue">{toTitleCase(member.secao)}</Badge> : <span className="text-gray-400">—</span>}</td>
                         <td className="px-4 py-3">
@@ -640,131 +647,172 @@ export default function MembersPage() {
         {
           activeTab === 'alertas' && (
             <>
-            <div className="bg-white dark:bg-[#2C2C2E] rounded-2xl border border-gray-100 dark:border-gray-700 p-4 shadow-sm">
-              <div className="flex items-center gap-1.5 mb-4">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Alertas de Frequência</h3>
-                <Info
-                  size={16}
-                  className="text-gray-400 cursor-help transition-colors hover:text-gray-600 dark:hover:text-gray-300"
-                  title="Membros ativos com 3 ou mais faltas não justificadas no mês selecionado."
-                />
-              </div>
-              <div className="flex flex-wrap items-end gap-4">
-                <div className="relative flex-1 min-w-[200px]">
-                  <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Buscar</label>
-                  <div className="relative">
-                    <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <div className="bg-white dark:bg-[#2C2C2E] rounded-2xl border border-gray-100 dark:border-gray-700 p-4 shadow-sm">
+                <div className="flex items-center gap-1.5 mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Alertas de Frequência</h3>
+                  <Info
+                    size={16}
+                    className="text-gray-400 cursor-help transition-colors hover:text-gray-600 dark:hover:text-gray-300"
+                    title="Membros ativos com 3 ou mais faltas não justificadas no mês selecionado."
+                  />
+                </div>
+                <div className="flex flex-wrap items-end gap-4">
+                  <div className="relative flex-1 min-w-[200px]">
+                    <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Buscar</label>
+                    <div className="relative">
+                      <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                      <input
+                        type="text"
+                        placeholder="Buscar por nome..."
+                        value={alertSearch}
+                        onChange={(e) => setAlertSearch(e.target.value)}
+                        className="input-apple pl-10 w-full"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Mês</label>
                     <input
-                      type="text"
-                      placeholder="Buscar por nome..."
-                      value={alertSearch}
-                      onChange={(e) => setAlertSearch(e.target.value)}
-                      className="input-apple pl-10 w-full"
+                      type="month"
+                      value={alertMonth}
+                      onChange={(e) => setAlertMonth(e.target.value)}
+                      className="input-apple w-auto min-w-[140px]"
                     />
                   </div>
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Mês</label>
-                  <input
-                    type="month"
-                    value={alertMonth}
-                    onChange={(e) => setAlertMonth(e.target.value)}
-                    className="input-apple w-auto min-w-[140px]"
-                  />
-                </div>
               </div>
-            </div>
 
-            <div className="bg-white dark:bg-[#2C2C2E] rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm mt-4">
-              <div className="flex border-b border-gray-100 dark:border-gray-700 px-4">
-                <button
-                  onClick={() => setAlertSubTab('pendentes')}
-                  className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors -mb-px ${alertSubTab === 'pendentes' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
-                >
-                  <div className="relative flex items-center justify-center">
-                    <BellRing size={14} />
-                    {hasPendingAlerts && <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-red-500 rounded-full" />}
-                  </div>
-                  Pendentes
-                  {pendingAlerts.length > 0 && (
-                    <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${alertSubTab === 'pendentes' ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400' : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'}`}>
-                      {pendingAlerts.length}
-                    </span>
-                  )}
-                </button>
-                <button
-                  onClick={() => setAlertSubTab('justificadas')}
-                  className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors -mb-px ${alertSubTab === 'justificadas' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
-                >
-                  <CheckCircle size={14} />
-                  Justificadas
-                  {justifiedAlerts.length > 0 && (
-                    <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${alertSubTab === 'justificadas' ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400' : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'}`}>
-                      {justifiedAlerts.length}
-                    </span>
-                  )}
-                </button>
-              </div>
-              <div className="p-4 space-y-3">
-                {alertSubTab === 'pendentes' ? (
-                  pendingAlerts.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
-                      <BellRing className="w-16 h-16 text-gray-300 mb-4" />
-                      <h4 className="text-xl font-semibold text-gray-700 dark:text-gray-300">Nenhum alerta no momento</h4>
-                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 max-w-sm">Nenhum integrante com 3+ faltas não justificadas no mês selecionado.</p>
+              <div className="bg-white dark:bg-[#2C2C2E] rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm mt-4">
+                <div className="flex border-b border-gray-100 dark:border-gray-700 px-4">
+                  <button
+                    onClick={() => setAlertSubTab('pendentes')}
+                    className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors -mb-px ${alertSubTab === 'pendentes' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
+                  >
+                    <div className="relative flex items-center justify-center">
+                      <BellRing size={14} />
+                      {hasPendingAlerts && <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-red-500 rounded-full" />}
                     </div>
-                  ) : (
-                    pendingAlerts.map(member => (
-                      <div key={member.id} className="flex items-start justify-between p-4 rounded-xl border bg-red-50 dark:bg-red-900/10 border-red-100 dark:border-red-800/30">
-                        <div className="flex items-start gap-4">
-                          <Avatar name={member.nome} size="md" />
-                          <div>
-                            <p className="font-semibold text-gray-900 dark:text-white">{member.nome}</p>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">{member.secao || member.cargo} - {member.unjustified_absences} faltas não justificadas</p>
-                          </div>
-                        </div>
-                        <button onClick={() => { setJustifyingAlert({ member, mode: 'pendentes' }); }} className="bg-white dark:bg-[#2C2C2E] text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800/50 px-4 py-2 rounded-xl text-sm font-medium hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
-                          Justificar
-                        </button>
+                    Pendentes
+                    {pendingAlerts.length > 0 && (
+                      <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${alertSubTab === 'pendentes' ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400' : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'}`}>
+                        {pendingAlerts.length}
+                      </span>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => setAlertSubTab('justificadas')}
+                    className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors -mb-px ${alertSubTab === 'justificadas' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
+                  >
+                    <CheckCircle size={14} />
+                    Justificadas
+                    {justifiedAlerts.length > 0 && (
+                      <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${alertSubTab === 'justificadas' ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400' : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'}`}>
+                        {justifiedAlerts.length}
+                      </span>
+                    )}
+                  </button>
+                </div>
+                {(() => {
+                  const fmtCallDate = (d) => d ? (d.includes('-') ? d.split('-').reverse().join('/') : d) : ''
+                  if (alertSubTab === 'pendentes') {
+                    if (pendingAlerts.length === 0) return (
+                      <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
+                        <BellRing className="w-16 h-16 text-gray-300 mb-4" />
+                        <h4 className="text-xl font-semibold text-gray-700 dark:text-gray-300">Nenhum alerta no momento</h4>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 max-w-sm">Nenhum integrante com 3+ faltas não justificadas no mês selecionado.</p>
                       </div>
-                    ))
-                  )
-                ) : (
-                  justifiedAlerts.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
-                      <CheckCircle className="w-16 h-16 text-gray-300 mb-4" />
-                      <h4 className="text-xl font-semibold text-gray-700 dark:text-gray-300">Nenhuma justificativa</h4>
-                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 max-w-sm">Nenhuma falta foi justificada no mês selecionado.</p>
-                    </div>
-                  ) : (
-                    justifiedAlerts.map(member => (
-                      <div key={member.id} className="flex items-start justify-between p-4 rounded-xl border bg-green-50 dark:bg-green-900/10 border-green-100 dark:border-green-800/30">
-                        <div className="flex items-start gap-4">
-                          <Avatar name={member.nome} size="md" />
-                          <div>
-                            <p className="font-semibold text-gray-900 dark:text-white">{member.nome}</p>
-                            <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">{member.secao || member.cargo} - {member.justified_absences} {member.justified_absences === 1 ? 'falta justificada' : 'faltas justificadas'}</p>
-                            <div className="space-y-1.5">
-                              {member.justified_list.map((falta, i) => (
-                                <div key={i} className="text-xs text-gray-700 dark:text-gray-300 bg-white/60 dark:bg-[#3A3A3C]/60 px-2 py-1.5 rounded-lg border border-green-200/60 dark:border-green-700/30">
-                                  <span className="font-semibold text-green-700 mr-1">
-                                    {falta.call.data ? (falta.call.data.includes('-') ? falta.call.data.split('-').reverse().join('/') : falta.call.data) : ''}:
-                                  </span>
-                                  {falta.justificativa}
+                    )
+                    const sorted = [...pendingAlerts].sort((a, b) => b.unjustified_absences - a.unjustified_absences)
+                    return (
+                      <div className="divide-y divide-gray-100 dark:divide-gray-700">
+                        {sorted.map(member => (
+                          <div key={member.id} className="flex items-center gap-4 px-4 py-4 hover:bg-gray-50 dark:hover:bg-[#3A3A3C] transition-colors">
+                            <div className="relative shrink-0">
+                              <Avatar name={member.nome} size="md" />
+                              <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center leading-none">
+                                {member.unjustified_absences}
+                              </span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-semibold text-gray-900 dark:text-white leading-tight">{member.nome}</p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{member.secao || member.cargo || '—'}</p>
+                              {member.unjustified_list.length > 0 && (
+                                <div className="flex flex-wrap gap-1 mt-2">
+                                  {member.unjustified_list.map((falta, i) => (
+                                    <span key={i} className="text-[11px] px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-full font-medium">
+                                      {fmtCallDate(falta.call.data)}{falta.call.contexto ? ` · ${falta.call.contexto}` : ''}
+                                    </span>
+                                  ))}
                                 </div>
-                              ))}
+                              )}
+                            </div>
+                            <div className="flex items-center gap-3 shrink-0">
+                              <div className="text-right hidden sm:block">
+                                <p className="text-2xl font-bold text-red-500 leading-none">{member.unjustified_absences}</p>
+                                <p className="text-[10px] text-gray-400 mt-0.5 uppercase tracking-wide">faltas</p>
+                              </div>
+                              <button
+                                onClick={() => setJustifyingAlert({ member, mode: 'pendentes' })}
+                                className="px-3 py-2 text-sm font-medium bg-red-500 hover:bg-red-600 text-white rounded-xl transition-colors whitespace-nowrap"
+                              >
+                                Justificar
+                              </button>
                             </div>
                           </div>
-                        </div>
-                        <button onClick={() => { setJustifyingAlert({ member, mode: 'justificadas' }); }} className="bg-white dark:bg-[#2C2C2E] text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600 px-4 py-2 rounded-xl text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700">
-                          Editar
-                        </button>
+                        ))}
                       </div>
-                    ))
-                  )
-                )}
+                    )
+                  } else {
+                    if (justifiedAlerts.length === 0) return (
+                      <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
+                        <CheckCircle className="w-16 h-16 text-gray-300 mb-4" />
+                        <h4 className="text-xl font-semibold text-gray-700 dark:text-gray-300">Nenhuma justificativa</h4>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 max-w-sm">Nenhuma falta foi justificada no mês selecionado.</p>
+                      </div>
+                    )
+                    return (
+                      <div className="divide-y divide-gray-100 dark:divide-gray-700">
+                        {justifiedAlerts.map(member => (
+                          <div key={member.id} className="px-4 py-4 hover:bg-gray-50 dark:hover:bg-[#3A3A3C] transition-colors">
+                            <div className="flex items-start gap-4">
+                              <div className="relative shrink-0">
+                                <Avatar name={member.nome} size="md" />
+                                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-green-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center leading-none">
+                                  {member.justified_absences}
+                                </span>
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-start justify-between gap-3">
+                                  <div>
+                                    <p className="font-semibold text-gray-900 dark:text-white leading-tight">{member.nome}</p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{member.secao || member.cargo || '—'}</p>
+                                  </div>
+                                  <button
+                                    onClick={() => setJustifyingAlert({ member, mode: 'justificadas' })}
+                                    className="px-3 py-1.5 text-xs font-medium border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors whitespace-nowrap shrink-0"
+                                  >
+                                    Editar
+                                  </button>
+                                </div>
+                                <div className="space-y-2 mt-2.5">
+                                  {member.justified_list.map((falta, i) => (
+                                    <div key={i} className="flex items-start gap-2">
+                                      <span className="text-[11px] px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full font-medium shrink-0 mt-0.5">
+                                        {fmtCallDate(falta.call.data)}
+                                      </span>
+                                      <span className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">{falta.justificativa}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )
+                  }
+                })()}
               </div>
-            </div>
             </>
           )
         }
