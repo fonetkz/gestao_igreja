@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react'
-import { Plus, Search, Music, Trash2, Save, Check, BookOpen, ChevronUp, ChevronDown, GripVertical, Clock, Calendar, Loader2, Edit2, AlertTriangle, X } from 'lucide-react'
+import { Plus, Search, Music, Trash2, Save, Check, BookOpen, ChevronUp, ChevronDown, GripVertical, Clock, Calendar, Loader2, Edit2, AlertTriangle, X, Printer } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import Topbar from '../components/layout/Topbar'
 import Modal from '../components/ui/Modal'
 import Select from '../components/ui/Select'
@@ -189,6 +190,7 @@ function HymnModal({ isOpen, onClose, onSave, editingHymn }) {
 
 // ─── HistoricoTab ─────────────────────────────────────────────────────────────
 function HistoricoTab({ onEditarProgramacao, onExcluirProgramacao }) {
+  const navigate = useNavigate()
   const programHistory = useHymnsStore((s) => s.programHistory)
   const fetchProgramHistory = useHymnsStore((s) => s.fetchProgramHistory)
   const getHymnById = useHymnsStore((s) => s.getHymnById)
@@ -414,6 +416,17 @@ function HistoricoTab({ onEditarProgramacao, onExcluirProgramacao }) {
                     <button onClick={() => handleEditar(prog)} className="w-full sm:flex-1 py-2 text-sm font-medium text-[#007AFF] border border-dashed border-[#007AFF]/30 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors flex items-center justify-center gap-2">
                       <Edit2 size={16} /> Editar
                     </button>
+                    <button
+                      onClick={() => navigate('/impressao', {
+                        state: {
+                          hymns: Array.isArray(prog.hinos_json) ? prog.hinos_json : [],
+                          meta: { data: prog.data, tipo: prog.tipo_culto || prog.contexto, responsavel: prog.responsavel }
+                        }
+                      })}
+                      className="w-full sm:flex-1 py-2 text-sm font-medium text-purple-600 dark:text-purple-400 border border-dashed border-purple-300/30 rounded-xl hover:bg-purple-50 dark:hover:bg-purple-900/10 transition-colors flex items-center justify-center gap-2"
+                    >
+                      <Printer size={16} /> Imprimir
+                    </button>
                     <button onClick={() => handleExcluir(prog.id)} className="w-full sm:flex-1 py-2 text-sm font-medium text-red-500 border border-dashed border-red-300/30 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors flex items-center justify-center gap-2">
                       <Trash2 size={16} /> Excluir
                     </button>
@@ -430,6 +443,7 @@ function HistoricoTab({ onEditarProgramacao, onExcluirProgramacao }) {
 
 // ─── ProgramacaoForm ─────────────────────────────────────────────────────────
 function ProgramacaoForm({ programacaoEditando, onLimparEdicao, onCancelarEdicao }) {
+  const navigate = useNavigate()
   const hymns = useHymnsStore((s) => s.hymns)
   const todayProgram = useHymnsStore((s) => s.todayProgram)
   const addToTodayProgram = useHymnsStore((s) => s.addToTodayProgram)
@@ -686,6 +700,18 @@ function ProgramacaoForm({ programacaoEditando, onLimparEdicao, onCancelarEdicao
                       Cancelar Edição
                     </button>
                   )}
+                  <button
+                    onClick={() => navigate('/impressao', {
+                      state: {
+                        hymns: todayProgram,
+                        meta: { data: serviceDate, tipo: serviceType, responsavel }
+                      }
+                    })}
+                    className="btn-apple-secondary flex-1 py-3 flex items-center justify-center gap-2"
+                  >
+                    <Printer size={18} />
+                    Preparar Impressão
+                  </button>
                   <button onClick={handleConfirm} disabled={saving || saved} className="btn-apple-primary flex-1 py-3 flex items-center justify-center gap-2">
                     {saving ? <><Loader2 size={18} className="animate-spin" /> Salvando...</> : saved ? <><Check size={18} /> Salvo!</> : <><Save size={18} /> {programacaoEditando ? 'Salvar Alterações' : 'Salvar Programação'}</>}
                   </button>
