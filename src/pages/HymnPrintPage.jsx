@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import {
   ArrowLeft, GripVertical, Trash2, Printer, Save,
-  ChevronDown, Plus, Church, X, Check, Hash, Tag, User
+  ChevronDown, Plus, Church, X, Check, Hash, Tag, User, LayoutTemplate
 } from 'lucide-react'
 import useHymnsStore from '../store/hymnsStore'
 import useAuthStore from '../store/authStore'
@@ -170,7 +170,68 @@ function PrintSidebar({ sidebarHymns, canvasSections, onDragStart, onBack }) {
     </aside>
   )
 }
-function PrintToolbar() { return <div className="mb-6 h-10 bg-gray-100 dark:bg-gray-800 rounded-xl animate-pulse" /> }
+function PrintToolbar({ templates, activeTemplateId, onSelectTemplate, onSaveTemplate, onPrint }) {
+  const [dropdownOpen, setDropdownOpen] = useState(false)
+  const activeTemplate = templates.find(t => t.id === activeTemplateId)
+
+  return (
+    <div className="flex items-center gap-3 mb-6">
+      {/* Templates dropdown */}
+      <div className="relative">
+        <button
+          onClick={() => setDropdownOpen(o => !o)}
+          className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-[#2C2C2E] border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:border-gray-300 dark:hover:border-gray-600 transition-all shadow-sm"
+        >
+          <LayoutTemplate size={14} className="text-gray-400" />
+          <span>{activeTemplate?.name || 'Template'}</span>
+          <ChevronDown size={13} className={`text-gray-400 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} />
+        </button>
+        {dropdownOpen && (
+          <>
+            <div className="fixed inset-0 z-40" onClick={() => setDropdownOpen(false)} />
+            <div className="absolute top-full left-0 mt-1.5 w-52 bg-white dark:bg-[#2C2C2E] rounded-xl border border-gray-200 dark:border-gray-700 shadow-xl z-50 overflow-hidden">
+              <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-700">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">Templates</p>
+              </div>
+              {templates.map(t => (
+                <button
+                  key={t.id}
+                  onClick={() => { onSelectTemplate(t); setDropdownOpen(false) }}
+                  className={`w-full text-left px-4 py-2.5 text-sm transition-colors flex items-center justify-between ${
+                    t.id === activeTemplateId
+                      ? 'bg-blue-50 dark:bg-blue-900/20 text-[#007AFF] font-medium'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                  }`}
+                >
+                  {t.name}
+                  {t.id === activeTemplateId && <Check size={13} />}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+
+      <button
+        onClick={onSaveTemplate}
+        className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 bg-white dark:bg-[#2C2C2E] border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all shadow-sm"
+      >
+        <Save size={14} />
+        Salvar Template
+      </button>
+
+      <div className="flex-1" />
+
+      <button
+        onClick={onPrint}
+        className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold bg-[#007AFF] text-white rounded-xl hover:bg-[#0062CC] active:scale-95 transition-all shadow-md shadow-[#007AFF]/25"
+      >
+        <Printer size={15} />
+        Imprimir
+      </button>
+    </div>
+  )
+}
 function PrintHeader({ headerConfig, onChange }) {
   return (
     <div className="text-center pb-5 mb-6" style={{ borderBottom: '2px solid #1a2b42' }}>
@@ -380,7 +441,52 @@ function PrintSection({
     </div>
   )
 }
-function TemplateModal() { return null }
+function TemplateModal({ isOpen, onClose, onSave }) {
+  const [name, setName] = useState('')
+  if (!isOpen) return null
+
+  const handleSave = () => {
+    if (!name.trim()) return
+    onSave(name.trim())
+    setName('')
+  }
+
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white dark:bg-[#2C2C2E] rounded-2xl shadow-2xl w-full max-w-sm p-6 animate-slide-up">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-base font-semibold text-gray-900 dark:text-white">Salvar como Template</h2>
+          <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
+            <X size={16} />
+          </button>
+        </div>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+          Salva a estrutura de seções e cabeçalho (sem hinos) para reutilizar depois.
+        </p>
+        <input
+          autoFocus
+          type="text"
+          value={name}
+          onChange={e => setName(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') handleSave() }}
+          placeholder="Ex: Reunião Normal, Reunião de Oração..."
+          className="input-apple w-full mb-4"
+        />
+        <div className="flex gap-3">
+          <button onClick={onClose} className="btn-apple-secondary flex-1">Cancelar</button>
+          <button
+            onClick={handleSave}
+            disabled={!name.trim()}
+            className="btn-apple-primary flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Salvar
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 // ─── HymnPrintPage ────────────────────────────────────────────────────────────
 
