@@ -103,7 +103,70 @@ function buildPrintHTML(canvasSections, headerConfig) {
 
 // ─── Placeholder para os sub-componentes (Tasks 4-7) ─────────────────────────
 
-function PrintSidebar() { return <aside className="w-80 shrink-0 fixed left-0 top-16 bottom-0 bg-[#F5F5F7] dark:bg-[#1C1C1E] border-r border-gray-200 dark:border-gray-700 z-30 p-4"><p className="text-xs text-gray-400">Sidebar</p></aside> }
+function PrintSidebar({ sidebarHymns, canvasSections, onDragStart, onBack }) {
+  const hymnIdsInCanvas = canvasSections.flatMap(s => s.hymns.map(h => h.id))
+
+  return (
+    <aside className="w-80 shrink-0 fixed left-0 top-16 bottom-0 flex flex-col bg-[#F5F5F7] dark:bg-[#1C1C1E] border-r border-gray-200/80 dark:border-gray-700/80 z-30">
+      <div className="px-4 pt-4 pb-3 border-b border-gray-200 dark:border-gray-700">
+        <button
+          onClick={onBack}
+          className="flex items-center gap-1.5 text-[#007AFF] text-sm font-medium mb-3 hover:opacity-75 transition-opacity"
+        >
+          <ArrowLeft size={16} />
+          Voltar
+        </button>
+        <h2 className="font-semibold text-gray-900 dark:text-white text-sm">Hinos da Programação</h2>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Arraste para as seções do canvas</p>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-3 space-y-1.5">
+        {sidebarHymns.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-12 gap-3">
+            <div className="w-12 h-12 rounded-2xl bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+              <Church size={24} className="text-gray-300 dark:text-gray-500" />
+            </div>
+            <p className="text-xs text-gray-400 dark:text-gray-500 text-center">
+              Nenhum hino na programação.
+              <br />Volte e adicione hinos primeiro.
+            </p>
+          </div>
+        )}
+        {sidebarHymns.map(hymn => {
+          const inCanvas = hymnIdsInCanvas.includes(hymn.id)
+          return (
+            <div
+              key={hymn.id}
+              draggable
+              onDragStart={e => onDragStart(e, { type: 'sidebar', hymnId: hymn.id })}
+              className={`group flex items-center gap-2.5 p-3 bg-white dark:bg-[#2C2C2E] rounded-xl border border-gray-100 dark:border-gray-700 cursor-grab active:cursor-grabbing hover:shadow-md hover:border-[#007AFF]/30 transition-all select-none ${inCanvas ? 'opacity-50' : ''}`}
+            >
+              <GripVertical size={14} className="text-gray-300 dark:text-gray-600 shrink-0 group-hover:text-gray-400" />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-gray-900 dark:text-white truncate">
+                  <span className="text-[#007AFF]">#{hymn.numero}</span>
+                  {' '}{hymn.titulo}
+                </p>
+                {hymn.tonalidade && (
+                  <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">{hymn.tonalidade}</p>
+                )}
+              </div>
+              {inCanvas && (
+                <Check size={12} className="text-[#007AFF] shrink-0" />
+              )}
+            </div>
+          )
+        })}
+      </div>
+
+      <div className="p-3 border-t border-gray-200 dark:border-gray-700">
+        <p className="text-[10px] text-gray-400 dark:text-gray-500 text-center">
+          {sidebarHymns.length} hino{sidebarHymns.length !== 1 ? 's' : ''} disponíve{sidebarHymns.length !== 1 ? 'is' : 'l'}
+        </p>
+      </div>
+    </aside>
+  )
+}
 function PrintToolbar() { return <div className="mb-6 h-10 bg-gray-100 dark:bg-gray-800 rounded-xl animate-pulse" /> }
 function PrintHeader() { return <div className="h-32 bg-gray-50 dark:bg-gray-800/30 rounded-xl mb-4 animate-pulse" /> }
 function PrintSection() { return <div className="h-20 bg-gray-50 dark:bg-gray-800/30 rounded-xl mb-2 animate-pulse" /> }
