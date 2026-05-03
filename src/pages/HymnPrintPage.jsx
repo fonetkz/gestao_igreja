@@ -204,7 +204,7 @@ function PrintHeader({ headerConfig, onChange }) {
         value={headerConfig.title}
         onChange={e => onChange('title', e.target.value)}
         placeholder="Título principal"
-        className="text-xl font-extrabold text-[#1a2b42] text-center bg-transparent w-full focus:outline-none hover:bg-gray-50 focus:bg-gray-50 rounded transition-colors px-2 py-0.5"
+        className="text-xl font-extrabold text-[#1a2b42] text-center bg-transparent w-full focus:outline-none focus:ring-1 focus:ring-[#007AFF]/20 hover:bg-gray-50 focus:bg-gray-50 rounded transition-colors px-2 py-0.5"
         style={{ letterSpacing: '0.5px' }}
       />
       <input
@@ -212,7 +212,7 @@ function PrintHeader({ headerConfig, onChange }) {
         value={headerConfig.subtitle}
         onChange={e => onChange('subtitle', e.target.value)}
         placeholder="Subtítulo (tipo de reunião)"
-        className="text-xs font-semibold text-gray-500 uppercase text-center bg-transparent w-full focus:outline-none hover:bg-gray-50 focus:bg-gray-50 rounded transition-colors mt-1 px-2 py-0.5"
+        className="text-xs font-semibold text-gray-500 uppercase text-center bg-transparent w-full focus:outline-none focus:ring-1 focus:ring-[#007AFF]/20 hover:bg-gray-50 focus:bg-gray-50 rounded transition-colors mt-1 px-2 py-0.5"
         style={{ letterSpacing: '2px' }}
       />
       <input
@@ -220,14 +220,14 @@ function PrintHeader({ headerConfig, onChange }) {
         value={headerConfig.date}
         onChange={e => onChange('date', e.target.value)}
         placeholder="Data"
-        className="text-xs text-gray-400 text-center bg-transparent w-full focus:outline-none hover:bg-gray-50 focus:bg-gray-50 rounded transition-colors mt-0.5 px-2 py-0.5"
+        className="text-xs text-gray-400 text-center bg-transparent w-full focus:outline-none focus:ring-1 focus:ring-[#007AFF]/20 hover:bg-gray-50 focus:bg-gray-50 rounded transition-colors mt-0.5 px-2 py-0.5"
       />
       <input
         type="text"
         value={headerConfig.location}
         onChange={e => onChange('location', e.target.value)}
         placeholder="Localização"
-        className="text-xs text-gray-400 text-center bg-transparent w-full focus:outline-none hover:bg-gray-50 focus:bg-gray-50 rounded transition-colors mt-0.5 px-2 py-0.5"
+        className="text-xs text-gray-400 text-center bg-transparent w-full focus:outline-none focus:ring-1 focus:ring-[#007AFF]/20 hover:bg-gray-50 focus:bg-gray-50 rounded transition-colors mt-0.5 px-2 py-0.5"
       />
     </div>
   )
