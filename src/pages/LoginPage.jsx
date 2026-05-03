@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowRight, Shield, Globe, Sun, Moon } from 'lucide-react'
+import { ArrowRight, Shield, Globe, Sun, Moon, Eye, EyeOff } from 'lucide-react'
 import useAuthStore from '../store/authStore'
 import api from '../services/api'
 
@@ -18,6 +18,9 @@ export default function LoginPage() {
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [rememberMe, setRememberMe] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [showNewPassword, setShowNewPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isDarkMode, setIsDarkMode] = useState(() => {
     try {
       if (typeof window !== 'undefined') {
@@ -61,6 +64,7 @@ export default function LoginPage() {
         const parsed = JSON.parse(data.valor_json || '{}')
         if (parsed && parsed.email) {
           setEmail(parsed.email)
+          if (parsed.password) setPassword(parsed.password)
           setRememberMe(true)
         }
       } catch (err) {
@@ -69,17 +73,6 @@ export default function LoginPage() {
     }
     fetchRememberedEmail()
   }, [])
-
-  useEffect(() => {
-    const root = window.document.documentElement
-    if (isDarkMode) {
-      root.classList.add('dark')
-      localStorage.setItem('gestao_igreja_theme', 'dark')
-    } else {
-      root.classList.remove('dark')
-      localStorage.setItem('gestao_igreja_theme', 'light')
-    }
-  }, [isDarkMode])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -100,7 +93,10 @@ export default function LoginPage() {
     if (result.success) {
       try {
         await api.put('/api/config/remembered_email', {
-          valor: { email: rememberMe ? email : '' }
+          valor: {
+            email: rememberMe ? email : '',
+            password: rememberMe ? password : ''
+          }
         })
       } catch (err) {
         console.error('Erro ao salvar preferência de e-mail no banco', err)
@@ -352,31 +348,49 @@ export default function LoginPage() {
                         <label className="label-uppercase" htmlFor="new-password">
                           Nova Senha
                         </label>
-                        <input
-                          id="new-password"
-                          type="password"
-                          value={newPassword}
-                          onChange={(e) => setNewPassword(e.target.value)}
-                          placeholder="••••••••"
-                          className="input-base mt-1 dark:bg-slate-900 dark:border-slate-700 dark:text-white"
-                          autoComplete="new-password"
-                          disabled={loading}
-                        />
+                        <div className="relative">
+                          <input
+                            id="new-password"
+                            type={showNewPassword ? 'text' : 'password'}
+                            value={newPassword}
+                            onChange={(e) => setNewPassword(e.target.value)}
+                            placeholder="••••••••"
+                            className="input-base mt-1 pr-10 dark:bg-slate-900 dark:border-slate-700 dark:text-white w-full"
+                            autoComplete="new-password"
+                            disabled={loading}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowNewPassword(!showNewPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 mt-0.5 text-gray-400 hover:text-gray-600 dark:hover:text-slate-300 transition-colors"
+                          >
+                            {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                          </button>
+                        </div>
                       </div>
                       <div>
                         <label className="label-uppercase" htmlFor="confirm-password">
                           Confirmar Nova Senha
                         </label>
-                        <input
-                          id="confirm-password"
-                          type="password"
-                          value={confirmPassword}
-                          onChange={(e) => setConfirmPassword(e.target.value)}
-                          placeholder="••••••••"
-                          className="input-base mt-1 dark:bg-slate-900 dark:border-slate-700 dark:text-white"
-                          autoComplete="new-password"
-                          disabled={loading}
-                        />
+                        <div className="relative">
+                          <input
+                            id="confirm-password"
+                            type={showConfirmPassword ? 'text' : 'password'}
+                            value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)}
+                            placeholder="••••••••"
+                            className="input-base mt-1 pr-10 dark:bg-slate-900 dark:border-slate-700 dark:text-white w-full"
+                            autoComplete="new-password"
+                            disabled={loading}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 mt-0.5 text-gray-400 hover:text-gray-600 dark:hover:text-slate-300 transition-colors"
+                          >
+                            {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                          </button>
+                        </div>
                       </div>
 
                       {/* Error & Message */}
@@ -504,46 +518,59 @@ export default function LoginPage() {
                       placeholder="admin@igreja.com"
                       className="input-base mt-1 dark:bg-slate-900 dark:border-slate-700 dark:text-white"
                       autoComplete="email"
+                      disabled={loading}
                     />
                   </div>
 
                   {/* Password */}
                   <div>
-                    <div className="flex items-center justify-between">
-                      <label className="label-uppercase" htmlFor="login-password">
-                        Senha
-                      </label>
+                    <label className="label-uppercase" htmlFor="login-password">
+                      Senha
+                    </label>
+                    <div className="relative">
+                      <input
+                        id="login-password"
+                        type={showPassword ? 'text' : 'password'}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="••••••••"
+                        className="input-base mt-1 pr-10 dark:bg-slate-900 dark:border-slate-700 dark:text-white w-full"
+                        autoComplete="current-password"
+                        disabled={loading}
+                      />
                       <button
                         type="button"
-                        onClick={() => {
-                          setIsForgotPasswordMode(true)
-                          setError('')
-                          setMessage('')
-                        }}
-                        className="text-[10px] font-bold uppercase tracking-wider text-[#007AFF] hover:text-[#0062CC] transition-colors"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 mt-0.5 text-gray-400 hover:text-gray-600 dark:hover:text-slate-300 transition-colors"
+                        title={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                        disabled={loading}
                       >
-                        Esqueceu?
+                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                       </button>
                     </div>
-                    <input
-                      id="login-password"
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="••••••••"
-                      className="input-base mt-1 dark:bg-slate-900 dark:border-slate-700 dark:text-white"
-                      autoComplete="current-password"
-                    />
-                    <div className="mt-3 flex items-center">
+                    <div className="mt-3 flex items-center justify-between">
                       <label className="flex items-center gap-2 cursor-pointer group">
                         <input
                           type="checkbox"
                           checked={rememberMe}
                           onChange={(e) => setRememberMe(e.target.checked)}
-                          className="w-4 h-4 rounded border-gray-300 dark:border-slate-600 dark:bg-slate-900 text-primary focus:ring-primary transition-colors cursor-pointer"
+                          className="w-4 h-4 rounded border-gray-300 dark:border-slate-600 dark:bg-slate-900 text-primary focus:ring-primary transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                          disabled={loading}
                         />
-                        <span className="text-sm text-gray-500 dark:text-slate-400 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">Lembrar meu e-mail</span>
+                        <span className="text-sm text-gray-500 dark:text-slate-400 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">Lembrar meus dados</span>
                       </label>
+                      <button
+                        type="button"
+                        disabled={loading}
+                        onClick={() => {
+                          setIsForgotPasswordMode(true)
+                          setError('')
+                          setMessage('')
+                        }}
+                        className="text-[10px] font-bold uppercase tracking-wider text-[#007AFF] hover:text-[#0062CC] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Esqueceu?
+                      </button>
                     </div>
                   </div>
 

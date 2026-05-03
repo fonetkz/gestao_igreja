@@ -567,7 +567,7 @@ def esqueci_senha(
     if reset_cfg:
         reset_cfg.valor_json = json.dumps(reset_data)
     else:
-        reset_cfg = Configuracao(key="reset_token_data", value_json=json.dumps(reset_data))
+        reset_cfg = Configuracao(key="reset_token_data", valor_json=json.dumps(reset_data))
         
     session.add(reset_cfg)
     session.commit()

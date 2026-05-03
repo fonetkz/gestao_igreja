@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Search, Edit2, Plus, ClipboardList, History, Bell, Users2, MessageSquare, Check, X, Cake, CheckCircle, BellRing, Clock, XCircle, Music, ChevronUp, ChevronDown, Trash2 } from 'lucide-react'
+import { Search, Edit2, Plus, ClipboardList, History, Bell, Users2, MessageSquare, Check, X, Cake, CheckCircle, BellRing, Clock, XCircle, Music, ChevronUp, ChevronDown, Trash2, Info } from 'lucide-react'
 import Topbar from '../components/layout/Topbar'
 import Select from '../components/ui/Select'
 import useMembersStore from '../store/membersStore'
@@ -196,9 +196,9 @@ export default function MembersPage() {
     const justified = absences.filter(a => a.justificativa && a.justificativa.trim() !== '')
     return { ...m, unjustified_absences: unjustified.length, justified_absences: justified.length, all_absences: absences, unjustified_list: unjustified, justified_list: justified }
   })
-  const pendingAlerts = membersWithAbsencesData.filter(m => m.unjustified_absences >= 2 && (!alertSearch || m.nome.toLowerCase().includes(alertSearch.toLowerCase())))
+  const pendingAlerts = membersWithAbsencesData.filter(m => m.unjustified_absences >= 3 && (!alertSearch || m.nome.toLowerCase().includes(alertSearch.toLowerCase())))
   const justifiedAlerts = membersWithAbsencesData.filter(m => m.justified_absences > 0 && (!alertSearch || m.nome.toLowerCase().includes(alertSearch.toLowerCase())))
-  const hasPendingAlerts = membersWithAbsencesData.some(m => m.unjustified_absences >= 2)
+  const hasPendingAlerts = membersWithAbsencesData.some(m => m.unjustified_absences >= 3)
 
   const handleSaveEdicaoChamada = async (chamadaId, novosRegistros, novoContexto) => {
     try {
@@ -279,7 +279,11 @@ export default function MembersPage() {
           <button onClick={() => handleTabChange('historico')} className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'historico' ? 'bg-white dark:bg-[#2C2C2E] text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}>
             <History size={16} className="inline mr-2" />Histórico
           </button>
-          <button onClick={() => handleTabChange('alertas')} className={`flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'alertas' ? 'bg-white dark:bg-[#2C2C2E] text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}>
+          <button
+            onClick={() => handleTabChange('alertas')}
+            className={`flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'alertas' ? 'bg-white dark:bg-[#2C2C2E] text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
+            title="Membros ativos com 3 ou mais faltas não justificadas no mês selecionado."
+          >
             <div className="relative flex items-center justify-center mr-2">
               <Bell size={16} />
               {hasPendingAlerts && (
@@ -457,37 +461,46 @@ export default function MembersPage() {
         {activeTab === 'chamada' && <ChamadaTab members={storeMembers.filter(m => m.status === 'Ativo')} />}
 
         {activeTab === 'historico' && (
-          <div className="bg-white dark:bg-[#2C2C2E] rounded-2xl border border-gray-100 dark:border-gray-700 p-6 shadow-sm">
-            <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Histórico de Chamadas</h3>
-              <div className="flex flex-wrap items-center gap-3">
-                <div className="relative">
-                  <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder="Buscar por nome..."
-                    value={historicoNameFilter}
-                    onChange={(e) => setHistoricoNameFilter(e.target.value)}
-                    className="input-apple pl-10 w-80"
+          <>
+            <div className="bg-white dark:bg-[#2C2C2E] rounded-2xl border border-gray-100 dark:border-gray-700 p-4 shadow-sm">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Histórico de Chamadas</h3>
+              <div className="flex flex-wrap items-end gap-4">
+                <div className="relative flex-1 min-w-[200px]">
+                  <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Buscar</label>
+                  <div className="relative">
+                    <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input
+                      type="text"
+                      placeholder="Buscar por nome..."
+                      value={historicoNameFilter}
+                      onChange={(e) => setHistoricoNameFilter(e.target.value)}
+                      className="input-apple pl-10 w-full"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Contexto</label>
+                  <Select
+                    options={[{ value: '', label: 'Todos os contextos' }, ...attendanceContexts.map(ctx => ({ value: ctx.label, label: ctx.label }))]}
+                    value={historicoFilter}
+                    onChange={(val) => setHistoricoFilter(val)}
+                    size="sm"
                   />
                 </div>
-                <Select
-                  options={[{ value: '', label: 'Todos os contextos' }, ...attendanceContexts.map(ctx => ({ value: ctx.label, label: ctx.label }))]}
-                  value={historicoFilter}
-                  onChange={(val) => setHistoricoFilter(val)}
-                  size="sm"
-                />
-                <input
-                  type="month"
-                  value={historicoDateFilter}
-                  onChange={(e) => setHistoricoDateFilter(e.target.value)}
-                  className="input-apple w-auto min-w-[140px]"
-                />
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Mês</label>
+                  <input
+                    type="month"
+                    value={historicoDateFilter}
+                    onChange={(e) => setHistoricoDateFilter(e.target.value)}
+                    className="input-apple w-auto min-w-[140px]"
+                  />
+                </div>
               </div>
             </div>
-            <div className="space-y-3">
-              {storeAttendance
-                .filter(item => {
+            <div className="bg-white dark:bg-[#2C2C2E] rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden mt-4">
+              {(() => {
+                const filtered = storeAttendance.filter(item => {
                   if (historicoFilter && !item.contexto?.toLowerCase().includes(historicoFilter.toLowerCase())) return false
                   if (historicoDateFilter) {
                     const itemDate = item.data ? item.data.split('T')[0] : item.data
@@ -510,176 +523,194 @@ export default function MembersPage() {
                   }
                   return true
                 })
-                .length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <History size={40} className="text-gray-300 mb-3" />
-                  <p className="text-base font-semibold text-gray-700 dark:text-gray-300">Nenhum histórico encontrado</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">As chamadas salvas aparecerão aqui.</p>
-                </div>
-              ) : (
-                storeAttendance
-                  .filter(item => {
-                    if (historicoFilter && !item.contexto?.toLowerCase().includes(historicoFilter.toLowerCase())) return false
-                    if (historicoDateFilter) {
-                      const itemDate = item.data ? item.data.split('T')[0] : item.data
-                      if (itemDate !== historicoDateFilter) return false
-                    }
-                    if (historicoNameFilter) {
-                      const registros = item.registros_json || []
-                      const hasName = registros.some(r => {
-                        const member = storeMembers.find(m => m.id === r.membro_id)
-                        return member?.nome?.toLowerCase().includes(historicoNameFilter.toLowerCase())
-                      })
-                      if (!hasName) return false
-                    }
-                    return true
-                  })
-                  .map(item => {
-                    const registros = item.registros_json || []
-                    const presentes = registros.filter(r => r.presente).length
-                    const ausentes = registros.filter(r => !r.presente).length
 
-                    let dataFormatada = '—'
-                    if (item.data) {
-                      const dataStr = item.data.includes('/') ? item.data.split('/').reverse().join('-') : item.data
-                      const dateObj = new Date(`${dataStr}T12:00:00`)
-                      if (!isNaN(dateObj.getTime())) {
-                        const rawDate = dateObj.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
-                        dataFormatada = rawDate.charAt(0).toUpperCase() + rawDate.slice(1)
-                      } else {
-                        dataFormatada = item.data
-                      }
-                    }
-
-                    return (
-                      <div key={item.id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-[#3A3A3C] rounded-xl">
-                        <div>
-                          <p className="font-semibold text-gray-900 dark:text-white">{dataFormatada}</p>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">{item.contexto}</p>
-                        </div>
-                        <div className="flex items-center gap-6">
-                          <div className="text-center">
-                            <p className="text-xl font-bold text-green-600">{presentes}</p>
-                            <p className="text-xs text-gray-500">Presentes</p>
-                          </div>
-                          <div className="text-center">
-                            <p className="text-xl font-bold text-red-500">{ausentes}</p>
-                            <p className="text-xs text-gray-500">Ausentes</p>
-                          </div>
-                          <div className="text-center">
-                            <p className="text-lg font-semibold text-gray-900 dark:text-white">{registros.length > 0 ? Math.round((presentes / registros.length) * 100) : 0}%</p>
-                            <p className="text-xs text-gray-500">Presença</p>
-                          </div>
-                          <button onClick={() => setEditingChamada(item)} className="ml-4 p-2 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors" title="Editar">
-                            <Edit2 size={18} />
-                          </button>
-                        </div>
-                      </div>
-                    )
-                  })
-              )}
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'alertas' && (
-          <div className="bg-white dark:bg-[#2C2C2E] rounded-2xl border border-gray-100 dark:border-gray-700 p-5 shadow-sm">
-            <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Alertas de Frequência</h3>
-              <div className="flex flex-wrap items-center gap-3">
-                <input
-                  type="month"
-                  value={alertMonth}
-                  onChange={(e) => setAlertMonth(e.target.value)}
-                  className="input-apple w-48"
-                />
-                <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
-                  <button onClick={() => setAlertSubTab('pendentes')} className={`flex items-center px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${alertSubTab === 'pendentes' ? 'bg-white dark:bg-[#2C2C2E] text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
-                    <div className="relative flex items-center justify-center mr-1.5">
-                      <BellRing size={14} />
-                      {hasPendingAlerts && <span className={`absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-red-500 rounded-full ring-2 ${alertSubTab === 'pendentes' ? 'ring-white dark:ring-[#2C2C2E]' : 'ring-gray-100 dark:ring-gray-800'}`} />}
+                if (filtered.length === 0) {
+                  return (
+                    <div className="flex flex-col items-center justify-center py-12 text-center">
+                      <History size={40} className="text-gray-300 mb-3" />
+                      <p className="text-base font-semibold text-gray-700 dark:text-gray-300">Nenhum histórico encontrado</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">As chamadas salvas aparecerão aqui.</p>
                     </div>
-                    Pendentes
-                  </button>
-                  <button onClick={() => setAlertSubTab('justificadas')} className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${alertSubTab === 'justificadas' ? 'bg-white dark:bg-[#2C2C2E] text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>Justificadas</button>
+                  )
+                }
+
+                return (
+                  <table className="w-full">
+                    <thead className="bg-gray-50 dark:bg-[#1C1C1E] border-b border-gray-100 dark:border-gray-700">
+                      <tr>
+                        <th className="text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase px-4 py-3">Data</th>
+                        <th className="text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase px-4 py-3">Contexto</th>
+                        <th className="text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase px-4 py-3">Presentes</th>
+                        <th className="text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase px-4 py-3">Ausentes</th>
+                        <th className="text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase px-4 py-3">Presença</th>
+                        <th className="text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase px-4 py-3">Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                      {filtered.map(item => {
+                        const registros = item.registros_json || []
+                        const presentes = registros.filter(r => r.presente).length
+                        const ausentes = registros.filter(r => !r.presente).length
+                        const attendancePercent = registros.length > 0 ? Math.round((presentes / registros.length) * 100) : 0
+
+                        let dataFormatada = '—'
+                        if (item.data) {
+                          const dataStr = item.data.includes('/') ? item.data.split('/').reverse().join('-') : item.data
+                          const dateObj = new Date(`${dataStr}T12:00:00`)
+                          if (!isNaN(dateObj.getTime())) {
+                            const rawDate = dateObj.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+                            dataFormatada = rawDate.charAt(0).toUpperCase() + rawDate.slice(1)
+                          } else {
+                            dataFormatada = item.data
+                          }
+                        }
+
+                        const percentClass = attendancePercent >= 80 ? 'text-green-600' : attendancePercent >= 50 ? 'text-yellow-600' : 'text-red-600'
+
+                        return (
+                          <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-[#2C2C2E] transition-colors">
+                            <td className="px-4 py-3">
+                              <p className="font-semibold text-gray-900 dark:text-white">{dataFormatada}</p>
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">
+                                {item.contexto}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              <p className="text-xl font-bold text-green-600">{presentes}</p>
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              <p className="text-xl font-bold text-red-500">{ausentes}</p>
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              <p className={`text-lg font-semibold ${percentClass}`}>{attendancePercent}%</p>
+                            </td>
+                            <td className="px-4 py-3 text-right">
+                              <button onClick={() => setEditingChamada(item)} className="px-3 py-1.5 text-sm font-medium text-[#007AFF] border border-dashed border-[#007AFF]/30 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors flex items-center gap-2 ml-auto">
+                                <Edit2 size={16} /> Editar
+                              </button>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                )
+              })}
+
+            </div>
+          </>
+        )
+        }
+
+        {
+          activeTab === 'alertas' && (
+            <div className="bg-white dark:bg-[#2C2C2E] rounded-2xl border border-gray-100 dark:border-gray-700 p-5 shadow-sm">
+              <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+                <div className="flex items-center gap-1.5">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Alertas de Frequência</h3>
+                  <Info
+                    size={16}
+                    className="text-gray-400 cursor-help transition-colors hover:text-gray-600 dark:hover:text-gray-300"
+                    title="Membros ativos com 3 ou mais faltas não justificadas no mês selecionado."
+                  />
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
+                  <input
+                    type="month"
+                    value={alertMonth}
+                    onChange={(e) => setAlertMonth(e.target.value)}
+                    className="input-apple w-48"
+                  />
+                  <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
+                    <button onClick={() => setAlertSubTab('pendentes')} className={`flex items-center px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${alertSubTab === 'pendentes' ? 'bg-white dark:bg-[#2C2C2E] text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
+                      <div className="relative flex items-center justify-center mr-1.5">
+                        <BellRing size={14} />
+                        {hasPendingAlerts && <span className={`absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-red-500 rounded-full ring-2 ${alertSubTab === 'pendentes' ? 'ring-white dark:ring-[#2C2C2E]' : 'ring-gray-100 dark:ring-gray-800'}`} />}
+                      </div>
+                      Pendentes
+                    </button>
+                    <button onClick={() => setAlertSubTab('justificadas')} className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${alertSubTab === 'justificadas' ? 'bg-white dark:bg-[#2C2C2E] text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>Justificadas</button>
+                  </div>
                 </div>
               </div>
-            </div>
-            <div className="mb-4">
-              <div className="relative">
-                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Buscar por nome..."
-                  value={alertSearch}
-                  onChange={(e) => setAlertSearch(e.target.value)}
-                  className="input-apple pl-10 w-full"
-                />
+              <div className="mb-4">
+                <div className="relative">
+                  <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Buscar por nome..."
+                    value={alertSearch}
+                    onChange={(e) => setAlertSearch(e.target.value)}
+                    className="input-apple pl-10 w-full"
+                  />
+                </div>
               </div>
-            </div>
 
-            <div className="space-y-3">
-              {alertSubTab === 'pendentes' ? (
-                pendingAlerts.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
-                    <BellRing className="w-16 h-16 text-gray-300 mb-4" />
-                    <h4 className="text-xl font-semibold text-gray-700 dark:text-gray-300">Tudo tranquilo por aqui!</h4>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 max-w-sm">Nenhum integrante com 2+ faltas não justificadas no mês selecionado.</p>
-                  </div>
-                ) : (
-                  pendingAlerts.map(member => (
-                    <div key={member.id} className="flex items-start justify-between p-4 rounded-xl border bg-red-50 dark:bg-red-900/10 border-red-100 dark:border-red-800/30">
-                      <div className="flex items-start gap-4">
-                        <Avatar name={member.nome} size="md" />
-                        <div>
-                          <p className="font-semibold text-gray-900 dark:text-white">{member.nome}</p>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">{member.secao || member.cargo} - {member.unjustified_absences} faltas não justificadas</p>
-                        </div>
-                      </div>
-                      <button onClick={() => { setJustifyingAlert({ member, mode: 'pendentes' }); }} className="bg-white dark:bg-[#2C2C2E] text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800/50 px-4 py-2 rounded-xl text-sm font-medium hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
-                        Justificar
-                      </button>
+              <div className="space-y-3">
+                {alertSubTab === 'pendentes' ? (
+                  pendingAlerts.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
+                      <BellRing className="w-16 h-16 text-gray-300 mb-4" />
+                      <h4 className="text-xl font-semibold text-gray-700 dark:text-gray-300">Nenhum alerta no momento</h4>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 max-w-sm">Nenhum integrante com 3+ faltas não justificadas no mês selecionado.</p>
                     </div>
-                  ))
-                )
-              ) : (
-                justifiedAlerts.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
-                    <CheckCircle className="w-16 h-16 text-gray-300 mb-4" />
-                    <h4 className="text-xl font-semibold text-gray-700 dark:text-gray-300">Nenhuma justificativa</h4>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 max-w-sm">Nenhuma falta foi justificada no mês selecionado.</p>
-                  </div>
-                ) : (
-                  justifiedAlerts.map(member => (
-                    <div key={member.id} className="flex items-start justify-between p-4 rounded-xl border bg-green-50 dark:bg-green-900/10 border-green-100 dark:border-green-800/30">
-                      <div className="flex items-start gap-4">
-                        <Avatar name={member.nome} size="md" />
-                        <div>
-                          <p className="font-semibold text-gray-900 dark:text-white">{member.nome}</p>
-                          <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">{member.secao || member.cargo} - {member.justified_absences} {member.justified_absences === 1 ? 'falta justificada' : 'faltas justificadas'}</p>
-                          <div className="space-y-1.5">
-                            {member.justified_list.map((falta, i) => (
-                              <div key={i} className="text-xs text-gray-700 dark:text-gray-300 bg-white/60 dark:bg-[#3A3A3C]/60 px-2 py-1.5 rounded-lg border border-green-200/60 dark:border-green-700/30">
-                                <span className="font-semibold text-green-700 mr-1">
-                                  {falta.call.data ? (falta.call.data.includes('-') ? falta.call.data.split('-').reverse().join('/') : falta.call.data) : ''}:
-                                </span>
-                                {falta.justificativa}
-                              </div>
-                            ))}
+                  ) : (
+                    pendingAlerts.map(member => (
+                      <div key={member.id} className="flex items-start justify-between p-4 rounded-xl border bg-red-50 dark:bg-red-900/10 border-red-100 dark:border-red-800/30">
+                        <div className="flex items-start gap-4">
+                          <Avatar name={member.nome} size="md" />
+                          <div>
+                            <p className="font-semibold text-gray-900 dark:text-white">{member.nome}</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">{member.secao || member.cargo} - {member.unjustified_absences} faltas não justificadas</p>
                           </div>
                         </div>
+                        <button onClick={() => { setJustifyingAlert({ member, mode: 'pendentes' }); }} className="bg-white dark:bg-[#2C2C2E] text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800/50 px-4 py-2 rounded-xl text-sm font-medium hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                          Justificar
+                        </button>
                       </div>
-                      <button onClick={() => { setJustifyingAlert({ member, mode: 'justificadas' }); }} className="bg-white dark:bg-[#2C2C2E] text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600 px-4 py-2 rounded-xl text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700">
-                        Editar
-                      </button>
+                    ))
+                  )
+                ) : (
+                  justifiedAlerts.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
+                      <CheckCircle className="w-16 h-16 text-gray-300 mb-4" />
+                      <h4 className="text-xl font-semibold text-gray-700 dark:text-gray-300">Nenhuma justificativa</h4>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 max-w-sm">Nenhuma falta foi justificada no mês selecionado.</p>
                     </div>
-                  ))
-                )
-              )}
+                  ) : (
+                    justifiedAlerts.map(member => (
+                      <div key={member.id} className="flex items-start justify-between p-4 rounded-xl border bg-green-50 dark:bg-green-900/10 border-green-100 dark:border-green-800/30">
+                        <div className="flex items-start gap-4">
+                          <Avatar name={member.nome} size="md" />
+                          <div>
+                            <p className="font-semibold text-gray-900 dark:text-white">{member.nome}</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">{member.secao || member.cargo} - {member.justified_absences} {member.justified_absences === 1 ? 'falta justificada' : 'faltas justificadas'}</p>
+                            <div className="space-y-1.5">
+                              {member.justified_list.map((falta, i) => (
+                                <div key={i} className="text-xs text-gray-700 dark:text-gray-300 bg-white/60 dark:bg-[#3A3A3C]/60 px-2 py-1.5 rounded-lg border border-green-200/60 dark:border-green-700/30">
+                                  <span className="font-semibold text-green-700 mr-1">
+                                    {falta.call.data ? (falta.call.data.includes('-') ? falta.call.data.split('-').reverse().join('/') : falta.call.data) : ''}:
+                                  </span>
+                                  {falta.justificativa}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                        <button onClick={() => { setJustifyingAlert({ member, mode: 'justificadas' }); }} className="bg-white dark:bg-[#2C2C2E] text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600 px-4 py-2 rounded-xl text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700">
+                          Editar
+                        </button>
+                      </div>
+                    ))
+                  )
+                )}
+              </div>
             </div>
-          </div>
-        )}
-      </div>
+          )
+        }
+      </div >
 
       <Modal isOpen={showDrawer} onClose={() => { setShowDrawer(false); setEditingMember(null); }} title={editingMember ? 'Editar Integrante' : 'Novo Integrante'} size="lg">
         <MemberForm
@@ -732,16 +763,18 @@ export default function MembersPage() {
         </div>
       </Modal>
 
-      {editingChamada && (
-        <EdicaoDrawer
-          chamada={editingChamada}
-          members={storeMembers.filter(m => m.status === 'Ativo')}
-          onSave={handleSaveEdicaoChamada}
-          onDelete={deleteCall}
-          onClose={() => setEditingChamada(null)}
-        />
-      )}
-    </div>
+      {
+        editingChamada && (
+          <EdicaoDrawer
+            chamada={editingChamada}
+            members={storeMembers.filter(m => m.status === 'Ativo')}
+            onSave={handleSaveEdicaoChamada}
+            onDelete={deleteCall}
+            onClose={() => setEditingChamada(null)}
+          />
+        )
+      }
+    </div >
   )
 }
 
@@ -816,6 +849,7 @@ function ChamadaTab({ members, isEditing = false, chamada = null, onSaveEdit = n
   return (
     <div className="space-y-6">
       <div className="bg-white dark:bg-[#2C2C2E] rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-4">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Chamada</h3>
         <div className="flex flex-wrap items-end gap-4">
           <div>
             <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Data</label>
@@ -850,44 +884,44 @@ function ChamadaTab({ members, isEditing = false, chamada = null, onSaveEdit = n
             </div>
           ) : (
             filteredMembers.map(member => {
-            const presente = presencas[member.id] !== false
-            const showJustificativa = presencas[member.id] === false
-            return (
-              <div key={member.id} className="p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Avatar name={member.nome} size="sm" />
-                    <div>
-                      <p className="font-medium">{member.nome}</p>
-                      <p className="text-xs text-gray-500">{member.secao || member.instrumento_voz || 'Músico'}</p>
+              const presente = presencas[member.id] !== false
+              const showJustificativa = presencas[member.id] === false
+              return (
+                <div key={member.id} className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Avatar name={member.nome} size="sm" />
+                      <div>
+                        <p className="font-medium">{member.nome}</p>
+                        <p className="text-xs text-gray-500">{member.secao || member.instrumento_voz || 'Músico'}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => togglePresenca(member.id)} className={`w-10 h-10 rounded-full font-semibold text-sm transition-all ${presente ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-400 hover:bg-green-100 hover:text-green-600'}`}>P</button>
+                      <button onClick={() => togglePresenca(member.id)} className={`w-10 h-10 rounded-full font-semibold text-sm transition-all ${!presente ? 'bg-red-500 text-white' : 'bg-gray-100 text-gray-400 hover:bg-green-100 hover:text-green-600'}`}>F</button>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <button onClick={() => togglePresenca(member.id)} className={`w-10 h-10 rounded-full font-semibold text-sm transition-all ${presente ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-400 hover:bg-green-100 hover:text-green-600'}`}>P</button>
-                    <button onClick={() => togglePresenca(member.id)} className={`w-10 h-10 rounded-full font-semibold text-sm transition-all ${!presente ? 'bg-red-500 text-white' : 'bg-gray-100 text-gray-400 hover:bg-green-100 hover:text-green-600'}`}>F</button>
-                  </div>
+                  {showJustificativa && (
+                    <div className="mt-3 pl-11 flex items-center gap-2">
+                      <input
+                        type="text"
+                        placeholder="Adicionar motivo da falta (opcional)"
+                        value={justificativas[member.id] || ''}
+                        onChange={(e) => updateJustificativa(member.id, e.target.value)}
+                        className="input-apple text-sm flex-1"
+                      />
+                      <button
+                        onClick={() => updateJustificativa(member.id, '')}
+                        className="w-10 h-10 flex items-center justify-center rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors shrink-0"
+                        title="Apagar Justificativa"
+                      >
+                        <X size={18} />
+                      </button>
+                    </div>
+                  )}
                 </div>
-                {showJustificativa && (
-                  <div className="mt-3 pl-11 flex items-center gap-2">
-                    <input
-                      type="text"
-                      placeholder="Adicionar motivo da falta (opcional)"
-                      value={justificativas[member.id] || ''}
-                      onChange={(e) => updateJustificativa(member.id, e.target.value)}
-                      className="input-apple text-sm flex-1"
-                    />
-                    <button
-                      onClick={() => updateJustificativa(member.id, '')}
-                      className="w-10 h-10 flex items-center justify-center rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors shrink-0"
-                      title="Apagar Justificativa"
-                    >
-                      <X size={18} />
-                    </button>
-                  </div>
-                )}
-              </div>
-            )
-          }))}
+              )
+            }))}
         </div>
       </div>
 

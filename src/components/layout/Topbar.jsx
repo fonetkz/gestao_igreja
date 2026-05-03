@@ -66,7 +66,7 @@ export default function Topbar({ title = 'Gestão Igreja', searchPlaceholder, on
           const reg = regs.find(r => String(r.membro_id) === String(member.id))
           if (reg && !reg.presente && (!reg.justificativa || reg.justificativa.trim() === '')) {
             unjustifiedCount++
-            if (unjustifiedCount >= 2) return true // Retorna verdadeiro na primeira ocorrência encontrada
+            if (unjustifiedCount >= 3) return true // Retorna verdadeiro na primeira ocorrência encontrada
           }
         }
       }
@@ -160,6 +160,7 @@ export default function Topbar({ title = 'Gestão Igreja', searchPlaceholder, on
             <Link
               to="/membros?view=alertas"
               className="relative p-2.5 rounded-xl text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-all duration-200"
+              title="Membros ativos com 3 ou mais faltas não justificadas no mês selecionado."
             >
               <Bell size={18} />
               {hasAlerts && (
