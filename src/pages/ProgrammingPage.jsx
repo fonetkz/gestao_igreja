@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react'
-import { Plus, Search, Music, Trash2, Save, Check, BookOpen, ChevronUp, ChevronDown, GripVertical, Clock, Calendar, Loader2, Edit2, AlertTriangle } from 'lucide-react'
+import { Plus, Search, Music, Trash2, Save, Check, BookOpen, ChevronUp, ChevronDown, GripVertical, Clock, Calendar, Loader2, Edit2, AlertTriangle, X } from 'lucide-react'
 import Topbar from '../components/layout/Topbar'
 import Modal from '../components/ui/Modal'
 import Select from '../components/ui/Select'
@@ -274,47 +274,88 @@ function HistoricoTab({ onEditarProgramacao, onExcluirProgramacao }) {
 
   return (
     <div className="space-y-4">
-      <div className="apple-card p-4 space-y-4">
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="relative flex-1 min-w-[200px]">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              value={searchTerm}
-              placeholder="Buscar por Hino..."
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="input-apple pl-10 w-full"
-            />
+      {(() => {
+        const hasActiveFilters = searchTerm || searchDate || filterTipoReuniao || filterTipoHino || filterRegente
+        const activeCount = [searchTerm, searchDate, filterTipoReuniao, filterTipoHino, filterRegente].filter(Boolean).length
+        const clearFilters = () => { setSearchTerm(''); setSearchDate(''); setFilterTipoReuniao(''); setFilterTipoHino(''); setFilterRegente('') }
+        return (
+          <div className="bg-white dark:bg-[#2C2C2E] rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-700">
+              <div className="flex items-center gap-2 text-sm font-medium text-gray-500 dark:text-gray-400">
+                <Search size={14} />
+                Filtros
+                {hasActiveFilters && (
+                  <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-500 text-white text-xs font-bold">
+                    {activeCount}
+                  </span>
+                )}
+              </div>
+              {hasActiveFilters && (
+                <button
+                  onClick={clearFilters}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                >
+                  <X size={13} />
+                  Limpar filtros
+                </button>
+              )}
+            </div>
+            <div className="p-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                <div className="lg:col-span-2">
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Buscar</label>
+                  <div className="relative">
+                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                    <input
+                      type="text"
+                      value={searchTerm}
+                      placeholder="Hino, número ou título..."
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="input-apple pl-8 text-sm w-full"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Tipo de Reunião</label>
+                  <Select
+                    options={[{ value: '', label: 'Todos' }, ...meetingTypes]}
+                    value={filterTipoReuniao}
+                    onChange={(val) => setFilterTipoReuniao(val)}
+                    size="sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Tipo de Hino</label>
+                  <Select
+                    options={[{ value: '', label: 'Todos' }, ...hymnTypes]}
+                    value={filterTipoHino}
+                    onChange={(val) => setFilterTipoHino(val)}
+                    size="sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Regente</label>
+                  <Select
+                    options={[{ value: '', label: 'Todos' }, ...conductors.map(c => ({ value: c.nome, label: c.nome }))]}
+                    value={filterRegente}
+                    onChange={(val) => setFilterRegente(val)}
+                    size="sm"
+                  />
+                </div>
+              </div>
+              <div className="mt-4">
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Data</label>
+                <input
+                  type="date"
+                  value={searchDate}
+                  onChange={(e) => setSearchDate(e.target.value)}
+                  className="input-apple w-auto min-w-[160px]"
+                />
+              </div>
+            </div>
           </div>
-          <div className="w-full md:w-56">
-          <Select
-            options={[{ value: '', label: 'Tipo de Reunião (Todos)' }, ...meetingTypes]}
-            value={filterTipoReuniao}
-            onChange={(val) => setFilterTipoReuniao(val)}
-          />
-          </div>
-          <div className="w-full md:w-44">
-            <input
-              type="date"
-              value={searchDate}
-              onChange={(e) => setSearchDate(e.target.value)}
-              className="input-apple w-full"
-            />
-          </div>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Select
-            options={[{ value: '', label: 'Tipo de Hino (Todos)' }, ...hymnTypes]}
-            value={filterTipoHino}
-            onChange={(val) => setFilterTipoHino(val)}
-          />
-          <Select
-            options={[{ value: '', label: 'Regente (Todos)' }, ...conductors.map(c => ({ value: c.nome, label: c.nome }))]}
-            value={filterRegente}
-            onChange={(val) => setFilterRegente(val)}
-          />
-        </div>
-      </div>
+        )
+      })()}
 
       {filteredHistory.length === 0 ? (
         <div className="apple-card p-8 text-center text-gray-500 dark:text-gray-400">
