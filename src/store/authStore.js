@@ -30,7 +30,7 @@ const useAuthStore = create((set, get) => ({
       const state = get()
       // Caso não tenha user no state (pq ele deslogou antes de criar), forçamos um
       const currentUser = state.user || {
-        id: 1, name: 'Maestro Ricardo', email: 'email@email.com', role: 'Super Admin'
+        id: 1, name: 'Maestro Ricardo', email: 'admin@igreja.com', role: 'Super Admin'
       }
       await api.put('/api/config/auth_settings', {
         valor: { user: currentUser, passwordHash: state.passwordHash || 'admin123' }
@@ -43,10 +43,10 @@ const useAuthStore = create((set, get) => ({
   login: async (email, password) => {
     await get().fetchAuthConfig() // Garante os dados mais novos
     const state = get()
-    const storedUser = state.user || { email: 'email@email.com' }
+    const storedUser = state.user || { email: 'admin@igreja.com' }
 
     // Na primeira vez ou se não existir, criamos fallback
-    const validEmail = storedUser.email || 'email@email.com'
+    const validEmail = storedUser.email || 'admin@igreja.com'
     const validPassword = state.passwordHash || 'admin123'
 
     if (email === validEmail && password === validPassword) {

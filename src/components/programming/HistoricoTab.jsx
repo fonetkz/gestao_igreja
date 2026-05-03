@@ -3,6 +3,7 @@ import { Calendar, Search, Users, ChevronDown, ChevronUp, Music, Filter, X, Cloc
 import Card from '../ui/Card'
 import Badge from '../ui/Badge'
 import { Input } from '../ui/Input'
+import Select from '../ui/Select'
 import useHymnsStore from '../../store/hymnsStore'
 import useSettingsStore from '../../store/settingsStore'
 
@@ -187,17 +188,11 @@ function FilterBar({ filters, onChange }) {
           <label className="text-[10px] font-bold uppercase tracking-[1.5px] text-slate-400 dark:text-slate-400 mb-1.5 block">
             <FileText size={12} className="inline mr-1" /> Por Tipo
           </label>
-          <select 
-            value={filters.typeFilter} 
-            onChange={e => onChange({ ...filters, typeFilter: e.target.value })}
-            className="w-full bg-slate-800 dark:bg-slate-900 border border-slate-700 dark:border-slate-600 rounded-lg px-3 py-2 text-sm font-medium text-white dark:text-white
-                       focus:bg-slate-700 dark:focus:bg-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/50 transition-all"
-          >
-            <option value="">Todos os tipos</option>
-            {meetingOptions.map(opt => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </select>
+          <Select
+            options={[{ value: '', label: 'Todos os tipos' }, ...meetingOptions]}
+            value={filters.typeFilter}
+            onChange={(val) => onChange({ ...filters, typeFilter: val })}
+          />
         </div>
       </div>
     </Card>

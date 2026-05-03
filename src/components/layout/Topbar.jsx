@@ -91,7 +91,7 @@ export default function Topbar({ title = 'Gestão Igreja', searchPlaceholder, on
   }
 
   return (
-    <header className="sticky top-0 z-50 glass">
+    <header className="sticky top-0 z-[200] glass">
       <div className="max-w-7xl mx-auto px-6 py-3">
         <div className="flex items-center justify-between">
           {/* Logo */}
