@@ -16,7 +16,12 @@ function StatCard({ icon: Icon, label, value, color, suffix = '', to }) {
   }
   const colors = colorMap[color]
   const CardWrapper = to ? Link : 'div'
-  const wrapperProps = to ? { to, className: "metric-card animate-slide-up group block cursor-pointer transition-all hover:shadow-lg hover:-translate-y-1" } : { className: "metric-card animate-slide-up group" }
+  const wrapperProps = to
+    ? {
+      to,
+      className: "metric-card animate-slide-up group block cursor-pointer transition-all hover:shadow-lg hover:-translate-y-1"
+    }
+    : { className: "metric-card animate-slide-up group" }
 
   return (
     <CardWrapper {...wrapperProps}>
@@ -49,6 +54,15 @@ export default function DashboardPage() {
   const storeAttendance = useMembersStore((s) => s.attendance) || []
 
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7))
+
+  const selectedMonthLabel = useMemo(() => {
+    const monthNames = [
+      'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+      'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+    ]
+    const monthIdx = parseInt(selectedMonth.split('-')[1], 10) - 1
+    return monthNames[monthIdx]
+  }, [selectedMonth])
 
   // Calcula a taxa de presença geral baseada no histórico de chamadas em tempo real
   const overallRate = useMemo(() => {
@@ -97,7 +111,7 @@ export default function DashboardPage() {
         }
       })
       return { ...m, unjustified_absences: unjustifiedCount }
-    }).filter(m => m.unjustified_absences >= 2).sort((a, b) => b.unjustified_absences - a.unjustified_absences)
+    }).filter(m => m.unjustified_absences >= 3).sort((a, b) => b.unjustified_absences - a.unjustified_absences)
   }, [members, storeAttendance, selectedMonth])
 
   // Aniversariantes do mês
@@ -223,10 +237,35 @@ export default function DashboardPage() {
 
         {/* Stats Grid - 4 columns */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <StatCard icon={Users} label="Integrantes Ativos" value={activeMembers} color="primary" to="/membros?view=lista" />
-          <StatCard icon={TrendingUp} label="Presença Média" value={overallRate} color="success" suffix="%" to="/membros?view=chamada" />
-          <StatCard icon={AlertTriangle} label="Alertas Críticos" value={problematicMembers.length} color="warning" to="/membros?view=alertas" />
-          <StatCard icon={Cake} label="Aniversariantes" value={birthdayMembers.length} color="info" to="/membros?view=lista" />
+          <StatCard
+            icon={Users}
+            label="Integrantes Ativos"
+            value={activeMembers}
+            color="primary"
+            to="/membros?view=lista"
+          />
+          <StatCard
+            icon={TrendingUp}
+            label="Presença Média"
+            value={overallRate}
+            color="success"
+            suffix="%"
+            to="/membros?view=chamada"
+          />
+          <StatCard
+            icon={AlertTriangle}
+            label="Alertas Críticos"
+            value={problematicMembers.length}
+            color="warning"
+            to="/membros?view=alertas"
+          />
+          <StatCard
+            icon={Cake}
+            label="Aniversariantes"
+            value={birthdayMembers.length}
+            color="info"
+            to="/membros?view=lista"
+          />
         </div>
 
         {/* Charts Area */}
@@ -291,7 +330,7 @@ export default function DashboardPage() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-gray-900 dark:text-white">Atenção</h3>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">2+ faltas (mês selecionado)</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">3+ faltas em {selectedMonthLabel}</p>
                   </div>
                 </div>
                 <Link to="/membros?view=alertas" className="text-xs font-semibold text-[#007AFF] hover:text-[#0062CC] dark:text-blue-400 transition-colors">
@@ -328,7 +367,7 @@ export default function DashboardPage() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-gray-900 dark:text-white">Aniversariantes</h3>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">No mês selecionado</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Em {selectedMonthLabel}</p>
                   </div>
                 </div>
                 <Link to="/membros?view=lista" className="text-xs font-semibold text-[#007AFF] hover:text-[#0062CC] dark:text-blue-400 transition-colors">

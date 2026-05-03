@@ -170,8 +170,8 @@ function HymnModal({ isOpen, onClose, onSave, editingHymn }) {
           <Select
             options={[
               { value: '', label: 'Selecione o tipo...' },
-              ...hymnTypes,
-              ...(form.tonalidade && !hymnTypes.find(t => t.label === form.tonalidade) ? [{ value: form.tonalidade, label: `${form.tonalidade} (Legado)` }] : [])
+              ...hymnTypes.map(t => ({ value: t.value, label: t.label })),
+              ...(form.tonalidade && !hymnTypes.find(t => t.value === form.tonalidade) ? [{ value: form.tonalidade, label: `${form.tonalidade} (Legado)` }] : [])
             ]}
             value={form.tonalidade}
             onChange={(val) => setForm(f => ({ ...f, tonalidade: val }))}

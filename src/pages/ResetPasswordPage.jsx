@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { ArrowRight, CheckCircle, Shield, Globe } from 'lucide-react'
+import { ArrowRight, CheckCircle, Shield, Globe, Eye, EyeOff } from 'lucide-react'
 import api from '../services/api'
 
 export default function ResetPasswordPage() {
@@ -9,6 +9,9 @@ export default function ResetPasswordPage() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
+
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   const [searchParams] = useSearchParams()
   const token = searchParams.get('token')
@@ -130,16 +133,25 @@ export default function ResetPasswordPage() {
                     <label className="label-uppercase" htmlFor="new-password">
                       Nova Senha
                     </label>
-                    <input
-                      id="new-password"
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="••••••••"
-                      className="input-base mt-1 dark:bg-slate-900 dark:border-slate-700 dark:text-white"
-                      autoComplete="new-password"
-                      disabled={loading || !token}
-                    />
+                    <div className="relative">
+                      <input
+                        id="new-password"
+                        type={showPassword ? 'text' : 'password'}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="••••••••"
+                        className="input-base mt-1 pr-10 dark:bg-slate-900 dark:border-slate-700 dark:text-white w-full"
+                        autoComplete="new-password"
+                        disabled={loading || !token}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 mt-0.5 text-gray-400 hover:text-gray-600 dark:hover:text-slate-300 transition-colors"
+                      >
+                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
                   </div>
 
                   {/* Confirmar Nova Senha */}
@@ -147,16 +159,25 @@ export default function ResetPasswordPage() {
                     <label className="label-uppercase" htmlFor="confirm-password">
                       Confirmar Nova Senha
                     </label>
-                    <input
-                      id="confirm-password"
-                      type="password"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      placeholder="••••••••"
-                      className="input-base mt-1 dark:bg-slate-900 dark:border-slate-700 dark:text-white"
-                      autoComplete="new-password"
-                      disabled={loading || !token}
-                    />
+                    <div className="relative">
+                      <input
+                        id="confirm-password"
+                        type={showConfirmPassword ? 'text' : 'password'}
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        placeholder="••••••••"
+                        className="input-base mt-1 pr-10 dark:bg-slate-900 dark:border-slate-700 dark:text-white w-full"
+                        autoComplete="new-password"
+                        disabled={loading || !token}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 mt-0.5 text-gray-400 hover:text-gray-600 dark:hover:text-slate-300 transition-colors"
+                      >
+                        {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
                   </div>
 
                   {/* Error */}
