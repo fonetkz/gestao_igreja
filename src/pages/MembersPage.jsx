@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Search, Edit2, Plus, ClipboardList, History, Bell, Users2, MessageSquare, Check, X, Cake, CheckCircle, BellRing, Clock, XCircle, Music, ChevronUp, ChevronDown, Trash2 } from 'lucide-react'
 import Topbar from '../components/layout/Topbar'
+import Select from '../components/ui/Select'
 import useMembersStore from '../store/membersStore'
 import useSettingsStore from '../store/settingsStore'
 import useToastStore from '../store/toastStore'
@@ -356,22 +357,30 @@ export default function MembersPage() {
                   <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                   <input type="text" placeholder="Buscar..." value={searchText} onChange={(e) => setSearchText(e.target.value)} className="input-apple pl-9" />
                 </div>
-                <select value={vozFilter} onChange={(e) => setVozFilter(e.target.value)} className="select-apple">
-                  <option value="">Todas as vozes</option>
-                  {voices.map(v => <option key={v.id} value={v.label}>{v.label}</option>)}
-                </select>
-                <select value={instrumentoFilter} onChange={(e) => setInstrumentoFilter(e.target.value)} className="select-apple">
-                  <option value="">Todos os instrum.</option>
-                  {instruments.map(v => <option key={v.id} value={v.label}>{v.label}</option>)}
-                </select>
-                <select value={funcaoFilter} onChange={(e) => setFuncaoFilter(e.target.value)} className="select-apple">
-                  <option value="">Todas as funções</option>
-                  {positions.map(v => <option key={v.id} value={v.label}>{v.label}</option>)}
-                </select>
-                <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="select-apple">
-                  <option value="">Todos os status</option>
-                  {statuses.map(v => <option key={v.id} value={v.label}>{v.label}</option>)}
-                </select>
+                <Select
+                  options={[{ value: '', label: 'Todas as vozes' }, ...voices.map(v => ({ value: v.label, label: v.label }))]}
+                  value={vozFilter}
+                  onChange={(val) => setVozFilter(val)}
+                  size="sm"
+                />
+                <Select
+                  options={[{ value: '', label: 'Todos os instrum.' }, ...instruments.map(v => ({ value: v.label, label: v.label }))]}
+                  value={instrumentoFilter}
+                  onChange={(val) => setInstrumentoFilter(val)}
+                  size="sm"
+                />
+                <Select
+                  options={[{ value: '', label: 'Todas as funções' }, ...positions.map(v => ({ value: v.label, label: v.label }))]}
+                  value={funcaoFilter}
+                  onChange={(val) => setFuncaoFilter(val)}
+                  size="sm"
+                />
+                <Select
+                  options={[{ value: '', label: 'Todos os status' }, ...statuses.map(v => ({ value: v.label, label: v.label }))]}
+                  value={statusFilter}
+                  onChange={(val) => setStatusFilter(val)}
+                  size="sm"
+                />
               </div>
             </div>
 
@@ -459,24 +468,20 @@ export default function MembersPage() {
                     placeholder="Buscar por nome..."
                     value={historicoNameFilter}
                     onChange={(e) => setHistoricoNameFilter(e.target.value)}
-                    className="input-apple pl-10 w-48"
+                    className="input-apple pl-10 w-80"
                   />
                 </div>
-                <select
+                <Select
+                  options={[{ value: '', label: 'Todos os contextos' }, ...attendanceContexts.map(ctx => ({ value: ctx.label, label: ctx.label }))]}
                   value={historicoFilter}
-                  onChange={(e) => setHistoricoFilter(e.target.value)}
-                  className="select-apple"
-                >
-                  <option value="">Todos os contextos</option>
-                  {attendanceContexts.map(ctx => (
-                    <option key={ctx.id} value={ctx.label}>{ctx.label}</option>
-                  ))}
-                </select>
+                  onChange={(val) => setHistoricoFilter(val)}
+                  size="sm"
+                />
                 <input
-                  type="date"
+                  type="month"
                   value={historicoDateFilter}
                   onChange={(e) => setHistoricoDateFilter(e.target.value)}
-                  className="input-apple"
+                  className="input-apple w-auto min-w-[140px]"
                 />
               </div>
             </div>
@@ -486,7 +491,14 @@ export default function MembersPage() {
                   if (historicoFilter && !item.contexto?.toLowerCase().includes(historicoFilter.toLowerCase())) return false
                   if (historicoDateFilter) {
                     const itemDate = item.data ? item.data.split('T')[0] : item.data
-                    if (itemDate !== historicoDateFilter) return false
+                    let itemYearMonth = ''
+                    if (itemDate.includes('-')) {
+                      itemYearMonth = itemDate.slice(0, 7)
+                    } else if (itemDate.includes('/')) {
+                      const parts = itemDate.split('/')
+                      itemYearMonth = `${parts[2]}-${parts[1]}`
+                    }
+                    if (itemYearMonth !== historicoDateFilter) return false
                   }
                   if (historicoNameFilter) {
                     const registros = item.registros_json || []
@@ -811,14 +823,12 @@ function ChamadaTab({ members, isEditing = false, chamada = null, onSaveEdit = n
           </div>
           <div>
             <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Contexto</label>
-            <select value={contextoChamada} onChange={(e) => setContextoChamada(e.target.value)} className="select-apple w-auto">
-              {attendanceContexts.map(ctx => (
-                <option key={ctx.id} value={ctx.label}>{ctx.label}</option>
-              ))}
-              {attendanceContexts.length === 0 && (
-                <option value="Ensaio Geral">Ensaio Geral</option>
-              )}
-            </select>
+            <Select
+              options={attendanceContexts.length > 0 ? attendanceContexts.map(ctx => ({ value: ctx.label, label: ctx.label })) : [{ value: 'Ensaio Geral', label: 'Ensaio Geral' }]}
+              value={contextoChamada}
+              onChange={(val) => setContextoChamada(val)}
+              size="sm"
+            />
           </div>
           <div className="flex-1 min-w-[200px]">
             <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Buscar</label>
@@ -832,7 +842,14 @@ function ChamadaTab({ members, isEditing = false, chamada = null, onSaveEdit = n
 
       <div className="bg-white dark:bg-[#2C2C2E] rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
         <div className="divide-y divide-gray-100 dark:divide-gray-700">
-          {filteredMembers.map(member => {
+          {filteredMembers.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <ClipboardList size={40} className="text-gray-300 mb-3" />
+              <p className="text-base font-semibold text-gray-700 dark:text-gray-300">Nenhuma chamada registrada ainda</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Adicione membros ativos para começar a registrar chamadas.</p>
+            </div>
+          ) : (
+            filteredMembers.map(member => {
             const presente = presencas[member.id] !== false
             const showJustificativa = presencas[member.id] === false
             return (
@@ -847,7 +864,7 @@ function ChamadaTab({ members, isEditing = false, chamada = null, onSaveEdit = n
                   </div>
                   <div className="flex items-center gap-2">
                     <button onClick={() => togglePresenca(member.id)} className={`w-10 h-10 rounded-full font-semibold text-sm transition-all ${presente ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-400 hover:bg-green-100 hover:text-green-600'}`}>P</button>
-                    <button onClick={() => togglePresenca(member.id)} className={`w-10 h-10 rounded-full font-semibold text-sm transition-all ${!presente ? 'bg-red-500 text-white' : 'bg-gray-100 text-gray-400 hover:bg-red-100 hover:text-red-600'}`}>F</button>
+                    <button onClick={() => togglePresenca(member.id)} className={`w-10 h-10 rounded-full font-semibold text-sm transition-all ${!presente ? 'bg-red-500 text-white' : 'bg-gray-100 text-gray-400 hover:bg-green-100 hover:text-green-600'}`}>F</button>
                   </div>
                 </div>
                 {showJustificativa && (
@@ -870,7 +887,7 @@ function ChamadaTab({ members, isEditing = false, chamada = null, onSaveEdit = n
                 )}
               </div>
             )
-          })}
+          }))}
         </div>
       </div>
 
@@ -1057,10 +1074,11 @@ function MemberForm({ member, onSave, onCancel, onDelete }) {
         </div>
         <div>
           <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Voz</label>
-          <select value={form.secao || ''} onChange={(e) => setForm(f => ({ ...f, secao: e.target.value }))} className="select-apple w-full">
-            <option value="">Selecionar...</option>
-            {voices.map(v => <option key={v.id} value={v.label}>{v.label}</option>)}
-          </select>
+          <Select
+            options={[{ value: '', label: 'Selecionar...' }, ...voices.map(v => ({ value: v.label, label: v.label }))]}
+            value={form.secao || ''}
+            onChange={(val) => setForm(f => ({ ...f, secao: val }))}
+          />
         </div>
       </div>
 
@@ -1120,9 +1138,11 @@ function MemberForm({ member, onSave, onCancel, onDelete }) {
 
       <div>
         <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Status</label>
-        <select value={form.status || 'Ativo'} onChange={(e) => setForm(f => ({ ...f, status: e.target.value }))} className="select-apple w-full">
-          {statuses.map(s => <option key={s.id} value={s.label}>{s.label}</option>)}
-        </select>
+        <Select
+          options={statuses.map(s => ({ value: s.label, label: s.label }))}
+          value={form.status || 'Ativo'}
+          onChange={(val) => setForm(f => ({ ...f, status: val }))}
+        />
       </div>
 
       <div className="flex gap-3 pt-4 border-t border-gray-100 dark:border-gray-700">
@@ -1295,19 +1315,18 @@ function EdicaoDrawer({ chamada, members, onSave, onDelete, onClose }) {
                 className="input-apple pl-10 w-full"
               />
             </div>
-            <select
+            <Select
+              options={[
+                ...attendanceContexts.map(ctx => ({ value: ctx.label, label: ctx.label })),
+                { value: 'Ensaio Geral', label: 'Ensaio Geral' },
+                { value: 'Culto Dominical', label: 'Culto Dominical' },
+                { value: 'Culto de Celebração', label: 'Culto de Celebração' },
+                { value: 'Ensaio de Naipe', label: 'Ensaio de Naipe' }
+              ]}
               value={contexto}
-              onChange={(e) => setContexto(e.target.value)}
-              className="select-apple sm:w-36"
-            >
-              {attendanceContexts.map(ctx => (
-                <option key={ctx.id} value={ctx.label}>{ctx.label}</option>
-              ))}
-              <option value="Ensaio Geral">Ensaio Geral</option>
-              <option value="Culto Dominical">Culto Dominical</option>
-              <option value="Culto de Celebração">Culto de Celebração</option>
-              <option value="Ensaio de Naipe">Ensaio de Naipe</option>
-            </select>
+              onChange={(val) => setContexto(val)}
+              size="sm"
+            />
           </div>
 
           {filteredMembers.map(member => {

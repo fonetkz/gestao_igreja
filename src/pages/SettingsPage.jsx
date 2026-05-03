@@ -13,7 +13,7 @@ function AccordionItem({ listName, title, icon: Icon }) {
   const [editingId, setEditingId] = useState(null)
   const [editLabel, setEditLabel] = useState('')
 
-  const items = useSettingsStore((s) => s[listName] || [])
+  const items = [...(useSettingsStore((s) => s[listName] || []))].sort((a, b) => (a.label || '').localeCompare(b.label || '', 'pt-BR'))
   const addItem = useSettingsStore((s) => s.addItem)
   const removeItem = useSettingsStore((s) => s.removeItem)
   const updateItem = useSettingsStore((s) => s.updateItem)

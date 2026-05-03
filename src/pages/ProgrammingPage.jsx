@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react'
 import { Plus, Search, Music, Trash2, Save, Check, BookOpen, ChevronUp, ChevronDown, GripVertical, Clock, Calendar, Loader2, Edit2, AlertTriangle } from 'lucide-react'
 import Topbar from '../components/layout/Topbar'
 import Modal from '../components/ui/Modal'
+import Select from '../components/ui/Select'
 import useHymnsStore from '../store/hymnsStore'
 import useSettingsStore from '../store/settingsStore'
 import useAuthStore from '../store/authStore'
@@ -95,20 +96,18 @@ function ProgrammedHymnItem({ hymn, index, onRemove, onMove, isFirst, isLast, on
         </div>
         <div className="flex items-center gap-3 mt-1">
           {hymn.tonalidade && <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Tipo: {hymn.tonalidade}</p>}
-          <div className="flex items-center gap-1.5 mt-1">
-            <span className="text-xs text-gray-500 dark:text-gray-400">Regente:</span>
-            <select
-              value={hymn.regente || ''}
-              onChange={(e) => onUpdateRegente(hymn.id, e.target.value)}
-              className="select-apple text-xs py-1"
-            >
-              <option value="">Nenhum</option>
-              {conductors.map(c => <option key={c.id} value={c.nome}>{c.nome}</option>)}
-              {hymn.regente && !conductors.find(c => c.nome === hymn.regente) && (
-                <option value={hymn.regente}>{hymn.regente} (Inativo)</option>
-              )}
-            </select>
-          </div>
+            <div className="flex items-center gap-1.5 mt-1">
+              <span className="text-xs text-gray-500 dark:text-gray-400">Regente:</span>
+              <Select
+                options={[
+                  { value: '', label: 'Nenhum' },
+                  ...conductors.map(c => ({ value: c.nome, label: c.nome })),
+                  ...(hymn.regente && !conductors.find(c => c.nome === hymn.regente) ? [{ value: hymn.regente, label: `${hymn.regente} (Inativo)` }] : [])
+                ]}
+                value={hymn.regente || ''}
+                onChange={(val) => onUpdateRegente(hymn.id, val)}
+              />
+            </div>
         </div>
       </div>
       <button
@@ -168,16 +167,15 @@ function HymnModal({ isOpen, onClose, onSave, editingHymn }) {
         </div>
         <div>
           <label className="label-uppercase mb-2 block">Tipo de Hino</label>
-          <select value={form.tonalidade} onChange={(e) => setForm(f => ({ ...f, tonalidade: e.target.value }))} className="select-apple w-full">
-            <option value="">Selecione o tipo...</option>
-            {hymnTypes.map(t => (
-              <option key={t.id} value={t.label}>{t.label}</option>
-            ))}
-            {/* Fallback caso existam dados antigos de tonalidade que não estão na lista de tipos */}
-            {form.tonalidade && !hymnTypes.find(t => t.label === form.tonalidade) && (
-              <option value={form.tonalidade}>{form.tonalidade} (Legado)</option>
-            )}
-          </select>
+          <Select
+            options={[
+              { value: '', label: 'Selecione o tipo...' },
+              ...hymnTypes,
+              ...(form.tonalidade && !hymnTypes.find(t => t.label === form.tonalidade) ? [{ value: form.tonalidade, label: `${form.tonalidade} (Legado)` }] : [])
+            ]}
+            value={form.tonalidade}
+            onChange={(val) => setForm(f => ({ ...f, tonalidade: val }))}
+          />
         </div>
         <div className="flex gap-3 pt-2">
           <button type="button" onClick={onClose} className="btn-apple-secondary flex-1">Cancelar</button>
@@ -288,14 +286,11 @@ function HistoricoTab({ onEditarProgramacao, onExcluirProgramacao }) {
             />
           </div>
           <div className="w-full md:w-56">
-            <select
-              value={filterTipoReuniao}
-              onChange={(e) => setFilterTipoReuniao(e.target.value)}
-              className="select-apple w-full"
-            >
-              <option value="">Tipo de Reunião (Todos)</option>
-              {meetingTypes.map(t => <option key={t.id} value={t.label}>{t.label}</option>)}
-            </select>
+          <Select
+            options={[{ value: '', label: 'Tipo de Reunião (Todos)' }, ...meetingTypes]}
+            value={filterTipoReuniao}
+            onChange={(val) => setFilterTipoReuniao(val)}
+          />
           </div>
           <div className="w-full md:w-44">
             <input
@@ -307,22 +302,16 @@ function HistoricoTab({ onEditarProgramacao, onExcluirProgramacao }) {
           </div>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <select
+          <Select
+            options={[{ value: '', label: 'Tipo de Hino (Todos)' }, ...hymnTypes]}
             value={filterTipoHino}
-            onChange={(e) => setFilterTipoHino(e.target.value)}
-            className="select-apple w-full"
-          >
-            <option value="">Tipo de Hino (Todos)</option>
-            {hymnTypes.map(t => <option key={t.id} value={t.label}>{t.label}</option>)}
-          </select>
-          <select
+            onChange={(val) => setFilterTipoHino(val)}
+          />
+          <Select
+            options={[{ value: '', label: 'Regente (Todos)' }, ...conductors.map(c => ({ value: c.nome, label: c.nome }))]}
             value={filterRegente}
-            onChange={(e) => setFilterRegente(e.target.value)}
-            className="select-apple w-full"
-          >
-            <option value="">Regente (Todos)</option>
-            {conductors.map(c => <option key={c.id} value={c.nome}>{c.nome}</option>)}
-          </select>
+            onChange={(val) => setFilterRegente(val)}
+          />
         </div>
       </div>
 
@@ -577,10 +566,12 @@ function ProgramacaoForm({ programacaoEditando, onLimparEdicao, onCancelarEdicao
             </div>
             <div className="flex items-center gap-2">
               <label className="label-uppercase">Tipo de Reunião</label>
-              <select value={serviceType} onChange={(e) => setServiceType(e.target.value)} className={`select-apple w-56 sm:w-64 ${errors.serviceType ? 'border-red-400 ring-2 ring-red-400' : ''}`}>
-                <option value="">Selecionar...</option>
-                {meetingTypes.map((t) => <option key={t.id} value={t.label}>{t.label}</option>)}
-              </select>
+              <Select
+                options={[{ value: '', label: 'Selecionar...' }, ...meetingTypes]}
+                value={serviceType}
+                onChange={(val) => setServiceType(val)}
+                className={`${errors.serviceType ? 'ring-2 ring-red-400' : ''}`}
+              />
             </div>
             <div className="flex items-center gap-2 flex-1 min-w-[220px]">
               <label className="label-uppercase">Responsável</label>
