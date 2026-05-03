@@ -104,7 +104,10 @@ function buildPrintHTML(canvasSections, headerConfig) {
 // ─── Placeholder para os sub-componentes (Tasks 4-7) ─────────────────────────
 
 function PrintSidebar({ sidebarHymns, canvasSections, onDragStart, onBack }) {
-  const hymnIdsInCanvas = canvasSections.flatMap(s => s.hymns.map(h => h.id))
+  const hymnIdsInCanvas = useMemo(
+    () => canvasSections.flatMap(s => s.hymns.map(h => h.id)),
+    [canvasSections]
+  )
 
   return (
     <aside className="w-80 shrink-0 fixed left-0 top-16 bottom-0 flex flex-col bg-[#F5F5F7] dark:bg-[#1C1C1E] border-r border-gray-200/80 dark:border-gray-700/80 z-30">
@@ -290,11 +293,11 @@ export default function HymnPrintPage() {
     if (item.type === 'sidebar') {
       const hymn = sidebarHymns.find(h => h.id === item.hymnId)
       if (!hymn) return
-      setCanvasSections(prev => prev.map(s =>
-        s.id === targetSectionId
-          ? { ...s, hymns: [...s.hymns, { ...hymn, showRegente: true, showNumber: true, showType: true }] }
-          : s
-      ))
+      setCanvasSections(prev => prev.map(s => {
+        if (s.id !== targetSectionId) return s
+        if (s.hymns.some(h => h.id === hymn.id)) return s
+        return { ...s, hymns: [...s.hymns, { ...hymn, showRegente: true, showNumber: true, showType: true }] }
+      }))
     } else if (item.type === 'canvas' && item.sectionId !== targetSectionId) {
       setCanvasSections(prev => {
         const src = prev.find(s => s.id === item.sectionId)
