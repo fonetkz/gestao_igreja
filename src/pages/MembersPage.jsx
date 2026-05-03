@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import { Search, Edit2, Plus, ClipboardList, History, Bell, Users2, MessageSquare, Check, X, Cake, CheckCircle, BellRing, Clock, XCircle, Music, ChevronUp, ChevronDown, Trash2, Info } from 'lucide-react'
 import Topbar from '../components/layout/Topbar'
 import Select from '../components/ui/Select'
+import MultiSelect from '../components/ui/MultiSelect'
 import useMembersStore from '../store/membersStore'
 import useSettingsStore from '../store/settingsStore'
 import useToastStore from '../store/toastStore'
@@ -96,6 +97,11 @@ const formatarTelefone = (phone) => {
   return phone
 }
 
+const toTitleCase = (str) => {
+  if (!str) return str
+  return str.toLowerCase().split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
+}
+
 export default function MembersPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [sortConfig, setSortConfig] = useState({ key: 'nome', direction: 'asc' })
@@ -115,6 +121,9 @@ export default function MembersPage() {
   const [alertSearch, setAlertSearch] = useState('')
   const [alertSubTab, setAlertSubTab] = useState('pendentes')
   const [alertMonth, setAlertMonth] = useState(new Date().toISOString().slice(0, 7))
+  const [activeMetric, setActiveMetric] = useState(null)
+
+  const toggleMetric = (metric) => setActiveMetric(prev => prev === metric ? null : metric)
 
   const storeMembers = useMembersStore((s) => s.members) || []
   const storeAttendance = useMembersStore((s) => s.attendance) || []
@@ -158,6 +167,11 @@ export default function MembersPage() {
     if (instrumentoFilter && !member.instrumento_voz?.includes(instrumentoFilter)) return false
     if (funcaoFilter && !member.cargo?.includes(funcaoFilter)) return false
     if (statusFilter && member.status !== statusFilter) return false
+    if (activeMetric === 'ativos' && member.status !== 'Ativo') return false
+    if (activeMetric === 'licenca' && member.status !== 'Licença') return false
+    if (activeMetric === 'inativos' && member.status !== 'Inativo') return false
+    if (activeMetric === 'orquestra' && !member.instrumento_voz) return false
+    if (activeMetric === 'aniversarios' && !isAniversarioMes(member.data_nascimento)) return false
     return true
   }).sort((a, b) => {
     if (!sortConfig.key) return 0
@@ -298,95 +312,118 @@ export default function MembersPage() {
           <div className="space-y-4">
             {/* Cards de Métricas */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-              <div className="metric-card animate-slide-up group">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 transition-transform duration-300 group-hover:scale-110">
-                    <Users2 size={24} strokeWidth={2} />
+              {[
+                { key: 'total',         label: 'Total',        value: stats.total,           icon: <Users2 size={24} strokeWidth={2} />,    color: 'blue' },
+                { key: 'ativos',        label: 'Ativos',       value: stats.ativos,          icon: <CheckCircle size={24} strokeWidth={2} />, color: 'green' },
+                { key: 'licenca',       label: 'Licença',      value: stats.licenca,         icon: <Clock size={24} strokeWidth={2} />,     color: 'amber' },
+                { key: 'inativos',      label: 'Inativos',     value: stats.inativos,        icon: <XCircle size={24} strokeWidth={2} />,   color: 'red' },
+                { key: 'orquestra',     label: 'Orquestra',    value: stats.orquestra,       icon: <Music size={24} strokeWidth={2} />,     color: 'purple' },
+                { key: 'aniversarios',  label: 'Aniversários', value: stats.aniversariantes, icon: <Cake size={24} strokeWidth={2} />,      color: 'pink' },
+              ].map(({ key, label, value, icon, color }) => {
+                const isActive = activeMetric === key
+                const colorMap = {
+                  blue:   { icon: 'bg-blue-100   dark:bg-blue-900/30   text-blue-600   dark:text-blue-400',   ring: 'ring-2 ring-blue-400   dark:ring-blue-500' },
+                  green:  { icon: 'bg-green-100  dark:bg-green-900/30  text-green-600  dark:text-green-400',  ring: 'ring-2 ring-green-400  dark:ring-green-500' },
+                  amber:  { icon: 'bg-amber-100  dark:bg-amber-900/30  text-amber-600  dark:text-amber-400',  ring: 'ring-2 ring-amber-400  dark:ring-amber-500' },
+                  red:    { icon: 'bg-red-100    dark:bg-red-900/30    text-red-600    dark:text-red-400',    ring: 'ring-2 ring-red-400    dark:ring-red-500' },
+                  purple: { icon: 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400', ring: 'ring-2 ring-purple-400 dark:ring-purple-500' },
+                  pink:   { icon: 'bg-pink-100   dark:bg-pink-900/30   text-pink-600   dark:text-pink-400',   ring: 'ring-2 ring-pink-400   dark:ring-pink-500' },
+                }
+                const c = colorMap[color]
+                return (
+                  <div
+                    key={key}
+                    onClick={() => key === 'total' ? setActiveMetric(null) : toggleMetric(key)}
+                    className={`metric-card animate-slide-up group transition-all cursor-pointer ${isActive || (key === 'total' && activeMetric === null) ? c.ring + ' bg-gray-50 dark:bg-[#3A3A3C]' : ''}`}
+                  >
+                    <div className="mb-4">
+                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-transform duration-300 group-hover:scale-110 ${c.icon}`}>
+                        {icon}
+                      </div>
+                    </div>
+                    <p className="text-4xl font-bold text-gray-900 dark:text-white">{value}</p>
+                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mt-1">{label}</p>
                   </div>
-                </div>
-                <p className="text-4xl font-bold text-gray-900 dark:text-white">{stats.total}</p>
-                <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mt-1">Total</p>
-              </div>
-              <div className="metric-card animate-slide-up group">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 transition-transform duration-300 group-hover:scale-110">
-                    <CheckCircle size={24} strokeWidth={2} />
-                  </div>
-                </div>
-                <p className="text-4xl font-bold text-gray-900 dark:text-white">{stats.ativos}</p>
-                <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mt-1">Ativos</p>
-              </div>
-              <div className="metric-card animate-slide-up group">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 transition-transform duration-300 group-hover:scale-110">
-                    <Clock size={24} strokeWidth={2} />
-                  </div>
-                </div>
-                <p className="text-4xl font-bold text-gray-900 dark:text-white">{stats.licenca}</p>
-                <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mt-1">Licença</p>
-              </div>
-              <div className="metric-card animate-slide-up group">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 transition-transform duration-300 group-hover:scale-110">
-                    <XCircle size={24} strokeWidth={2} />
-                  </div>
-                </div>
-                <p className="text-4xl font-bold text-gray-900 dark:text-white">{stats.inativos}</p>
-                <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mt-1">Inativos</p>
-              </div>
-              <div className="metric-card animate-slide-up group">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 transition-transform duration-300 group-hover:scale-110">
-                    <Music size={24} strokeWidth={2} />
-                  </div>
-                </div>
-                <p className="text-4xl font-bold text-gray-900 dark:text-white">{stats.orquestra}</p>
-                <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mt-1">Orquestra</p>
-              </div>
-              <div className="metric-card animate-slide-up group">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400 transition-transform duration-300 group-hover:scale-110">
-                    <Cake size={24} strokeWidth={2} />
-                  </div>
-                </div>
-                <p className="text-4xl font-bold text-gray-900 dark:text-white">{stats.aniversariantes}</p>
-                <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mt-1">Aniversários</p>
-              </div>
+                )
+              })}
             </div>
 
-            {/* Filtros Justificados */}
-            <div className="bg-white dark:bg-[#2C2C2E] rounded-2xl border border-gray-100 dark:border-gray-700 p-4 shadow-sm">
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
-                <div className="relative">
-                  <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                  <input type="text" placeholder="Buscar..." value={searchText} onChange={(e) => setSearchText(e.target.value)} className="input-apple pl-9" />
+            {/* Filtros */}
+            {(() => {
+              const hasActiveFilters = searchText || vozFilter || instrumentoFilter || funcaoFilter || statusFilter
+              const clearFilters = () => { setSearchText(''); setVozFilter(''); setInstrumentoFilter(''); setFuncaoFilter(''); setStatusFilter('') }
+              return (
+                <div className="bg-white dark:bg-[#2C2C2E] rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-700">
+                    <div className="flex items-center gap-2 text-sm font-medium text-gray-500 dark:text-gray-400">
+                      <Search size={14} />
+                      Filtros
+                      {hasActiveFilters && (
+                        <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-500 text-white text-xs font-bold">
+                          {[searchText, vozFilter, instrumentoFilter, funcaoFilter, statusFilter].filter(Boolean).length}
+                        </span>
+                      )}
+                    </div>
+                    {hasActiveFilters && (
+                      <button
+                        onClick={clearFilters}
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                      >
+                        <X size={13} />
+                        Limpar filtros
+                      </button>
+                    )}
+                  </div>
+                  <div className="p-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Buscar</label>
+                        <div className="relative">
+                          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                          <input type="text" placeholder="Nome ou telefone..." value={searchText} onChange={(e) => setSearchText(e.target.value)} className="input-apple pl-8 text-sm" />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Voz / Naipe</label>
+                        <Select
+                          options={[{ value: '', label: 'Todas' }, ...voices.map(v => ({ value: v.label, label: v.label }))]}
+                          value={vozFilter}
+                          onChange={(val) => setVozFilter(val)}
+                          size="sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Instrumento</label>
+                        <Select
+                          options={[{ value: '', label: 'Todos' }, ...instruments.map(v => ({ value: v.label, label: v.label }))]}
+                          value={instrumentoFilter}
+                          onChange={(val) => setInstrumentoFilter(val)}
+                          size="sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Função</label>
+                        <Select
+                          options={[{ value: '', label: 'Todas' }, ...positions.map(v => ({ value: v.label, label: v.label }))]}
+                          value={funcaoFilter}
+                          onChange={(val) => setFuncaoFilter(val)}
+                          size="sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Status</label>
+                        <Select
+                          options={[{ value: '', label: 'Todos' }, ...statuses.map(v => ({ value: v.label, label: v.label }))]}
+                          value={statusFilter}
+                          onChange={(val) => setStatusFilter(val)}
+                          size="sm"
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <Select
-                  options={[{ value: '', label: 'Todas as vozes' }, ...voices.map(v => ({ value: v.label, label: v.label }))]}
-                  value={vozFilter}
-                  onChange={(val) => setVozFilter(val)}
-                  size="sm"
-                />
-                <Select
-                  options={[{ value: '', label: 'Todos os instrum.' }, ...instruments.map(v => ({ value: v.label, label: v.label }))]}
-                  value={instrumentoFilter}
-                  onChange={(val) => setInstrumentoFilter(val)}
-                  size="sm"
-                />
-                <Select
-                  options={[{ value: '', label: 'Todas as funções' }, ...positions.map(v => ({ value: v.label, label: v.label }))]}
-                  value={funcaoFilter}
-                  onChange={(val) => setFuncaoFilter(val)}
-                  size="sm"
-                />
-                <Select
-                  options={[{ value: '', label: 'Todos os status' }, ...statuses.map(v => ({ value: v.label, label: v.label }))]}
-                  value={statusFilter}
-                  onChange={(val) => setStatusFilter(val)}
-                  size="sm"
-                />
-              </div>
-            </div>
+              )
+            })()}
 
             <div className="bg-white dark:bg-[#2C2C2E] rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
               <table className="w-full">
@@ -430,15 +467,15 @@ export default function MembersPage() {
                   ) : (
                     filteredMembers.map(member => (
                       <tr key={member.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30">
-                        <td className="px-4 py-3"><div className="flex items-center gap-3"><Avatar name={member.nome} size="sm" /><div className="flex items-center gap-1.5"><span className="font-medium text-gray-900 dark:text-white">{member.nome}</span>{isAniversarioMes(member.data_nascimento) && <Cake size={14} className="text-amber-400" title="Aniversariante do Mês" />}</div></div></td>
-                        <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">{formatarTelefone(member.telefone)}</td>
+                        <td className="px-4 py-3 whitespace-nowrap"><div className="flex items-center gap-3"><Avatar name={member.nome} size="sm" /><div className="flex items-center gap-1.5"><span className="font-medium text-gray-900 dark:text-white">{toTitleCase(member.nome)}</span>{isAniversarioMes(member.data_nascimento) && <Cake size={14} className="text-amber-400" title="Aniversariante do Mês" />}</div></div></td>
+                        <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">{formatarTelefone(member.telefone)}</td>
                         <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{formatarDataNascimento(member.data_nascimento)}</td>
-                        <td className="px-4 py-3">{member.secao ? <Badge variant="blue">{member.secao}</Badge> : <span className="text-gray-400">—</span>}</td>
+                        <td className="px-4 py-3">{member.secao ? <Badge variant="blue">{toTitleCase(member.secao)}</Badge> : <span className="text-gray-400">—</span>}</td>
                         <td className="px-4 py-3">
-                          {member.instrumento_voz && member.instrumento_voz.split(', ').filter(i => i !== member.secao).join(', ') ? <Badge variant="purple">{member.instrumento_voz.split(', ').filter(i => i !== member.secao).join(', ')}</Badge> : <span className="text-gray-400">—</span>}
+                          {member.instrumento_voz && member.instrumento_voz.split(', ').filter(i => i !== member.secao).sort((a, b) => a.localeCompare(b, 'pt-BR')).join(', ') ? <Badge variant="purple">{toTitleCase(member.instrumento_voz.split(', ').filter(i => i !== member.secao).sort((a, b) => a.localeCompare(b, 'pt-BR')).join(', '))}</Badge> : <span className="text-gray-400">—</span>}
                         </td>
-                        <td className="px-4 py-3">{member.cargo ? <Badge variant="default">{member.cargo}</Badge> : <span className="text-gray-400">—</span>}</td>
-                        <td className="px-4 py-3"><Badge variant={getStatusVariant(member.status)}>{member.status}</Badge></td>
+                        <td className="px-4 py-3">{member.cargo ? <Badge variant="default">{toTitleCase(member.cargo.split(', ').sort((a, b) => a.localeCompare(b, 'pt-BR')).join(', '))}</Badge> : <span className="text-gray-400">—</span>}</td>
+                        <td className="px-4 py-3"><Badge variant={getStatusVariant(member.status)}>{toTitleCase(member.status)}</Badge></td>
                         <td className="px-4 py-3 text-right">
                           <button onClick={() => {
                             setEditingMember({
@@ -535,69 +572,65 @@ export default function MembersPage() {
                 }
 
                 return (
-                  <table className="w-full">
-                    <thead className="bg-gray-50 dark:bg-[#1C1C1E] border-b border-gray-100 dark:border-gray-700">
-                      <tr>
-                        <th className="text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase px-4 py-3">Data</th>
-                        <th className="text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase px-4 py-3">Contexto</th>
-                        <th className="text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase px-4 py-3">Presentes</th>
-                        <th className="text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase px-4 py-3">Ausentes</th>
-                        <th className="text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase px-4 py-3">Presença</th>
-                        <th className="text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase px-4 py-3">Ações</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                      {filtered.map(item => {
-                        const registros = item.registros_json || []
-                        const presentes = registros.filter(r => r.presente).length
-                        const ausentes = registros.filter(r => !r.presente).length
-                        const attendancePercent = registros.length > 0 ? Math.round((presentes / registros.length) * 100) : 0
+                  <div className="divide-y divide-gray-100 dark:divide-gray-700">
+                    {filtered.map(item => {
+                      const registros = item.registros_json || []
+                      const presentes = registros.filter(r => r.presente).length
+                      const ausentes = registros.filter(r => !r.presente).length
+                      const attendancePercent = registros.length > 0 ? Math.round((presentes / registros.length) * 100) : 0
 
-                        let dataFormatada = '—'
-                        if (item.data) {
-                          const dataStr = item.data.includes('/') ? item.data.split('/').reverse().join('-') : item.data
-                          const dateObj = new Date(`${dataStr}T12:00:00`)
-                          if (!isNaN(dateObj.getTime())) {
-                            const rawDate = dateObj.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
-                            dataFormatada = rawDate.charAt(0).toUpperCase() + rawDate.slice(1)
-                          } else {
-                            dataFormatada = item.data
-                          }
+                      let dataFormatada = '—'
+                      if (item.data) {
+                        const dataStr = item.data.includes('/') ? item.data.split('/').reverse().join('-') : item.data
+                        const dateObj = new Date(`${dataStr}T12:00:00`)
+                        if (!isNaN(dateObj.getTime())) {
+                          const rawDate = dateObj.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+                          dataFormatada = rawDate.charAt(0).toUpperCase() + rawDate.slice(1)
+                        } else {
+                          dataFormatada = item.data
                         }
+                      }
 
-                        const percentClass = attendancePercent >= 80 ? 'text-green-600' : attendancePercent >= 50 ? 'text-yellow-600' : 'text-red-600'
+                      const percentClass = attendancePercent >= 80 ? 'text-green-600' : attendancePercent >= 50 ? 'text-yellow-600' : 'text-red-600'
 
-                        return (
-                          <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-[#2C2C2E] transition-colors">
-                            <td className="px-4 py-3">
-                              <p className="font-semibold text-gray-900 dark:text-white">{dataFormatada}</p>
-                            </td>
-                            <td className="px-4 py-3">
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">
-                                {item.contexto}
-                              </span>
-                            </td>
-                            <td className="px-4 py-3 text-center">
-                              <p className="text-xl font-bold text-green-600">{presentes}</p>
-                            </td>
-                            <td className="px-4 py-3 text-center">
-                              <p className="text-xl font-bold text-red-500">{ausentes}</p>
-                            </td>
-                            <td className="px-4 py-3 text-center">
-                              <p className={`text-lg font-semibold ${percentClass}`}>{attendancePercent}%</p>
-                            </td>
-                            <td className="px-4 py-3 text-right">
-                              <button onClick={() => setEditingChamada(item)} className="px-3 py-1.5 text-sm font-medium text-[#007AFF] border border-dashed border-[#007AFF]/30 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors flex items-center gap-2 ml-auto">
+                      return (
+                        <div key={item.id} className="p-4 hover:bg-gray-50 dark:hover:bg-[#3A3A3C] transition-colors">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
+                                <History size={18} />
+                              </div>
+                              <div>
+                                <p className="font-semibold text-gray-900 dark:text-white">{dataFormatada}</p>
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 mt-0.5">
+                                  {item.contexto}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-6">
+                              <div className="text-center">
+                                <p className="text-xl font-bold text-green-600">{presentes}</p>
+                                <p className="text-xs text-gray-400 dark:text-gray-500">presentes</p>
+                              </div>
+                              <div className="text-center">
+                                <p className="text-xl font-bold text-red-500">{ausentes}</p>
+                                <p className="text-xs text-gray-400 dark:text-gray-500">ausentes</p>
+                              </div>
+                              <div className="text-center">
+                                <p className={`text-xl font-bold ${percentClass}`}>{attendancePercent}%</p>
+                                <p className="text-xs text-gray-400 dark:text-gray-500">presença</p>
+                              </div>
+                              <button onClick={() => setEditingChamada(item)} className="px-3 py-1.5 text-sm font-medium text-[#007AFF] border border-dashed border-[#007AFF]/30 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors flex items-center gap-2">
                                 <Edit2 size={16} /> Editar
                               </button>
-                            </td>
-                          </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
                 )
-              })}
+              })()}
 
             </div>
           </>
@@ -606,49 +639,73 @@ export default function MembersPage() {
 
         {
           activeTab === 'alertas' && (
-            <div className="bg-white dark:bg-[#2C2C2E] rounded-2xl border border-gray-100 dark:border-gray-700 p-5 shadow-sm">
-              <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
-                <div className="flex items-center gap-1.5">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Alertas de Frequência</h3>
-                  <Info
-                    size={16}
-                    className="text-gray-400 cursor-help transition-colors hover:text-gray-600 dark:hover:text-gray-300"
-                    title="Membros ativos com 3 ou mais faltas não justificadas no mês selecionado."
-                  />
+            <>
+            <div className="bg-white dark:bg-[#2C2C2E] rounded-2xl border border-gray-100 dark:border-gray-700 p-4 shadow-sm">
+              <div className="flex items-center gap-1.5 mb-4">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Alertas de Frequência</h3>
+                <Info
+                  size={16}
+                  className="text-gray-400 cursor-help transition-colors hover:text-gray-600 dark:hover:text-gray-300"
+                  title="Membros ativos com 3 ou mais faltas não justificadas no mês selecionado."
+                />
+              </div>
+              <div className="flex flex-wrap items-end gap-4">
+                <div className="relative flex-1 min-w-[200px]">
+                  <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Buscar</label>
+                  <div className="relative">
+                    <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input
+                      type="text"
+                      placeholder="Buscar por nome..."
+                      value={alertSearch}
+                      onChange={(e) => setAlertSearch(e.target.value)}
+                      className="input-apple pl-10 w-full"
+                    />
+                  </div>
                 </div>
-                <div className="flex flex-wrap items-center gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Mês</label>
                   <input
                     type="month"
                     value={alertMonth}
                     onChange={(e) => setAlertMonth(e.target.value)}
-                    className="input-apple w-48"
-                  />
-                  <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
-                    <button onClick={() => setAlertSubTab('pendentes')} className={`flex items-center px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${alertSubTab === 'pendentes' ? 'bg-white dark:bg-[#2C2C2E] text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
-                      <div className="relative flex items-center justify-center mr-1.5">
-                        <BellRing size={14} />
-                        {hasPendingAlerts && <span className={`absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-red-500 rounded-full ring-2 ${alertSubTab === 'pendentes' ? 'ring-white dark:ring-[#2C2C2E]' : 'ring-gray-100 dark:ring-gray-800'}`} />}
-                      </div>
-                      Pendentes
-                    </button>
-                    <button onClick={() => setAlertSubTab('justificadas')} className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${alertSubTab === 'justificadas' ? 'bg-white dark:bg-[#2C2C2E] text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>Justificadas</button>
-                  </div>
-                </div>
-              </div>
-              <div className="mb-4">
-                <div className="relative">
-                  <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder="Buscar por nome..."
-                    value={alertSearch}
-                    onChange={(e) => setAlertSearch(e.target.value)}
-                    className="input-apple pl-10 w-full"
+                    className="input-apple w-auto min-w-[140px]"
                   />
                 </div>
               </div>
+            </div>
 
-              <div className="space-y-3">
+            <div className="bg-white dark:bg-[#2C2C2E] rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm mt-4">
+              <div className="flex border-b border-gray-100 dark:border-gray-700 px-4">
+                <button
+                  onClick={() => setAlertSubTab('pendentes')}
+                  className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors -mb-px ${alertSubTab === 'pendentes' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
+                >
+                  <div className="relative flex items-center justify-center">
+                    <BellRing size={14} />
+                    {hasPendingAlerts && <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-red-500 rounded-full" />}
+                  </div>
+                  Pendentes
+                  {pendingAlerts.length > 0 && (
+                    <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${alertSubTab === 'pendentes' ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400' : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'}`}>
+                      {pendingAlerts.length}
+                    </span>
+                  )}
+                </button>
+                <button
+                  onClick={() => setAlertSubTab('justificadas')}
+                  className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors -mb-px ${alertSubTab === 'justificadas' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
+                >
+                  <CheckCircle size={14} />
+                  Justificadas
+                  {justifiedAlerts.length > 0 && (
+                    <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${alertSubTab === 'justificadas' ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400' : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'}`}>
+                      {justifiedAlerts.length}
+                    </span>
+                  )}
+                </button>
+              </div>
+              <div className="p-4 space-y-3">
                 {alertSubTab === 'pendentes' ? (
                   pendingAlerts.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
@@ -708,6 +765,7 @@ export default function MembersPage() {
                 )}
               </div>
             </div>
+            </>
           )
         }
       </div >
@@ -719,13 +777,13 @@ export default function MembersPage() {
           onSave={async (data) => {
             try {
               const payload = {
-                nome: data.nome,
+                nome: toTitleCase(data.nome),
                 telefone: data.telefone ? data.telefone.replace(/\D/g, '') : '',
                 data_nascimento: data.data_nascimento,
-                secao: data.secao,
-                instrumento_voz: (data.instrumentos || []).join(', '),
-                cargo: (data.cargos || []).join(', '),
-                status: data.status
+                secao: toTitleCase(data.secao),
+                instrumento_voz: (data.instrumentos || []).map(toTitleCase).join(', '),
+                cargo: (data.cargos || []).map(toTitleCase).join(', '),
+                status: toTitleCase(data.status)
               }
               if (editingMember && editingMember.id) {
                 await updateMember(editingMember.id, payload)
@@ -937,7 +995,7 @@ function ChamadaTab({ members, isEditing = false, chamada = null, onSaveEdit = n
               <button onClick={handleSave} className="bg-[#007AFF] text-white px-6 py-2 rounded-xl font-medium hover:bg-blue-600">Salvar Alterações</button>
             </div>
           ) : (
-            <button onClick={handleSave} disabled={loading} className="bg-[#007AFF] text-white px-6 py-2 rounded-xl font-medium hover:bg-blue-600 disabled:opacity-50 transition-all">
+            <button onClick={handleSave} disabled={loading || success} className="bg-[#007AFF] text-white px-6 py-2 rounded-xl font-medium hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
               {loading ? 'Salvando...' : success ? 'Salvo com sucesso!' : 'Salvar Chamada'}
             </button>
           )}
@@ -1045,36 +1103,8 @@ function MemberForm({ member, onSave, onCancel, onDelete }) {
     return { nome: '', telefone: '', data_nascimento: '', secao: '', instrumentos: [], cargos: [], status: 'Ativo' }
   })
 
-  const formInstrumentos = form?.instrumentos || []
-  const formCargos = form?.cargos || []
-
-  const [showInstDropdown, setShowInstDropdown] = useState(false)
-  const [showCargoDropdown, setShowCargoDropdown] = useState(false)
-
-  const instrumentosDisponiveis = instruments.map(i => i.label)
-  const cargosDisponiveis = positions.map(p => p.label)
-
-  const addInstrumento = (inst) => {
-    if (inst && !formInstrumentos.includes(inst)) {
-      setForm(f => ({ ...f, instrumentos: [...(f.instrumentos || []), inst] }))
-    }
-    setShowInstDropdown(false)
-  }
-
-  const removeInstrumento = (inst) => {
-    setForm(f => ({ ...f, instrumentos: (f.instrumentos || []).filter(i => i !== inst) }))
-  }
-
-  const addCargo = (cargo) => {
-    if (cargo && !formCargos.includes(cargo)) {
-      setForm(f => ({ ...f, cargos: [...(f.cargos || []), cargo] }))
-    }
-    setShowCargoDropdown(false)
-  }
-
-  const removeCargo = (cargo) => {
-    setForm(f => ({ ...f, cargos: (f.cargos || []).filter(c => c !== cargo) }))
-  }
+  const instrumentOptions = instruments.map(i => ({ value: i.label, label: i.label }))
+  const cargoOptions = positions.map(p => ({ value: p.label, label: p.label }))
 
   return (
     <div className="space-y-6">
@@ -1117,56 +1147,24 @@ function MemberForm({ member, onSave, onCancel, onDelete }) {
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <div className="relative">
+        <div>
           <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Instrumentos</label>
-          <div
-            onClick={() => setShowInstDropdown(!showInstDropdown)}
-            className="input-apple w-full min-h-[42px] cursor-pointer flex flex-wrap gap-1"
-          >
-            {formInstrumentos.length === 0 ? (
-              <span className="text-gray-400 dark:text-gray-500">Selecionar...</span>
-            ) : (
-              formInstrumentos.map(inst => (
-                <span key={inst} className="inline-flex items-center gap-1 bg-purple-100 text-purple-700 px-2 py-1 rounded-full text-xs">
-                  {inst}
-                  <button type="button" onClick={(e) => { e.stopPropagation(); removeInstrumento(inst); }} className="hover:text-purple-900">×</button>
-                </span>
-              ))
-            )}
-          </div>
-          {showInstDropdown && (
-            <div className="absolute z-10 w-full mt-1 bg-white dark:bg-[#2C2C2E] border border-gray-200 dark:border-gray-600 rounded-xl shadow-lg max-h-40 overflow-y-auto">
-              {instrumentosDisponiveis.map(inst => (
-                <div key={inst} onClick={() => addInstrumento(inst)} className="px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer text-sm text-gray-900 dark:text-gray-100">{inst}</div>
-              ))}
-            </div>
-          )}
+          <MultiSelect
+            options={instrumentOptions}
+            values={form.instrumentos || []}
+            onChange={(vals) => setForm(f => ({ ...f, instrumentos: vals }))}
+            placeholder="Selecionar..."
+            color="purple"
+          />
         </div>
-
-        <div className="relative">
+        <div>
           <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Funções</label>
-          <div
-            onClick={() => setShowCargoDropdown(!showCargoDropdown)}
-            className="input-apple w-full min-h-[42px] cursor-pointer flex flex-wrap gap-1"
-          >
-            {formCargos.length === 0 ? (
-              <span className="text-gray-400 dark:text-gray-500">Selecionar...</span>
-            ) : (
-              formCargos.map(cargo => (
-                <span key={cargo} className="inline-flex items-center gap-1 bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs">
-                  {cargo}
-                  <button type="button" onClick={(e) => { e.stopPropagation(); removeCargo(cargo); }} className="hover:text-blue-900">×</button>
-                </span>
-              ))
-            )}
-          </div>
-          {showCargoDropdown && (
-            <div className="absolute z-10 w-full mt-1 bg-white dark:bg-[#2C2C2E] border border-gray-200 dark:border-gray-600 rounded-xl shadow-lg max-h-40 overflow-y-auto">
-              {cargosDisponiveis.map(cargo => (
-                <div key={cargo} onClick={() => addCargo(cargo)} className="px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer text-sm text-gray-900 dark:text-gray-100">{cargo}</div>
-              ))}
-            </div>
-          )}
+          <MultiSelect
+            options={cargoOptions}
+            values={form.cargos || []}
+            onChange={(vals) => setForm(f => ({ ...f, cargos: vals }))}
+            placeholder="Selecionar..."
+          />
         </div>
       </div>
 

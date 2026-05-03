@@ -1,18 +1,20 @@
 import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { ChevronDown, Check, Search } from 'lucide-react';
 
 export default function Select({ label, options = [], value, onChange, placeholder = "Selecione...", className = "", size = "md", sortOptions = true }) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [dropdownPos, setDropdownPos] = useState({ left: 0, top: 0, width: 0 });
-  const dropdownRef = useRef(null);
+  const containerRef = useRef(null);
+  const dropdownElRef = useRef(null);
   const searchInputRef = useRef(null);
 
   const isSm = size === "sm";
 
   const updatePosition = () => {
-    if (dropdownRef.current) {
-      const rect = dropdownRef.current.getBoundingClientRect();
+    if (containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
       setDropdownPos({
         left: rect.left,
         top: rect.bottom + 6,
@@ -23,10 +25,10 @@ export default function Select({ label, options = [], value, onChange, placehold
 
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setIsOpen(false);
-        setSearchTerm('');
-      }
+      if (containerRef.current && containerRef.current.contains(event.target)) return;
+      if (dropdownElRef.current && dropdownElRef.current.contains(event.target)) return;
+      setIsOpen(false);
+      setSearchTerm('');
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
@@ -70,26 +72,29 @@ export default function Select({ label, options = [], value, onChange, placehold
   const displayValue = selectedOption ? selectedOption.label : placeholder;
 
   return (
-    <div className={"relative " + className} ref={dropdownRef}>
-      {label && (
-        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-          {label}
-        </label>
-      )}
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className={"w-full flex items-center justify-between px-4 py-3 text-sm rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 shadow-sm hover:border-blue-300 dark:hover:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-all min-h-[44px]"}
-      >
-        <span className={(value ? "font-medium" : "text-gray-400") + " truncate pr-2 text-left"}>
-          {displayValue}
-        </span>
-        <ChevronDown size={isSm ? 14 : 18} className={"text-gray-400 shrink-0 transition-transform duration-200 " + (isOpen ? 'rotate-180' : '')} />
-      </button>
+    <>
+      <div className={"relative " + className} ref={containerRef}>
+        {label && (
+          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+            {label}
+          </label>
+        )}
+        <button
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+          className={"w-full flex items-center justify-between px-4 py-3 text-sm rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 shadow-sm hover:border-blue-300 dark:hover:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-all min-h-[44px]"}
+        >
+          <span className={(value ? "font-medium" : "text-gray-400") + " truncate pr-2 text-left"}>
+            {displayValue}
+          </span>
+          <ChevronDown size={isSm ? 14 : 18} className={"text-gray-400 shrink-0 transition-transform duration-200 " + (isOpen ? 'rotate-180' : '')} />
+        </button>
+      </div>
 
-      {isOpen && (
+      {isOpen && createPortal(
         <div
-          className="fixed z-40 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-2xl overflow-hidden"
+          ref={dropdownElRef}
+          className="fixed z-[100] bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-2xl overflow-hidden"
           style={{ left: dropdownPos.left, top: dropdownPos.top, width: dropdownPos.width }}
         >
           <div className="p-2 border-b border-gray-100 dark:border-gray-700">
@@ -126,8 +131,9 @@ export default function Select({ label, options = [], value, onChange, placehold
               })
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
-    </div>
+    </>
   );
 }
