@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import {
   ArrowLeft, GripVertical, Trash2, Printer, Save,
-  ChevronDown, Plus, Church, X, Check, Hash, Tag, User, LayoutTemplate
+  ChevronDown, Plus, Church, X, Check, Hash, Tag, User, LayoutTemplate,
+  Minus
 } from 'lucide-react'
 import useHymnsStore from '../store/hymnsStore'
 import useAuthStore from '../store/authStore'
@@ -43,31 +44,33 @@ const DEFAULT_SECTIONS = [
 
 // ─── buildPrintHTML ───────────────────────────────────────────────────────────
 
-function buildPrintHTML(canvasSections, headerConfig) {
+function buildPrintHTML(canvasSections, headerConfig, sectionFontSize = 11) {
   const sectionsHTML = canvasSections
     .filter(s => s.hymns.length > 0)
     .map(section => {
       const hymnsHTML = section.hymns.map(hymn => `
-        <div class="hymn-row">
-          ${hymn.showNumber ? `<span class="hymn-num">#${hymn.numero}</span>` : ''}
-          <span class="hymn-title">${hymn.titulo || ''}</span>
-          ${hymn.showType && hymn.tonalidade ? `<span class="hymn-badge">${hymn.tonalidade}</span>` : ''}
+        <div class="hymn-card">
+          ${hymn.showNumber ? `<span class="hymn-num">Nº ${hymn.numero}</span>` : ''}
+          <span class="hymn-title">${(hymn.titulo || '').toUpperCase()}</span>
+          ${hymn.showType && hymn.tonalidade ? `<span class="hymn-key">${hymn.tonalidade}</span>` : ''}
           ${hymn.showRegente && hymn.regente ? `<span class="hymn-regent">Reg: ${hymn.regente}</span>` : ''}
         </div>`).join('')
       return `
         <div class="section">
-          <h3 class="section-title">${section.name}</h3>
+          <div class="section-title"><span>${section.name}</span></div>
           <div class="section-hymns">${hymnsHTML}</div>
         </div>`
     }).join('')
 
+  const logoH = headerConfig.logoHeight || 64
   const headerHTML = `
     <div class="doc-header">
-      ${headerConfig.imageUrl ? `<img src="${headerConfig.imageUrl}" class="header-logo" alt="Logo" />` : ''}
+      ${headerConfig.imageUrl ? `<img src="${headerConfig.imageUrl}" class="header-logo" style="max-height:${logoH}px" alt="Logo" />` : ''}
       <h1 class="header-title">${headerConfig.title || ''}</h1>
       ${headerConfig.subtitle ? `<p class="header-subtitle">${headerConfig.subtitle}</p>` : ''}
-      ${headerConfig.date ? `<p class="header-date">${headerConfig.date}</p>` : ''}
-      ${headerConfig.location ? `<p class="header-location">${headerConfig.location}</p>` : ''}
+      ${headerConfig.date ? `<p class="header-meta">${headerConfig.date}</p>` : ''}
+      ${headerConfig.location ? `<p class="header-meta">${headerConfig.location}</p>` : ''}
+      <div class="header-sep"></div>
     </div>`
 
   return `<!DOCTYPE html>
@@ -75,22 +78,38 @@ function buildPrintHTML(canvasSections, headerConfig) {
 <head>
   <meta charset="UTF-8" />
   <title>Programação de Hinos</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'Inter', sans-serif; padding: 15mm; color: #111827; }
-    .doc-header { text-align: center; padding-bottom: 16px; margin-bottom: 24px; border-bottom: 2px solid #1a2b42; }
-    .header-logo { max-height: 80px; max-width: 200px; object-fit: contain; margin: 0 auto 12px; display: block; }
-    .header-title { font-size: 20px; font-weight: 800; color: #1a2b42; letter-spacing: 0.5px; margin-bottom: 4px; }
-    .header-subtitle { font-size: 11px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 2px; }
-    .header-date, .header-location { font-size: 11px; color: #64748b; margin-top: 2px; }
+    .doc-header { text-align: center; padding-bottom: 20px; margin-bottom: 24px; }
+    .header-logo { max-width: 280px; object-fit: contain; margin: 0 auto 12px; display: block; }
+    .header-title { font-family: 'Playfair Display', Georgia, serif; font-size: 22px; font-weight: 700; color: #1C1C1E; letter-spacing: 0.3px; margin-bottom: 4px; }
+    .header-subtitle { font-family: 'Inter', sans-serif; font-size: 11px; color: #6B7280; font-weight: 500; margin-bottom: 2px; }
+    .header-meta { font-family: 'Inter', sans-serif; font-size: 10px; color: #6B7280; margin-top: 2px; }
+    .header-sep { width: 60px; height: 1.5px; background: #007AFF; margin: 10px auto 0; }
     .section { margin-bottom: 20px; }
-    .section-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 3px; color: #374860; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-bottom: 8px; }
-    .hymn-row { display: flex; align-items: baseline; gap: 8px; padding: 5px 0; border-bottom: 1px solid #f8fafc; }
-    .hymn-num { font-size: 11px; font-weight: 700; color: #007AFF; min-width: 40px; }
-    .hymn-title { font-size: 13px; font-weight: 600; color: #0f172a; flex: 1; }
-    .hymn-badge { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b; background: #f1f5f9; padding: 2px 6px; border-radius: 4px; }
-    .hymn-regent { font-size: 10px; color: #94a3b8; white-space: nowrap; }
+    .section-title {
+      display: flex; align-items: center; gap: 8px;
+      font-family: 'Inter', sans-serif; font-size: ${sectionFontSize}px;
+      font-weight: 600; text-transform: uppercase; letter-spacing: 0.15em;
+      color: #9CA3AF; margin: 14px 0 8px;
+    }
+    .section-title::before, .section-title::after {
+      content: ''; flex: 1; border-top: 1px solid #E5E7EB;
+    }
+    .section-title span { white-space: nowrap; }
+    .hymn-card {
+      display: flex; align-items: center; gap: 8px;
+      background: #FAFCFF; border-left: 2px solid rgba(0,122,255,0.25);
+      border-radius: 4px; padding: 5px 8px; margin-bottom: 4px;
+    }
+    .hymn-num { font-family: 'Inter', sans-serif; font-size: 9px; font-weight: 700; color: #007AFF; min-width: 40px; white-space: nowrap; }
+    .hymn-title { font-family: 'Inter', sans-serif; font-size: 9px; font-weight: 600; color: #1C1C1E; flex: 1; text-transform: uppercase; letter-spacing: 0.3px; }
+    .hymn-key { font-family: 'Inter', sans-serif; font-size: 8px; color: #9CA3AF; font-weight: 500; white-space: nowrap; }
+    .hymn-regent { font-family: 'Inter', sans-serif; font-size: 8px; color: #9CA3AF; white-space: nowrap; }
     @media print { @page { margin: 0; } body { padding: 15mm; } }
   </style>
 </head>
@@ -101,7 +120,7 @@ function buildPrintHTML(canvasSections, headerConfig) {
 </html>`
 }
 
-// ─── Placeholder para os sub-componentes (Tasks 4-7) ─────────────────────────
+// ─── Sub-componentes ──────────────────────────────────────────────────────────
 
 function PrintSidebar({ sidebarHymns, canvasSections, onDragStart, onBack }) {
   const hymnIdsInCanvas = useMemo(
@@ -110,7 +129,7 @@ function PrintSidebar({ sidebarHymns, canvasSections, onDragStart, onBack }) {
   )
 
   return (
-    <aside className="w-80 shrink-0 fixed left-0 top-16 bottom-0 flex flex-col bg-[#F5F5F7] dark:bg-[#1C1C1E] border-r border-gray-200/80 dark:border-gray-700/80 z-30">
+    <aside className="w-80 shrink-0 fixed left-0 top-16 bottom-0 flex flex-col bg-[#FAFAFA] dark:bg-[#1C1C1E] border-r border-[#E5E7EB] dark:border-gray-700/80 z-30">
       <div className="px-4 pt-4 pb-3 border-b border-gray-200 dark:border-gray-700">
         <button
           onClick={onBack}
@@ -137,26 +156,20 @@ function PrintSidebar({ sidebarHymns, canvasSections, onDragStart, onBack }) {
         )}
         {sidebarHymns.map(hymn => {
           const inCanvas = hymnIdsInCanvas.includes(hymn.id)
+          const meta = [hymn.numero ? `Nº ${hymn.numero}` : null, hymn.tonalidade || null].filter(Boolean).join(' · ')
           return (
             <div
               key={hymn.id}
               draggable
               onDragStart={e => onDragStart(e, { type: 'sidebar', hymnId: hymn.id })}
-              className={`group flex items-center gap-2.5 p-3 bg-white dark:bg-[#2C2C2E] rounded-xl border border-gray-100 dark:border-gray-700 cursor-grab active:cursor-grabbing hover:shadow-md hover:border-[#007AFF]/30 transition-all select-none ${inCanvas ? 'opacity-50' : ''}`}
+              className={`group flex items-center gap-2 px-3 py-2.5 rounded-xl cursor-grab active:cursor-grabbing hover:bg-[#F0F4FF] dark:hover:bg-blue-900/20 transition-colors select-none ${inCanvas ? 'opacity-40' : ''}`}
             >
-              <GripVertical size={14} className="text-gray-300 dark:text-gray-600 shrink-0 group-hover:text-gray-400" />
+              <GripVertical size={13} className="text-gray-200 dark:text-gray-600 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold text-gray-900 dark:text-white truncate">
-                  <span className="text-[#007AFF]">#{hymn.numero}</span>
-                  {' '}{hymn.titulo}
-                </p>
-                {hymn.tonalidade && (
-                  <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">{hymn.tonalidade}</p>
-                )}
+                <p className="text-xs font-semibold text-gray-800 dark:text-white truncate">{hymn.titulo}</p>
+                {meta && <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">{meta}</p>}
               </div>
-              {inCanvas && (
-                <Check size={12} className="text-[#007AFF] shrink-0" />
-              )}
+              {inCanvas && <Check size={12} className="text-[#007AFF] shrink-0" />}
             </div>
           )
         })}
@@ -170,17 +183,18 @@ function PrintSidebar({ sidebarHymns, canvasSections, onDragStart, onBack }) {
     </aside>
   )
 }
-function PrintToolbar({ templates, activeTemplateId, onSelectTemplate, onSaveTemplate, onPrint }) {
+
+function PrintToolbar({ templates, activeTemplateId, onSelectTemplate, onSaveTemplate, onPrint, sectionFontSize, onSectionFontSizeChange }) {
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const activeTemplate = templates.find(t => t.id === activeTemplateId)
 
   return (
-    <div className="flex items-center gap-3 mb-6">
+    <div className="flex items-center gap-2 mb-6 flex-wrap bg-[#F5F5F7] dark:bg-[#2C2C2E] border border-[#E5E7EB] dark:border-gray-700 rounded-2xl px-4 py-2.5">
       {/* Templates dropdown */}
       <div className="relative">
         <button
           onClick={() => setDropdownOpen(o => !o)}
-          className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-[#2C2C2E] border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:border-gray-300 dark:hover:border-gray-600 transition-all shadow-sm"
+          className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-[#3A3A3C] border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all"
         >
           <LayoutTemplate size={14} className="text-gray-400" />
           <span>{activeTemplate?.name || 'Template'}</span>
@@ -214,11 +228,29 @@ function PrintToolbar({ templates, activeTemplateId, onSelectTemplate, onSaveTem
 
       <button
         onClick={onSaveTemplate}
-        className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 bg-white dark:bg-[#2C2C2E] border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all shadow-sm"
+        className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-400 bg-white dark:bg-[#3A3A3C] border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all"
       >
         <Save size={14} />
         Salvar Template
       </button>
+
+      {/* Section font size control */}
+      <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-[#3A3A3C] border border-gray-200 dark:border-gray-600 rounded-lg">
+        <span className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mr-1">Seções</span>
+        <button
+          onClick={() => onSectionFontSizeChange(Math.max(8, sectionFontSize - 1))}
+          className="w-5 h-5 rounded-md flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+        >
+          <Minus size={10} />
+        </button>
+        <span className="text-xs font-semibold text-gray-600 dark:text-gray-300 w-6 text-center">{sectionFontSize}</span>
+        <button
+          onClick={() => onSectionFontSizeChange(Math.min(20, sectionFontSize + 1))}
+          className="w-5 h-5 rounded-md flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+        >
+          <Plus size={10} />
+        </button>
+      </div>
 
       <div className="flex-1" />
 
@@ -232,10 +264,14 @@ function PrintToolbar({ templates, activeTemplateId, onSelectTemplate, onSaveTem
     </div>
   )
 }
+
 function PrintHeader({ headerConfig, onChange }) {
+  const logoHeight = headerConfig.logoHeight || 64
+
   return (
-    <div className="text-center pb-5 mb-6" style={{ borderBottom: '2px solid #1a2b42' }}>
-      <div className="relative w-32 h-16 mx-auto mb-3 group">
+    <div className="text-center pb-5 mb-6">
+      {/* Logo / image */}
+      <div className="mx-auto mb-1" style={{ height: `${logoHeight}px`, maxWidth: '280px' }}>
         {headerConfig.imageUrl ? (
           <img
             src={headerConfig.imageUrl}
@@ -250,14 +286,29 @@ function PrintHeader({ headerConfig, onChange }) {
         )}
       </div>
 
-      <div className="mb-2">
+      {/* Image URL + size slider */}
+      <div className="flex items-center justify-center gap-2 mb-3">
         <input
           type="text"
           placeholder="URL da imagem / logo"
           value={headerConfig.imageUrl}
           onChange={e => onChange('imageUrl', e.target.value)}
-          className="w-full max-w-xs text-[10px] text-center text-gray-400 bg-transparent border-b border-gray-100 focus:outline-none focus:border-[#007AFF] transition-colors placeholder:text-gray-200 pb-0.5"
+          className="text-[10px] text-center text-gray-400 bg-transparent border-b border-gray-100 focus:outline-none focus:border-[#007AFF] transition-colors placeholder:text-gray-200 pb-0.5 w-40"
         />
+        {headerConfig.imageUrl && (
+          <div className="flex items-center gap-1.5">
+            <span className="text-[9px] text-gray-300 uppercase tracking-wider">tam</span>
+            <input
+              type="range"
+              min={32}
+              max={160}
+              value={logoHeight}
+              onChange={e => onChange('logoHeight', Number(e.target.value))}
+              className="w-16 accent-[#007AFF] h-1"
+            />
+            <span className="text-[9px] text-gray-300 w-6">{logoHeight}px</span>
+          </div>
+        )}
       </div>
 
       <input
@@ -266,7 +317,7 @@ function PrintHeader({ headerConfig, onChange }) {
         onChange={e => onChange('title', e.target.value)}
         placeholder="Título principal"
         className="text-xl font-extrabold text-[#1a2b42] text-center bg-transparent w-full focus:outline-none focus:ring-1 focus:ring-[#007AFF]/20 hover:bg-gray-50 focus:bg-gray-50 rounded transition-colors px-2 py-0.5"
-        style={{ letterSpacing: '0.5px' }}
+        style={{ fontFamily: "'Playfair Display', Georgia, serif", letterSpacing: '0.5px' }}
       />
       <input
         type="text"
@@ -290,9 +341,11 @@ function PrintHeader({ headerConfig, onChange }) {
         placeholder="Localização"
         className="text-xs text-gray-400 text-center bg-transparent w-full focus:outline-none focus:ring-1 focus:ring-[#007AFF]/20 hover:bg-gray-50 focus:bg-gray-50 rounded transition-colors mt-0.5 px-2 py-0.5"
       />
+      <div className="w-[60px] h-[1.5px] bg-[#007AFF] mx-auto mt-3" />
     </div>
   )
 }
+
 function PrintHymnCard({ hymn, sectionId, index, onRemove, onToggleVisibility, onDragStart, onDragOver, onDragEnd }) {
   return (
     <div
@@ -300,15 +353,16 @@ function PrintHymnCard({ hymn, sectionId, index, onRemove, onToggleVisibility, o
       onDragStart={e => onDragStart(e, { type: 'canvas', hymnId: hymn.id, sectionId, index })}
       onDragOver={e => onDragOver(e, sectionId, index)}
       onDragEnd={onDragEnd}
-      className="group flex items-start gap-2 p-3 bg-white rounded-xl border border-gray-100 hover:shadow-sm hover:border-[#007AFF]/20 transition-all cursor-grab active:cursor-grabbing select-none"
+      className="group flex items-start gap-2 p-2.5 bg-[#FAFCFF] rounded transition-all cursor-grab active:cursor-grabbing select-none"
+      style={{ borderLeft: '2px solid rgba(0,122,255,0.25)', borderTop: 'none', borderRight: 'none', borderBottom: 'none' }}
     >
       <GripVertical size={13} className="text-gray-300 mt-0.5 shrink-0 group-hover:text-gray-400" />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5 flex-wrap">
           {hymn.showNumber && (
-            <span className="text-[#007AFF] font-bold text-xs">#{hymn.numero}</span>
+            <span className="text-[#007AFF] font-bold text-xs">Nº {hymn.numero}</span>
           )}
-          <span className="font-semibold text-gray-900 text-xs">{hymn.titulo}</span>
+          <span className="font-semibold text-gray-900 text-xs uppercase tracking-wide">{hymn.titulo}</span>
           {hymn.showType && hymn.tonalidade && (
             <span className="text-[9px] bg-gray-100 px-1.5 py-0.5 rounded-full text-gray-500 font-bold uppercase tracking-tight">
               {hymn.tonalidade}
@@ -351,8 +405,9 @@ function PrintHymnCard({ hymn, sectionId, index, onRemove, onToggleVisibility, o
     </div>
   )
 }
+
 function PrintSection({
-  section, canvasSections, dragOver,
+  section, canvasSections, dragOver, fontSize,
   onRenameSection, onRemoveSection,
   onDrop, onDragOver, onDragLeave,
   onHymnRemove, onToggleVisibility,
@@ -376,8 +431,8 @@ function PrintSection({
 
   return (
     <div className="mb-3">
-      <div className="flex items-center gap-2 mb-1.5 group/header">
-        <div className="w-1 h-3.5 bg-[#007AFF]/40 rounded-full shrink-0" />
+      <div className="flex items-center gap-2 mb-1.5 group/header relative">
+        <div className="flex-1 h-px bg-gray-200" />
         {editing ? (
           <input
             ref={inputRef}
@@ -388,21 +443,24 @@ function PrintSection({
               if (e.key === 'Enter') commit()
               if (e.key === 'Escape') { setName(section.name); setEditing(false) }
             }}
-            className="text-[11px] font-bold uppercase tracking-widest text-gray-700 bg-transparent border-b border-[#007AFF] focus:outline-none w-40 pb-0.5"
+            className="bg-transparent border-b border-[#007AFF] focus:outline-none text-center pb-0.5 min-w-0"
+            style={{ fontSize: `${fontSize}px`, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.15em', color: '#9CA3AF' }}
           />
         ) : (
           <button
             onClick={() => setEditing(true)}
-            className="text-[11px] font-bold uppercase tracking-widest text-gray-600 hover:text-[#007AFF] transition-colors flex items-center gap-1.5"
+            className="hover:text-[#007AFF] transition-colors whitespace-nowrap flex items-center gap-1"
+            style={{ fontSize: `${fontSize}px`, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.15em', color: '#9CA3AF' }}
           >
             {section.name}
             <span className="text-[9px] normal-case tracking-normal font-normal text-gray-300 opacity-0 group-hover/header:opacity-100 transition-opacity">editar</span>
           </button>
         )}
-        {section.hymns.length === 0 && canvasSections.length > 1 && (
+        <div className="flex-1 h-px bg-gray-200" />
+        {canvasSections.length > 1 && (
           <button
             onClick={() => onRemoveSection(section.id)}
-            className="ml-auto opacity-0 group-hover/header:opacity-100 w-5 h-5 rounded-lg flex items-center justify-center text-gray-300 hover:text-red-400 hover:bg-red-50 transition-all"
+            className="opacity-0 group-hover/header:opacity-100 w-5 h-5 rounded-lg flex items-center justify-center text-gray-300 hover:text-red-400 hover:bg-red-50 transition-all shrink-0"
           >
             <X size={11} />
           </button>
@@ -441,6 +499,7 @@ function PrintSection({
     </div>
   )
 }
+
 function TemplateModal({ isOpen, onClose, onSave }) {
   const [name, setName] = useState('')
   if (!isOpen) return null
@@ -497,6 +556,15 @@ export default function HymnPrintPage() {
   const hymns = useHymnsStore(s => s.hymns)
   const user = useAuthStore(s => s.user)
 
+  // Load Playfair Display font for the canvas preview
+  useEffect(() => {
+    const link = document.createElement('link')
+    link.rel = 'stylesheet'
+    link.href = 'https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;800&family=Inter:wght@400;500;600;700&display=swap'
+    document.head.appendChild(link)
+    return () => link.remove()
+  }, [])
+
   // Resolve sidebar hymns from location.state
   const sidebarHymns = useMemo(() => {
     if (!state?.hymns) return []
@@ -534,11 +602,14 @@ export default function HymnPrintPage() {
     subtitle: state?.meta?.tipo || '',
     date: formatDateDisplay(state?.meta?.data || ''),
     location: '',
+    logoHeight: 64,
   })
 
   const [canvasSections, setCanvasSections] = useState(() =>
     DEFAULT_SECTIONS.map(s => ({ ...s, id: genId(), hymns: [] }))
   )
+
+  const [sectionFontSize, setSectionFontSize] = useState(11)
 
   // DnD ref
   const dragItem = useRef(null)
@@ -675,7 +746,7 @@ export default function HymnPrintPage() {
 
   // Print
   const handlePrint = () => {
-    const html = buildPrintHTML(canvasSections, headerConfig)
+    const html = buildPrintHTML(canvasSections, headerConfig, sectionFontSize)
     const win = window.open('', '_blank', 'width=800,height=900')
     if (!win) { window.print(); return }
     win.document.write(html)
@@ -711,13 +782,15 @@ export default function HymnPrintPage() {
             onSelectTemplate={handleSelectTemplate}
             onSaveTemplate={() => setTemplateModalOpen(true)}
             onPrint={handlePrint}
+            sectionFontSize={sectionFontSize}
+            onSectionFontSizeChange={setSectionFontSize}
           />
 
           <div className="flex justify-center pb-10">
             <div
               id="printable-canvas"
-              className="bg-white dark:bg-white shadow-2xl shadow-gray-900/10 border border-gray-200"
-              style={{ width: '595px', minHeight: '842px', padding: '48px 52px' }}
+              className="bg-white shadow-xl rounded-2xl"
+              style={{ width: '680px', minHeight: '842px', padding: '48px 56px' }}
             >
               <PrintHeader headerConfig={headerConfig} onChange={handleHeaderChange} />
 
@@ -728,6 +801,7 @@ export default function HymnPrintPage() {
                     section={section}
                     canvasSections={canvasSections}
                     dragOver={dragOver}
+                    fontSize={sectionFontSize}
                     onRenameSection={handleRenameSection}
                     onRemoveSection={handleRemoveSection}
                     onDrop={handleSectionDrop}
