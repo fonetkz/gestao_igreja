@@ -46,7 +46,7 @@ function HymnCard({ hymn, index, onEdit, onRemove, onMove, isFirst, isLast, rece
               {sectionLabel}
             </Badge>
             <h4 className="font-bold text-base text-slate-900 dark:text-white truncate">
-              #{hymn.numero} — {hymn.titulo}
+              Nº {hymn.numero} — {hymn.titulo}
             </h4>
           </div>
           
@@ -147,7 +147,7 @@ function HymnSearch({ hymns, onSelect, excludeIds }) {
             >
               <div>
                 <p className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-blue-600 transition-colors">
-                  #{h.numero} — {h.titulo}
+                  Nº {h.numero} — {h.titulo}
                 </p>
                 <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-0.5">
                   {SECTION_CONFIG[h.secao_hino]?.label || 'Hinário'} • Regente: {h.regente || h.tonalidade}
