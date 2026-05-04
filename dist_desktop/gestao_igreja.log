@@ -293,3 +293,66 @@
 2026-04-29 23:20:07,381 [INFO] Servidor do Gestão Igreja está rodando!
 2026-04-29 23:20:07,381 [INFO] Feche o processo para encerrar o sistema.
 2026-04-29 23:20:07,381 [INFO] ========================================
+2026-05-03 14:29:14,344 [INFO] ============================================================
+2026-05-03 14:29:14,344 [INFO] Gestão Igreja iniciando...
+2026-05-03 14:29:14,344 [INFO] sys.frozen: True
+2026-05-03 14:29:14,345 [INFO] sys._MEIPASS: C:\Users\Gustavo\AppData\Local\Temp\_MEI234682
+2026-05-03 14:29:14,345 [INFO] Executável: E:\PROJETOS\saas_gestao_igreja\dist_desktop\GestaoIgreja.exe
+2026-05-03 14:29:14,345 [INFO] Pasta de trabalho: E:\PROJETOS\saas_gestao_igreja\dist_desktop
+2026-05-03 14:29:14,445 [INFO] uvicorn importado com sucesso
+2026-05-03 14:29:14,448 [INFO] Config carregada: HOST=127.0.0.1, PORT=39100
+2026-05-03 14:29:15,075 [INFO] FastAPI app importada com sucesso
+2026-05-03 14:29:15,075 [INFO] main() iniciado
+2026-05-03 14:29:15,075 [INFO] URL do sistema: http://127.0.0.1:56787
+2026-05-03 14:29:15,076 [INFO] Iniciando Uvicorn em 127.0.0.1:56787
+2026-05-03 14:29:15,076 [INFO] Thread do servidor iniciada
+2026-05-03 14:29:15,076 [INFO] Aguardando servidor em 127.0.0.1:56787...
+2026-05-03 14:29:15,078 [DEBUG] Using proactor: IocpProactor
+2026-05-03 14:29:15,762 [INFO] Servidor pronto!
+2026-05-03 14:29:15,762 [INFO] Abrindo navegador em: http://127.0.0.1:56787
+2026-05-03 14:29:16,042 [INFO] ========================================
+2026-05-03 14:29:16,042 [INFO] Servidor do Gestão Igreja está rodando!
+2026-05-03 14:29:16,042 [INFO] Feche o processo para encerrar o sistema.
+2026-05-03 14:29:16,042 [INFO] ========================================
+2026-05-03 14:31:33,713 [INFO] ============================================================
+2026-05-03 14:31:33,713 [INFO] Gestão Igreja iniciando...
+2026-05-03 14:31:33,713 [INFO] sys.frozen: True
+2026-05-03 14:31:33,713 [INFO] sys._MEIPASS: C:\Users\Gustavo\AppData\Local\Temp\_MEI180042
+2026-05-03 14:31:33,713 [INFO] Executável: E:\PROJETOS\saas_gestao_igreja\dist_desktop\GestaoIgreja.exe
+2026-05-03 14:31:33,713 [INFO] Pasta de trabalho: E:\PROJETOS\saas_gestao_igreja\dist_desktop
+2026-05-03 14:31:33,820 [INFO] uvicorn importado com sucesso
+2026-05-03 14:31:33,824 [INFO] Config carregada: HOST=127.0.0.1, PORT=39100
+2026-05-03 14:31:34,399 [INFO] FastAPI app importada com sucesso
+2026-05-03 14:31:34,399 [INFO] main() iniciado
+2026-05-03 14:31:34,399 [INFO] URL do sistema: http://127.0.0.1:39100
+2026-05-03 14:31:34,400 [INFO] Iniciando Uvicorn em 127.0.0.1:39100
+2026-05-03 14:31:34,400 [INFO] Thread do servidor iniciada
+2026-05-03 14:31:34,401 [INFO] Aguardando servidor em 127.0.0.1:39100...
+2026-05-03 14:31:34,403 [DEBUG] Using proactor: IocpProactor
+2026-05-03 14:31:35,086 [INFO] Servidor pronto!
+2026-05-03 14:31:35,086 [INFO] Abrindo navegador em: http://127.0.0.1:39100
+2026-05-03 14:31:35,357 [INFO] ========================================
+2026-05-03 14:31:35,357 [INFO] Servidor do Gestão Igreja está rodando!
+2026-05-03 14:31:35,357 [INFO] Feche o processo para encerrar o sistema.
+2026-05-03 14:31:35,357 [INFO] ========================================
+2026-05-03 14:34:18,846 [INFO] ============================================================
+2026-05-03 14:34:18,846 [INFO] Gestão Igreja iniciando...
+2026-05-03 14:34:18,846 [INFO] sys.frozen: True
+2026-05-03 14:34:18,846 [INFO] sys._MEIPASS: C:\Users\Gustavo\AppData\Local\Temp\_MEI253322
+2026-05-03 14:34:18,846 [INFO] Executável: E:\PROJETOS\saas_gestao_igreja\dist_desktop\GestaoIgreja.exe
+2026-05-03 14:34:18,846 [INFO] Pasta de trabalho: E:\PROJETOS\saas_gestao_igreja\dist_desktop
+2026-05-03 14:34:18,948 [INFO] uvicorn importado com sucesso
+2026-05-03 14:34:18,951 [INFO] Config carregada: HOST=127.0.0.1, PORT=39100
+2026-05-03 14:34:19,574 [INFO] FastAPI app importada com sucesso
+2026-05-03 14:34:19,574 [INFO] main() iniciado
+2026-05-03 14:34:19,574 [INFO] URL do sistema: http://127.0.0.1:39100
+2026-05-03 14:34:19,575 [INFO] Iniciando Uvicorn em 127.0.0.1:39100
+2026-05-03 14:34:19,575 [INFO] Thread do servidor iniciada
+2026-05-03 14:34:19,575 [INFO] Aguardando servidor em 127.0.0.1:39100...
+2026-05-03 14:34:19,577 [DEBUG] Using proactor: IocpProactor
+2026-05-03 14:34:20,259 [INFO] Servidor pronto!
+2026-05-03 14:34:20,259 [INFO] Abrindo navegador em: http://127.0.0.1:39100
+2026-05-03 14:34:20,533 [INFO] ========================================
+2026-05-03 14:34:20,533 [INFO] Servidor do Gestão Igreja está rodando!
+2026-05-03 14:34:20,533 [INFO] Feche o processo para encerrar o sistema.
+2026-05-03 14:34:20,533 [INFO] ========================================

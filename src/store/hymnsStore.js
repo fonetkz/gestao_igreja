@@ -1,6 +1,9 @@
 import { create } from 'zustand'
 import api from '../services/api'
 
+// Normalizar string removendo acentos para busca fuzzy
+const normalizeStr = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+
 const safeParseJson = (jsonStr, defaultValue = []) => {
   try {
     if (!jsonStr) return defaultValue
@@ -96,11 +99,11 @@ const useHymnsStore = create((set, get) => ({
   searchHymns: (term) => {
     const { hymns } = get()
     if (!term) return hymns
-    const lower = term.toLowerCase()
+    const lower = normalizeStr(term).toLowerCase()
     return hymns.filter(h =>
-      (h.titulo || '').toLowerCase().includes(lower) ||
+      normalizeStr(h.titulo || '').toLowerCase().includes(lower) ||
       (h.numero || '').includes(term) ||
-      (h.tonalidade || '').toLowerCase().includes(lower)
+      normalizeStr(h.tonalidade || '').toLowerCase().includes(lower)
     )
   },
 

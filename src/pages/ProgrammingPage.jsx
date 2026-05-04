@@ -29,6 +29,7 @@ const getDayOfWeek = (d) => {
 // ─── HymnResultItem ──────────────────────────────────────────────────────────
 function HymnResultItem({ hymn, onAdd, isAdded, onEdit }) {
   const daysSince = useHymnsStore((s) => s.daysSinceLastUsed)(hymn.id)
+  const hymnTypes = useSettingsStore((s) => s.hymnTypes) || []
   return (
     <div
       className={`w-full flex items-center justify-between p-3 rounded-xl transition-all group text-left border
@@ -39,7 +40,7 @@ function HymnResultItem({ hymn, onAdd, isAdded, onEdit }) {
     >
       <button onClick={() => !isAdded && onAdd(hymn)} disabled={isAdded} className="flex-1 min-w-0 text-left">
         <p className="font-semibold text-gray-900 dark:text-white">
-          <span className="text-[#007AFF]">#{hymn.numero}</span> — {hymn.titulo}
+          <span className="text-[#007AFF]">Nº {hymn.numero}</span> — {hymn.titulo}
         </p>
         <div className="flex items-center gap-2 mt-1">
           {daysSince !== null ? (
@@ -52,7 +53,7 @@ function HymnResultItem({ hymn, onAdd, isAdded, onEdit }) {
             </span>
           )}
           {hymn.tonalidade && (
-            <span className="text-xs text-gray-400 dark:text-gray-500">Tipo: {hymn.tonalidade}</span>
+            <span className="text-xs text-gray-400 dark:text-gray-500">Tipo: {hymnTypes.find(t => t.value.toLowerCase() === hymn.tonalidade?.toLowerCase())?.label || hymn.tonalidade}</span>
           )}
         </div>
       </button>
@@ -69,9 +70,11 @@ function HymnResultItem({ hymn, onAdd, isAdded, onEdit }) {
 }
 
 // ─── ProgrammedHymnItem ──────────────────────────────────────────────────────
-function ProgrammedHymnItem({ hymn, index, onRemove, onMove, isFirst, isLast, onUpdateRegente, onDragStart, onDragOver, onDragEnd }) {
+function ProgrammedHymnItem({ hymn, index, onRemove, onMove, isFirst, isLast, onUpdateRegente, onUpdateSolista, onDragStart, onDragOver, onDragEnd }) {
+  const hymnTypes = useSettingsStore((s) => s.hymnTypes) || []
   const members = useMembersStore((s) => s.members) || []
   const conductors = members.filter(m => m.status === 'Ativo' && m.cargo && m.cargo.toLowerCase().includes('regente'))
+  const activeMembers = members.filter(m => m.status === 'Ativo')
 
   return (
     <div
@@ -92,23 +95,37 @@ function ProgrammedHymnItem({ hymn, index, onRemove, onMove, isFirst, isLast, on
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className="text-[#007AFF] font-bold">#{hymn.numero}</span>
+          <span className="text-[#007AFF] font-bold">Nº {hymn.numero}</span>
           <span className="font-semibold text-gray-900 dark:text-white truncate">{hymn.titulo}</span>
         </div>
-        <div className="flex items-center gap-3 mt-1">
-          {hymn.tonalidade && <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Tipo: {hymn.tonalidade}</p>}
-            <div className="flex items-center gap-1.5 mt-1">
-              <span className="text-xs text-gray-500 dark:text-gray-400">Regente:</span>
-              <Select
-                options={[
-                  { value: '', label: 'Nenhum' },
-                  ...conductors.map(c => ({ value: c.nome, label: c.nome })),
-                  ...(hymn.regente && !conductors.find(c => c.nome === hymn.regente) ? [{ value: hymn.regente, label: `${hymn.regente} (Inativo)` }] : [])
-                ]}
-                value={hymn.regente || ''}
-                onChange={(val) => onUpdateRegente(hymn.id, val)}
-              />
-            </div>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-2">
+          {hymn.tonalidade && (
+            <span className="text-xs text-gray-500 dark:text-gray-400">Tipo: {hymnTypes.find(t => t.value.toLowerCase() === hymn.tonalidade?.toLowerCase())?.label || hymn.tonalidade}</span>
+          )}
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs text-gray-500 dark:text-gray-400">Regente:</span>
+            <Select
+              options={[
+                { value: '', label: 'Nenhum' },
+                ...conductors.map(c => ({ value: c.nome, label: c.nome })),
+                ...(hymn.regente && !conductors.find(c => c.nome === hymn.regente) ? [{ value: hymn.regente, label: `${hymn.regente} (Inativo)` }] : [])
+              ]}
+              value={hymn.regente || ''}
+              onChange={(val) => onUpdateRegente(hymn.id, val)}
+            />
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs text-gray-500 dark:text-gray-400">Solista:</span>
+            <Select
+              options={[
+                { value: '', label: 'Nenhum' },
+                ...activeMembers.map(m => ({ value: m.nome, label: m.nome })),
+                ...(hymn.solista && !activeMembers.find(m => m.nome === hymn.solista) ? [{ value: hymn.solista, label: `${hymn.solista} (Inativo)` }] : [])
+              ]}
+              value={hymn.solista || ''}
+              onChange={(val) => onUpdateSolista(hymn.id, val)}
+            />
+          </div>
         </div>
       </div>
       <button
@@ -173,9 +190,9 @@ function HymnModal({ isOpen, onClose, onSave, editingHymn }) {
             options={[
               { value: '', label: 'Selecione o tipo...' },
               ...hymnTypes,
-              ...(form.tonalidade && !hymnTypes.find(t => t.value === form.tonalidade) ? [{ value: form.tonalidade, label: `${form.tonalidade} (Legado)` }] : [])
+              ...(form.tonalidade && !hymnTypes.find(t => t.value.toLowerCase() === form.tonalidade.toLowerCase()) ? [{ value: form.tonalidade.toLowerCase(), label: `${form.tonalidade} (Legado)` }] : [])
             ]}
-            value={form.tonalidade}
+            value={form.tonalidade?.toLowerCase()}
             onChange={(val) => setForm(f => ({ ...f, tonalidade: val }))}
           />
         </div>
@@ -249,13 +266,16 @@ function HistoricoTab({ onEditarProgramacao, onExcluirProgramacao }) {
     const term = searchTerm.toLowerCase()
     const hinos = Array.isArray(prog.hinos_json) ? prog.hinos_json : []
 
+    const normalize = (str) => str.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    const termNorm = normalize(term || '').toLowerCase()
+
     const matchesTerm = !term ||
       (prog.tipo_culto || prog.contexto || '').toLowerCase().includes(term) ||
       (prog.responsavel || '').toLowerCase().includes(term) ||
       hinos.some(hymnItem => {
         const id = typeof hymnItem === 'object' ? hymnItem.id : hymnItem
         const hymn = getHymnById(id)
-        return hymn && ((hymn.titulo || '').toLowerCase().includes(term) || (String(hymn.numero) || '').toLowerCase().includes(term))
+        return hymn && (normalize(hymn.titulo || '').toLowerCase().includes(termNorm) || (String(hymn.numero) || '').toLowerCase().includes(term))
       })
     const matchesDate = !searchDate || prog.data === searchDate
     const matchesTipoReuniao = !filterTipoReuniao || (prog.tipo_culto || prog.contexto) === filterTipoReuniao
@@ -263,7 +283,7 @@ function HistoricoTab({ onEditarProgramacao, onExcluirProgramacao }) {
     const matchesTipoHino = !filterTipoHino || hinos.some(hymnItem => {
       const id = typeof hymnItem === 'object' ? hymnItem.id : hymnItem
       const hymn = getHymnById(id)
-      return hymn && hymn.tonalidade === filterTipoHino
+      return hymn && hymn.tonalidade?.toLowerCase() === filterTipoHino?.toLowerCase()
     })
 
     const matchesRegente = !filterRegente || hinos.some(hymnItem => {
@@ -303,7 +323,16 @@ function HistoricoTab({ onEditarProgramacao, onExcluirProgramacao }) {
               )}
             </div>
             <div className="p-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Data</label>
+                  <input
+                    type="date"
+                    value={searchDate}
+                    onChange={(e) => setSearchDate(e.target.value)}
+                    className="input-apple w-full"
+                  />
+                </div>
                 <div className="lg:col-span-2">
                   <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Buscar</label>
                   <div className="relative">
@@ -345,15 +374,6 @@ function HistoricoTab({ onEditarProgramacao, onExcluirProgramacao }) {
                   />
                 </div>
               </div>
-              <div className="mt-4">
-                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Data</label>
-                <input
-                  type="date"
-                  value={searchDate}
-                  onChange={(e) => setSearchDate(e.target.value)}
-                  className="input-apple w-auto min-w-[160px]"
-                />
-              </div>
             </div>
           </div>
         )
@@ -377,7 +397,7 @@ function HistoricoTab({ onEditarProgramacao, onExcluirProgramacao }) {
                       <span className="font-semibold text-gray-900 dark:text-white">
                         {formatDate(prog.data)} <span className="text-sm font-normal text-gray-500 dark:text-gray-400 ml-1">({getDayOfWeek(prog.data)})</span>
                       </span>
-                      <span className="badge-info">{prog.tipo_culto || prog.contexto}</span>
+                      <span className="badge-info">{meetingTypes.find(m => m.value === (prog.tipo_culto || prog.contexto))?.label || prog.tipo_culto || prog.contexto}</span>
                     </div>
                     {prog.responsavel && (
                       <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Responsável: {prog.responsavel}</p>
@@ -398,17 +418,20 @@ function HistoricoTab({ onEditarProgramacao, onExcluirProgramacao }) {
                     const isObj = typeof hymnId === 'object';
                     const id = isObj ? hymnId.id : hymnId;
                     const regente = isObj ? hymnId.regente : '';
+                    const solista = isObj ? hymnId.solista : '';
                     const hymn = getHymnById(id)
                     if (!hymn) return null
+                    const tipoLabel = hymnTypes.find(t => t.value.toLowerCase() === hymn.tonalidade?.toLowerCase())?.label || hymn.tonalidade
                     return (
-                      <div key={hymnId} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/40 rounded-xl">
+                      <div key={`${prog.id}-${id}-${idx}`} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/40 rounded-xl">
                         <span className="w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center text-xs font-bold text-gray-600 dark:text-gray-300 shrink-0">
                           {idx + 1}
                         </span>
-                        <span className="text-[#007AFF] font-semibold text-sm">#{hymn.numero}</span>
+                        <span className="text-[#007AFF] font-semibold text-sm">Nº {hymn.numero}</span>
                         <span className="text-sm font-medium text-gray-900 dark:text-white flex-1">{hymn.titulo}</span>
-                        {hymn.tonalidade && <span className="text-xs text-gray-400 dark:text-gray-500">Tipo: {hymn.tonalidade}</span>}
-                        {regente && <span className="text-xs text-gray-400 dark:text-gray-500 border-l border-gray-300 dark:border-gray-600 pl-2 truncate">Regente: {regente}</span>}
+                        {tipoLabel && <span className="text-xs text-gray-400 dark:text-gray-500">Tipo: {tipoLabel}</span>}
+                        {regente && <span className="text-xs text-gray-400 dark:text-gray-500 border-l border-gray-300 dark:border-gray-600 pl-2">Regente: {regente}</span>}
+                        {solista && <span className="text-xs text-gray-400 dark:text-gray-500 border-l border-gray-300 dark:border-gray-600 pl-2">Solista: {solista}</span>}
                       </div>
                     )
                   })}
@@ -468,8 +491,9 @@ function ProgramacaoForm({ programacaoEditando, onLimparEdicao, onCancelarEdicao
   const [errors, setErrors] = useState({})
   const [draggedIdx, setDraggedIdx] = useState(null)
 
-  // Estado local para armazenar os regentes selecionados (apenas para exibição na tela)
+  // Estado local para armazenar os regentes e solistas selecionados (apenas para exibição na tela)
   const [regentes, setRegentes] = useState({})
+  const [solistas, setSolistas] = useState({})
 
   const validate = () => {
     const newErrors = {}
@@ -487,28 +511,56 @@ function ProgramacaoForm({ programacaoEditando, onLimparEdicao, onCancelarEdicao
       setResponsavel(programacaoEditando.responsavel || userName)
 
       const initialRegentes = {}
+      const initialSolistas = {}
       if (programacaoEditando.hinos) {
         programacaoEditando.hinos.forEach(item => {
-          if (typeof item === 'object' && item.id && item.regente) {
-            initialRegentes[item.id] = item.regente
+          if (typeof item === 'object' && item.id) {
+            if (item.regente) initialRegentes[item.id] = item.regente
+            if (item.solista) initialSolistas[item.id] = item.solista
           }
         })
       }
       setRegentes(initialRegentes)
+      setSolistas(initialSolistas)
     } else if (!serviceType) {
       setResponsavel(userName)
       setRegentes({})
+      setSolistas({})
     }
   }, [programacaoEditando])
+
+  // Restaurar regentes/solistas ao voltar da impressao (via localStorage)
+  useEffect(() => {
+    const saved = localStorage.getItem('lastPrintHymns')
+    if (saved) {
+      try {
+        const hymnsWithDetails = JSON.parse(saved)
+        hymnsWithDetails.forEach(item => {
+          if (item.id && (item.regente || item.solista)) {
+            setRegentes(prev => ({ ...prev, [item.id]: item.regente || '' }))
+            setSolistas(prev => ({ ...prev, [item.id]: item.solista || '' }))
+          }
+        })
+        localStorage.removeItem('lastPrintHymns')
+      } catch (e) {
+        // ignore
+      }
+    }
+  }, [])
 
   const filteredHymns = useMemo(() => searchHymns(searchTerm), [hymns, searchTerm])
   const programHymns = useMemo(() => todayProgram.map(item => {
     if (typeof item === 'object' && item.type === 'custom') return item;
     const id = typeof item === 'object' ? item.id : item;
     const originalRegente = typeof item === 'object' ? item.regente : '';
+    const originalSolista = typeof item === 'object' ? item.solista : '';
     const h = hymns.find(h => h.id === id);
-    return h ? { ...h, regente: regentes[id] !== undefined ? regentes[id] : originalRegente } : null;
-  }).filter(Boolean), [todayProgram, hymns, regentes])
+    return h ? {
+      ...h,
+      regente: regentes[id] !== undefined ? regentes[id] : originalRegente,
+      solista: solistas[id] !== undefined ? solistas[id] : originalSolista
+    } : null;
+  }).filter(Boolean), [todayProgram, hymns, regentes, solistas])
 
   const handleAddCustomItem = () => {
     if (!customTitle.trim()) return
@@ -519,6 +571,7 @@ function ProgramacaoForm({ programacaoEditando, onLimparEdicao, onCancelarEdicao
   const handleAddHymn = (hymn) => addToTodayProgram(hymn.id)
   const handleRemove = (id) => removeFromTodayProgram(id)
   const handleUpdateRegente = (id, regente) => setRegentes(prev => ({ ...prev, [id]: regente }))
+  const handleUpdateSolista = (id, solista) => setSolistas(prev => ({ ...prev, [id]: solista }))
   const handleMove = (idx, dir) => {
     const arr = [...todayProgram]
     const newIdx = idx + dir
@@ -591,7 +644,8 @@ function ProgramacaoForm({ programacaoEditando, onLimparEdicao, onCancelarEdicao
       const programToSave = todayProgram.map(item => {
         const id = typeof item === 'object' ? item.id : item;
         const regente = regentes[id] !== undefined ? regentes[id] : (typeof item === 'object' ? item.regente : '');
-        return { id, regente };
+        const solista = solistas[id] !== undefined ? solistas[id] : (typeof item === 'object' ? item.solista : '');
+        return { id, regente, solista };
       });
 
       if (programacaoEditando?.id) {
@@ -602,6 +656,7 @@ function ProgramacaoForm({ programacaoEditando, onLimparEdicao, onCancelarEdicao
       setSaved(true)
       if (onLimparEdicao) onLimparEdicao()
       setRegentes({})
+      setSolistas({})
       setTimeout(() => setSaved(false), 3000)
     } catch (err) {
       console.error(err)
@@ -615,13 +670,13 @@ function ProgramacaoForm({ programacaoEditando, onLimparEdicao, onCancelarEdicao
       <div className="space-y-6">
         {/* Header Card */}
         <div className="apple-card p-4">
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="flex items-center gap-2">
-              <label className="label-uppercase">Data</label>
-              <input type="date" value={serviceDate} onChange={(e) => setServiceDate(e.target.value)} className="input-apple w-auto" />
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Data</label>
+              <input type="date" value={serviceDate} onChange={(e) => setServiceDate(e.target.value)} className="input-apple w-full" />
             </div>
-            <div className="flex items-center gap-2">
-              <label className="label-uppercase">Tipo de Reunião</label>
+            <div>
+              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Tipo de Reunião</label>
               <Select
                 options={[{ value: '', label: 'Selecionar...' }, ...meetingTypes]}
                 value={serviceType}
@@ -629,9 +684,9 @@ function ProgramacaoForm({ programacaoEditando, onLimparEdicao, onCancelarEdicao
                 className={`${errors.serviceType ? 'ring-2 ring-red-400' : ''}`}
               />
             </div>
-            <div className="flex items-center gap-2 flex-1 min-w-[220px]">
-              <label className="label-uppercase">Responsável</label>
-              <input type="text" value={responsavel} onChange={(e) => setResponsavel(e.target.value)} placeholder="Nome do responsável" className="input-apple flex-1 w-full" />
+            <div>
+              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Responsável</label>
+              <input type="text" value={responsavel} onChange={(e) => setResponsavel(e.target.value)} placeholder="Nome do responsável" className="input-apple w-full" />
             </div>
           </div>
         </div>
@@ -684,7 +739,7 @@ function ProgramacaoForm({ programacaoEditando, onLimparEdicao, onCancelarEdicao
               ) : (
                 <div className="space-y-3 flex-1 overflow-y-auto max-h-[480px] pr-2">
                   {programHymns.map((hymn, idx) => hymn && (
-                    <ProgrammedHymnItem key={hymn.id} hymn={hymn} index={idx} total={todayProgram.length} onRemove={handleRemove} onMove={handleMove} isFirst={idx === 0} isLast={idx === todayProgram.length - 1} onUpdateRegente={handleUpdateRegente} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd} />
+                    <ProgrammedHymnItem key={hymn.id} hymn={hymn} index={idx} total={todayProgram.length} onRemove={handleRemove} onMove={handleMove} isFirst={idx === 0} isLast={idx === todayProgram.length - 1} onUpdateRegente={handleUpdateRegente} onUpdateSolista={handleUpdateSolista} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd} />
                   ))}
                 </div>
               )}
@@ -701,12 +756,22 @@ function ProgramacaoForm({ programacaoEditando, onLimparEdicao, onCancelarEdicao
                     </button>
                   )}
                   <button
-                    onClick={() => navigate('/impressao', {
-                      state: {
-                        hymns: todayProgram,
-                        meta: { data: serviceDate, tipo: serviceType, responsavel }
-                      }
-                    })}
+                    onClick={() => {
+                      // Salvar no localStorage para restaurar ao voltar
+                      const hymnsWithDetails = todayProgram.map(item => {
+                        const id = typeof item === 'object' ? item.id : item
+                        const regente = regentes[id] !== undefined ? regentes[id] : (typeof item === 'object' ? item.regente : '')
+                        const soloist = solistas[id] !== undefined ? solistas[id] : (typeof item === 'object' ? item.solista : '')
+                        return { id, regente, soloist }
+                      })
+                      localStorage.setItem('lastPrintHymns', JSON.stringify(hymnsWithDetails))
+                      navigate('/impressao', {
+                        state: {
+                          hymns: hymnsWithDetails,
+                          meta: { data: serviceDate, tipo: serviceType, responsavel }
+                        }
+                      })
+                    }}
                     className="btn-apple-secondary flex-1 py-3 flex items-center justify-center gap-2"
                   >
                     <Printer size={18} />
