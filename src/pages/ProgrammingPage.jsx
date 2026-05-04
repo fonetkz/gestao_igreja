@@ -119,8 +119,7 @@ function ProgrammedHymnItem({ hymn, index, onRemove, onMove, isFirst, isLast, on
             <Select
               options={[
                 { value: '', label: 'Nenhum' },
-                ...activeMembers.map(m => ({ value: m.nome, label: m.nome })),
-                ...(hymn.solista && !activeMembers.find(m => m.nome === hymn.solista) ? [{ value: hymn.solista, label: `${hymn.solista} (Inativo)` }] : [])
+                ...activeMembers.map(m => ({ value: m.nome, label: m.nome }))
               ]}
               value={hymn.solista || ''}
               onChange={(val) => onUpdateSolista(hymn.id, val)}
@@ -186,8 +185,8 @@ function HymnModal({ isOpen, onClose, onSave, editingHymn }) {
         </div>
         <div>
           <label className="label-uppercase mb-2 block">Tipo de Hino</label>
-          <Select
-            options={[
+<Select
+              options={[
               { value: '', label: 'Selecione o tipo...' },
               ...hymnTypes,
               ...(form.tonalidade && !hymnTypes.find(t => t.value.toLowerCase() === form.tonalidade.toLowerCase()) ? [{ value: form.tonalidade.toLowerCase(), label: `${form.tonalidade} (Legado)` }] : [])
@@ -477,6 +476,8 @@ function ProgramacaoForm({ programacaoEditando, onLimparEdicao, onCancelarEdicao
   const updateHymn = useHymnsStore((s) => s.updateHymn)
   const addHymn = useHymnsStore((s) => s.addHymn)
   const searchHymns = useHymnsStore((s) => s.searchHymns)
+  const setTodayProgram = useHymnsStore((s) => s.setTodayProgram)
+  const updateTodayProgramItem = useHymnsStore((s) => s.updateTodayProgramItem)
   const meetingTypes = useSettingsStore((s) => s.meetingTypes)
   const showToast = useToastStore((s) => s.showToast)
 
@@ -490,10 +491,7 @@ function ProgramacaoForm({ programacaoEditando, onLimparEdicao, onCancelarEdicao
   const [saved, setSaved] = useState(false)
   const [errors, setErrors] = useState({})
   const [draggedIdx, setDraggedIdx] = useState(null)
-
-  // Estado local para armazenar os regentes e solistas selecionados (apenas para exibição na tela)
-  const [regentes, setRegentes] = useState({})
-  const [solistas, setSolistas] = useState({})
+  const [confirmClear, setConfirmClear] = useState(false)
 
   const validate = () => {
     const newErrors = {}
@@ -509,69 +507,39 @@ function ProgramacaoForm({ programacaoEditando, onLimparEdicao, onCancelarEdicao
       setServiceDate(programacaoEditando.data || new Date().toISOString().split('T')[0])
       setServiceType(programacaoEditando.tipo || '')
       setResponsavel(programacaoEditando.responsavel || userName)
-
-      const initialRegentes = {}
-      const initialSolistas = {}
-      if (programacaoEditando.hinos) {
-        programacaoEditando.hinos.forEach(item => {
-          if (typeof item === 'object' && item.id) {
-            if (item.regente) initialRegentes[item.id] = item.regente
-            if (item.solista) initialSolistas[item.id] = item.solista
-          }
-        })
-      }
-      setRegentes(initialRegentes)
-      setSolistas(initialSolistas)
     } else if (!serviceType) {
       setResponsavel(userName)
-      setRegentes({})
-      setSolistas({})
     }
   }, [programacaoEditando])
 
-  // Restaurar regentes/solistas ao voltar da impressao (via localStorage)
-  useEffect(() => {
-    const saved = localStorage.getItem('lastPrintHymns')
-    if (saved) {
-      try {
-        const hymnsWithDetails = JSON.parse(saved)
-        hymnsWithDetails.forEach(item => {
-          if (item.id && (item.regente || item.solista)) {
-            setRegentes(prev => ({ ...prev, [item.id]: item.regente || '' }))
-            setSolistas(prev => ({ ...prev, [item.id]: item.solista || '' }))
-          }
-        })
-        localStorage.removeItem('lastPrintHymns')
-      } catch (e) {
-        // ignore
-      }
-    }
-  }, [])
+  // Mapa de hinos por ID para busca O(1)
+  const hymnsById = useMemo(() => {
+    const map = {}
+    hymns.forEach(h => { map[h.id] = h })
+    return map
+  }, [hymns])
 
-  const filteredHymns = useMemo(() => searchHymns(searchTerm), [hymns, searchTerm])
+  const PAGE_SIZE = 30
+  const [page, setPage] = useState(1)
+  const allFiltered = useMemo(() => searchHymns(searchTerm), [searchHymns, searchTerm])
+  const totalPages = Math.ceil(allFiltered.length / PAGE_SIZE)
+  const filteredHymns = useMemo(() => {
+    const start = (page - 1) * PAGE_SIZE
+    return allFiltered.slice(start, start + PAGE_SIZE)
+  }, [allFiltered, page])
   const programHymns = useMemo(() => todayProgram.map(item => {
     if (typeof item === 'object' && item.type === 'custom') return item;
     const id = typeof item === 'object' ? item.id : item;
-    const originalRegente = typeof item === 'object' ? item.regente : '';
-    const originalSolista = typeof item === 'object' ? item.solista : '';
-    const h = hymns.find(h => h.id === id);
-    return h ? {
-      ...h,
-      regente: regentes[id] !== undefined ? regentes[id] : originalRegente,
-      solista: solistas[id] !== undefined ? solistas[id] : originalSolista
-    } : null;
-  }).filter(Boolean), [todayProgram, hymns, regentes, solistas])
+    const regente = typeof item === 'object' ? item.regente || '' : '';
+    const solista = typeof item === 'object' ? item.solista || '' : '';
+    const h = hymnsById[id]
+    return h ? { ...h, regente, solista } : null;
+  }).filter(Boolean), [todayProgram, hymnsById])
 
-  const handleAddCustomItem = () => {
-    if (!customTitle.trim()) return
-    addCustomItem(customTitle, customSubtitle)
-    setCustomTitle('')
-    setCustomSubtitle('')
-  }
   const handleAddHymn = (hymn) => addToTodayProgram(hymn.id)
   const handleRemove = (id) => removeFromTodayProgram(id)
-  const handleUpdateRegente = (id, regente) => setRegentes(prev => ({ ...prev, [id]: regente }))
-  const handleUpdateSolista = (id, solista) => setSolistas(prev => ({ ...prev, [id]: solista }))
+  const handleUpdateRegente = (id, regente) => updateTodayProgramItem(id, { regente })
+  const handleUpdateSolista = (id, solista) => updateTodayProgramItem(id, { solista })
   const handleMove = (idx, dir) => {
     const arr = [...todayProgram]
     const newIdx = idx + dir
@@ -643,8 +611,8 @@ function ProgramacaoForm({ programacaoEditando, onLimparEdicao, onCancelarEdicao
     try {
       const programToSave = todayProgram.map(item => {
         const id = typeof item === 'object' ? item.id : item;
-        const regente = regentes[id] !== undefined ? regentes[id] : (typeof item === 'object' ? item.regente : '');
-        const solista = solistas[id] !== undefined ? solistas[id] : (typeof item === 'object' ? item.solista : '');
+        const regente = typeof item === 'object' ? item.regente || '' : '';
+        const solista = typeof item === 'object' ? item.solista || '' : '';
         return { id, regente, solista };
       });
 
@@ -655,8 +623,6 @@ function ProgramacaoForm({ programacaoEditando, onLimparEdicao, onCancelarEdicao
       }
       setSaved(true)
       if (onLimparEdicao) onLimparEdicao()
-      setRegentes({})
-      setSolistas({})
       setTimeout(() => setSaved(false), 3000)
     } catch (err) {
       console.error(err)
@@ -710,9 +676,18 @@ function ProgramacaoForm({ programacaoEditando, onLimparEdicao, onCancelarEdicao
                 {filteredHymns.length === 0 ? (
                   <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-8">Nenhum hino encontrado</p>
                 ) : (
-                  filteredHymns.map((hymn) => (
-                    <HymnResultItem key={hymn.id} hymn={hymn} onAdd={handleAddHymn} isAdded={todayProgram.some(item => typeof item === 'object' ? item.id === hymn.id : item === hymn.id)} onEdit={openEditHymn} />
-                  ))
+                  <>
+                    {filteredHymns.map((hymn) => (
+                      <HymnResultItem key={hymn.id} hymn={hymn} onAdd={handleAddHymn} isAdded={todayProgram.some(item => typeof item === 'object' ? item.id === hymn.id : item === hymn.id)} onEdit={openEditHymn} />
+                    ))}
+                    {totalPages > 1 && (
+                      <div className="flex items-center justify-between pt-2 pb-1">
+                        <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="text-xs text-gray-500 dark:text-gray-400 disabled:opacity-30 hover:text-gray-700">Anterior</button>
+                        <span className="text-xs text-gray-400">{page}/{totalPages}</span>
+                        <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="text-xs text-gray-500 dark:text-gray-400 disabled:opacity-30 hover:text-gray-700">Proximo</button>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </div>
@@ -725,7 +700,18 @@ function ProgramacaoForm({ programacaoEditando, onLimparEdicao, onCancelarEdicao
                 <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                   <Music size={18} className="text-purple-500" /> Ordem dos Hinos da Reunião
                 </h3>
-                <span className="badge-info">{todayProgram.length} {todayProgram.length === 1 ? 'Hino' : 'Hinos'}</span>
+                <div className="flex items-center gap-2">
+                  <span className="badge-info">{todayProgram.length} {todayProgram.length === 1 ? 'Hino' : 'Hinos'}</span>
+                  {todayProgram.length > 0 && (
+                    <button
+                      onClick={() => setConfirmClear(true)}
+                      className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                      title="Limpar programação"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  )}
+                </div>
               </div>
 
               {todayProgram.length === 0 ? (
@@ -757,14 +743,12 @@ function ProgramacaoForm({ programacaoEditando, onLimparEdicao, onCancelarEdicao
                   )}
                   <button
                     onClick={() => {
-                      // Salvar no localStorage para restaurar ao voltar
                       const hymnsWithDetails = todayProgram.map(item => {
                         const id = typeof item === 'object' ? item.id : item
-                        const regente = regentes[id] !== undefined ? regentes[id] : (typeof item === 'object' ? item.regente : '')
-                        const soloist = solistas[id] !== undefined ? solistas[id] : (typeof item === 'object' ? item.solista : '')
-                        return { id, regente, soloist }
+                        const regente = typeof item === 'object' ? item.regente || '' : ''
+                        const solista = typeof item === 'object' ? item.solista || '' : ''
+                        return { id, regente, solista }
                       })
-                      localStorage.setItem('lastPrintHymns', JSON.stringify(hymnsWithDetails))
                       navigate('/impressao', {
                         state: {
                           hymns: hymnsWithDetails,
@@ -788,6 +772,32 @@ function ProgramacaoForm({ programacaoEditando, onLimparEdicao, onCancelarEdicao
       </div>
 
       <HymnModal isOpen={hymnModalOpen} onClose={() => setHymnModalOpen(false)} onSave={handleSaveHymn} editingHymn={editingHymn} />
+
+      {confirmClear && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setConfirmClear(false)} />
+          <div className="relative bg-white dark:bg-[#2C2C2E] rounded-2xl shadow-2xl w-full max-w-sm p-6 animate-slide-up">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Limpar programação</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+              Tem certeza que deseja remover todos os <strong className="text-gray-900 dark:text-white">{todayProgram.length} hinos</strong> da ordem? Esta ação não pode ser desfeita.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setConfirmClear(false)}
+                className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => { setTodayProgram([]); setConfirmClear(false) }}
+                className="px-4 py-2 bg-red-500 text-white rounded-xl font-medium hover:bg-red-600 transition-colors shadow-sm shadow-red-500/30"
+              >
+                Sim, limpar tudo
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }

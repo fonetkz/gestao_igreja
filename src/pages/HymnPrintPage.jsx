@@ -552,8 +552,12 @@ function TemplateModal({ isOpen, onClose, onSave }) {
 export default function HymnPrintPage() {
   const navigate = useNavigate()
   const { state } = useLocation()
-  const getHymnById = useHymnsStore(s => s.getHymnById)
   const hymns = useHymnsStore(s => s.hymns)
+  const hymnsById = useMemo(() => {
+    const map = {}
+    hymns.forEach(h => { map[h.id] = h })
+    return map
+  }, [hymns])
   const user = useAuthStore(s => s.user)
 
   // Load Playfair Display font for the canvas preview
@@ -566,16 +570,17 @@ export default function HymnPrintPage() {
   }, [])
 
   // Resolve sidebar hymns from location.state
-  const sidebarHymns = useMemo(() => {
+const sidebarHymns = useMemo(() => {
     if (!state?.hymns) return []
     return state.hymns.map(item => {
       const id = typeof item === 'object' ? item.id : item
       const regente = typeof item === 'object' ? item.regente : ''
-      const hymn = getHymnById(id)
+      const soloist = typeof item === 'object' ? item.solista : ''
+      const hymn = hymnsById[id]
       if (!hymn) return null
-      return { ...hymn, regente }
+      return { ...hymn, regente, soloist }
     }).filter(Boolean)
-  }, [state?.hymns, hymns])
+  }, [state?.hymns, hymnsById])
 
   // Templates
   const [templates, setTemplates] = useState(() => {

@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
 import api from '../services/api'
 
 // Normalizar string removendo acentos para busca fuzzy
@@ -14,7 +15,9 @@ const safeParseJson = (jsonStr, defaultValue = []) => {
   }
 }
 
-const useHymnsStore = create((set, get) => ({
+const useHymnsStore = create(
+  persist(
+    (set, get) => ({
   hymns: [],
   programHistory: [],
   todayProgram: [],
@@ -243,6 +246,18 @@ const useHymnsStore = create((set, get) => ({
     return hymns.find(h => h.id === id)
   },
 
+  // Atualizar regente/solista de um item na programação do dia
+  updateTodayProgramItem: (id, updates) => {
+    set(state => ({
+      todayProgram: state.todayProgram.map(item => {
+        const itemId = typeof item === 'object' ? item.id : item
+        if (itemId !== id) return item
+        const existing = typeof item === 'object' ? item : { id: item }
+        return { ...existing, ...updates }
+      })
+    }))
+  },
+
   // Estatísticas
   getTotalHymns: () => get().hymns.length,
 
@@ -250,6 +265,12 @@ const useHymnsStore = create((set, get) => ({
     const { hymns } = get()
     return new Set(hymns.filter(h => h.tonalidade).map(h => h.tonalidade)).size
   },
-}))
+    }),
+    {
+      name: 'gestao-igreja-today-program',
+      partialize: (state) => ({ todayProgram: state.todayProgram }),
+    }
+  )
+)
 
 export default useHymnsStore
