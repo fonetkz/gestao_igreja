@@ -261,7 +261,7 @@ function NewHymnForm({ onSubmit, onCancel, members, sections, conductors }) {
           label="Número" 
           placeholder="001" 
           value={form.numero} 
-          onChange={e => setForm(f => ({ ...f, numero: e.target.value }))} 
+          onChange={e => setForm(f => ({ ...f, numero: e.target.value.replace(/\D/g, '') }))} 
           error={errors.numero} 
         />
         <Select 
@@ -357,7 +357,7 @@ function EditHymnModal({ hymn, open, onClose, onSave, members, sections, conduct
           <Input 
             label="Nº" 
             value={form.numero || ''} 
-            onChange={e => setForm(f => ({ ...f, numero: e.target.value }))} 
+            onChange={e => setForm(f => ({ ...f, numero: e.target.value.replace(/\D/g, '') }))} 
           />
           <Select 
             label="Seção" 

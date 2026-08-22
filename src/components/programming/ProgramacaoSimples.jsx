@@ -89,7 +89,7 @@ function NovoHinoForm({ onSubmit, onCancel, hymnSections, conductors }) {
           label="Número" 
           placeholder="001" 
           value={form.numero} 
-          onChange={e => setForm(f => ({ ...f, numero: e.target.value }))} 
+          onChange={e => setForm(f => ({ ...f, numero: e.target.value.replace(/\D/g, '') }))} 
           error={errors.numero} 
         />
         <Select 

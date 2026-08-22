@@ -62,9 +62,11 @@ export default function Select({ label, options = [], value, onChange, placehold
     ? [...normalizedOptions].sort((a, b) => a.label.localeCompare(b.label, 'pt-BR'))
     : normalizedOptions;
 
+  const normalizeStr = (s) => (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+
   const filteredOptions = searchTerm
     ? sortedOptions.filter(opt =>
-        opt.label.toLowerCase().includes(searchTerm.toLowerCase())
+        normalizeStr(opt.label).toLowerCase().includes(normalizeStr(searchTerm).toLowerCase())
       )
     : sortedOptions;
 
@@ -82,9 +84,9 @@ export default function Select({ label, options = [], value, onChange, placehold
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className={"w-full flex items-center justify-between px-4 py-3 text-sm rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 shadow-sm hover:border-blue-300 dark:hover:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-all min-h-[44px]"}
+          className={"w-full min-w-0 overflow-hidden flex items-center justify-between px-4 py-3 text-sm rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 shadow-sm hover:border-blue-300 dark:hover:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-all min-h-[44px]"}
         >
-          <span className={(value ? "font-medium" : "text-gray-400") + " truncate pr-2 text-left"}>
+          <span className={(value ? "font-medium" : "text-gray-400") + " truncate pr-2 text-left min-w-0"}>
             {displayValue}
           </span>
           <ChevronDown size={isSm ? 14 : 18} className={"text-gray-400 shrink-0 transition-transform duration-200 " + (isOpen ? 'rotate-180' : '')} />

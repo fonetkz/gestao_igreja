@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react'
-import { Plus, Search, Music, Trash2, Save, Check, BookOpen, ChevronUp, ChevronDown, GripVertical, Clock, Calendar, Loader2, Edit2, AlertTriangle, X, Printer } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { Plus, Search, Music, Trash2, Save, Check, BookOpen, ChevronUp, ChevronDown, GripVertical, Clock, Calendar, Loader2, Edit2, AlertTriangle, X, Printer, Users } from 'lucide-react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import Topbar from '../components/layout/Topbar'
 import Modal from '../components/ui/Modal'
 import Select from '../components/ui/Select'
@@ -70,11 +70,33 @@ function HymnResultItem({ hymn, onAdd, isAdded, onEdit }) {
 }
 
 // ─── ProgrammedHymnItem ──────────────────────────────────────────────────────
-function ProgrammedHymnItem({ hymn, index, onRemove, onMove, isFirst, isLast, onUpdateRegente, onUpdateSolista, onDragStart, onDragOver, onDragEnd }) {
+function ProgrammedHymnItem({ hymn, index, onRemove, onMove, isFirst, isLast, onUpdateRegente, onUpdateSolista, onUpdatePiano, onUpdateViolao, onDragStart, onDragOver, onDragEnd }) {
   const hymnTypes = useSettingsStore((s) => s.hymnTypes) || []
   const members = useMembersStore((s) => s.members) || []
   const conductors = members.filter(m => m.status === 'Ativo' && m.cargo && m.cargo.toLowerCase().includes('regente'))
   const activeMembers = members.filter(m => m.status === 'Ativo')
+  const pianoMembers = members.filter(m => m.status === 'Ativo' && m.instrumento_voz && m.instrumento_voz.toLowerCase().includes('piano'))
+  const normalizeStr = (s) => (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+  const violaoMembers = members.filter(m => m.status === 'Ativo' && m.instrumento_voz && normalizeStr(m.instrumento_voz).toLowerCase().includes('violao'))
+
+  const [showRegenteSelect, setShowRegenteSelect] = useState(false)
+  const [showSolistaSelect, setShowSolistaSelect] = useState(false)
+  const [showPianoSelect, setShowPianoSelect] = useState(false)
+  const [showViolaoSelect, setShowViolaoSelect] = useState(false)
+
+  const solistas = Array.isArray(hymn.solista) ? hymn.solista : (hymn.solista ? [hymn.solista] : [])
+
+  const handleAddSolista = (nome) => {
+    if (!nome) return
+    const updated = [...solistas, nome]
+    onUpdateSolista(hymn.id, updated)
+    setShowSolistaSelect(false)
+  }
+
+  const handleRemoveSolista = (idx) => {
+    const updated = solistas.filter((_, i) => i !== idx)
+    onUpdateSolista(hymn.id, updated.length > 0 ? updated : '')
+  }
 
   return (
     <div
@@ -98,32 +120,182 @@ function ProgrammedHymnItem({ hymn, index, onRemove, onMove, isFirst, isLast, on
           <span className="text-[#007AFF] font-bold">Nº {hymn.numero}</span>
           <span className="font-semibold text-gray-900 dark:text-white truncate">{hymn.titulo}</span>
         </div>
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-2">
+        <div className="flex flex-col gap-1.5 mt-2">
           {hymn.tonalidade && (
             <span className="text-xs text-gray-500 dark:text-gray-400">Tipo: {hymnTypes.find(t => t.value.toLowerCase() === hymn.tonalidade?.toLowerCase())?.label || hymn.tonalidade}</span>
           )}
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs text-gray-500 dark:text-gray-400">Regente:</span>
-            <Select
-              options={[
-                { value: '', label: 'Nenhum' },
-                ...conductors.map(c => ({ value: c.nome, label: c.nome })),
-                ...(hymn.regente && !conductors.find(c => c.nome === hymn.regente) ? [{ value: hymn.regente, label: `${hymn.regente} (Inativo)` }] : [])
-              ]}
-              value={hymn.regente || ''}
-              onChange={(val) => onUpdateRegente(hymn.id, val)}
-            />
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs text-gray-500 dark:text-gray-400">Solista:</span>
-            <Select
-              options={[
-                { value: '', label: 'Nenhum' },
-                ...activeMembers.map(m => ({ value: m.nome, label: m.nome }))
-              ]}
-              value={hymn.solista || ''}
-              onChange={(val) => onUpdateSolista(hymn.id, val)}
-            />
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Regente */}
+            {hymn.regente ? (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700/50 rounded-lg">
+                <Users size={12} className="text-gray-500" />
+                Regente: {hymn.regente}
+                <button
+                  onClick={() => onUpdateRegente(hymn.id, '')}
+                  className="ml-0.5 p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-400 hover:text-red-500 transition-colors"
+                >
+                  <X size={12} />
+                </button>
+              </span>
+            ) : showRegenteSelect ? (
+              <div className="flex items-center gap-1">
+                <Select
+                  className="min-w-[160px]"
+                  size="sm"
+                  options={[
+                    { value: '', label: 'Selecionar regente...' },
+                    ...conductors.map(c => ({ value: c.nome, label: c.nome })),
+                    ...(hymn.regente && !conductors.find(c => c.nome === hymn.regente) ? [{ value: hymn.regente, label: `${hymn.regente} (Inativo)` }] : [])
+                  ]}
+                  value=""
+                  onChange={(val) => {
+                    if (val) {
+                      onUpdateRegente(hymn.id, val)
+                    }
+                    setShowRegenteSelect(false)
+                  }}
+                />
+                <button onClick={() => setShowRegenteSelect(false)} className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-400 hover:text-red-500 transition-colors">
+                  <X size={14} />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowRegenteSelect(true)}
+                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-[#007AFF] border border-dashed border-[#007AFF]/30 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors"
+              >
+                <Plus size={12} />
+                Regente
+              </button>
+            )}
+
+            {/* Solistas */}
+            {solistas.map((nome, idx) => (
+              <span key={idx} className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-purple-700 dark:text-purple-300 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+                <Music size={12} className="text-purple-500" />
+                Solista: {nome}
+                <button
+                  onClick={() => handleRemoveSolista(idx)}
+                  className="ml-0.5 p-0.5 rounded hover:bg-purple-200 dark:hover:bg-purple-800/50 text-purple-400 hover:text-red-500 transition-colors"
+                >
+                  <X size={12} />
+                </button>
+              </span>
+            ))}
+
+            {showSolistaSelect ? (
+              <div className="flex items-center gap-1">
+                <Select
+                  className="min-w-[160px]"
+                  size="sm"
+                  options={[
+                    { value: '', label: 'Selecionar solista...' },
+                    ...activeMembers
+                      .filter(m => !solistas.includes(m.nome))
+                      .map(m => ({ value: m.nome, label: m.nome }))
+                  ]}
+                  value=""
+                  onChange={(val) => handleAddSolista(val)}
+                />
+                <button onClick={() => setShowSolistaSelect(false)} className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-400 hover:text-red-500 transition-colors">
+                  <X size={14} />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowSolistaSelect(true)}
+                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-purple-600 border border-dashed border-purple-300/30 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/10 transition-colors"
+              >
+                <Plus size={12} />
+                Solista
+              </button>
+            )}
+
+            {/* Piano */}
+            {hymn.piano ? (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
+                <Music size={12} className="text-emerald-500" />
+                Piano: {hymn.piano}
+                <button
+                  onClick={() => onUpdatePiano(hymn.id, '')}
+                  className="ml-0.5 p-0.5 rounded hover:bg-emerald-200 dark:hover:bg-emerald-800/50 text-emerald-400 hover:text-red-500 transition-colors"
+                >
+                  <X size={12} />
+                </button>
+              </span>
+            ) : showPianoSelect ? (
+              <div className="flex items-center gap-1">
+                <Select
+                  className="min-w-[160px]"
+                  size="sm"
+                  options={[
+                    { value: '', label: 'Selecionar pianista...' },
+                    ...pianoMembers
+                      .filter(m => m.nome !== hymn.piano)
+                      .map(m => ({ value: m.nome, label: m.nome }))
+                  ]}
+                  value=""
+                  onChange={(val) => {
+                    if (val) onUpdatePiano(hymn.id, val)
+                    setShowPianoSelect(false)
+                  }}
+                />
+                <button onClick={() => setShowPianoSelect(false)} className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-400 hover:text-red-500 transition-colors">
+                  <X size={14} />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowPianoSelect(true)}
+                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-emerald-600 border border-dashed border-emerald-300/30 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-900/10 transition-colors"
+              >
+                <Plus size={12} />
+                Piano
+              </button>
+            )}
+
+            {/* Violão */}
+            {hymn.violao ? (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
+                <Music size={12} className="text-amber-500" />
+                Violão: {hymn.violao}
+                <button
+                  onClick={() => onUpdateViolao(hymn.id, '')}
+                  className="ml-0.5 p-0.5 rounded hover:bg-amber-200 dark:hover:bg-amber-800/50 text-amber-400 hover:text-red-500 transition-colors"
+                >
+                  <X size={12} />
+                </button>
+              </span>
+            ) : showViolaoSelect ? (
+              <div className="flex items-center gap-1">
+                <Select
+                  className="min-w-[160px]"
+                  size="sm"
+                  options={[
+                    { value: '', label: 'Selecionar violonista...' },
+                    ...violaoMembers
+                      .filter(m => m.nome !== hymn.violao)
+                      .map(m => ({ value: m.nome, label: m.nome }))
+                  ]}
+                  value=""
+                  onChange={(val) => {
+                    if (val) onUpdateViolao(hymn.id, val)
+                    setShowViolaoSelect(false)
+                  }}
+                />
+                <button onClick={() => setShowViolaoSelect(false)} className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-400 hover:text-red-500 transition-colors">
+                  <X size={14} />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowViolaoSelect(true)}
+                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-amber-600 border border-dashed border-amber-300/30 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/10 transition-colors"
+              >
+                <Plus size={12} />
+                Violão
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -175,7 +347,7 @@ function HymnModal({ isOpen, onClose, onSave, editingHymn }) {
       <form onSubmit={(e) => { e.preventDefault(); handleSave() }} className="space-y-4">
         <div>
           <label className="label-uppercase mb-2 block">Número</label>
-          <input type="text" value={form.numero} onChange={(e) => setForm(f => ({ ...f, numero: e.target.value }))} placeholder="Ex: 001" className={`input-apple uppercase ${errors.numero ? 'ring-2 ring-red-400' : ''}`} />
+          <input type="text" inputMode="numeric" pattern="[0-9]*" value={form.numero} onChange={(e) => { const v = e.target.value.replace(/\D/g, ''); setForm(f => ({ ...f, numero: v })) }} placeholder="Ex: 001" className={`input-apple uppercase ${errors.numero ? 'ring-2 ring-red-400' : ''}`} />
           {errors.numero && <span className="text-xs text-red-500 mt-1 block">{errors.numero}</span>}
         </div>
         <div>
@@ -269,8 +441,8 @@ function HistoricoTab({ onEditarProgramacao, onExcluirProgramacao }) {
     const termNorm = normalize(term || '').toLowerCase()
 
     const matchesTerm = !term ||
-      (prog.tipo_culto || prog.contexto || '').toLowerCase().includes(term) ||
-      (prog.responsavel || '').toLowerCase().includes(term) ||
+      normalize(prog.tipo_culto || prog.contexto || '').toLowerCase().includes(termNorm) ||
+      normalize(prog.responsavel || '').toLowerCase().includes(termNorm) ||
       hinos.some(hymnItem => {
         const id = typeof hymnItem === 'object' ? hymnItem.id : hymnItem
         const hymn = getHymnById(id)
@@ -418,6 +590,8 @@ function HistoricoTab({ onEditarProgramacao, onExcluirProgramacao }) {
                     const id = isObj ? hymnId.id : hymnId;
                     const regente = isObj ? hymnId.regente : '';
                     const solista = isObj ? hymnId.solista : '';
+                    const piano = isObj ? hymnId.piano || '' : '';
+                    const violao = isObj ? hymnId.violao || '' : '';
                     const hymn = getHymnById(id)
                     if (!hymn) return null
                     const tipoLabel = hymnTypes.find(t => t.value.toLowerCase() === hymn.tonalidade?.toLowerCase())?.label || hymn.tonalidade
@@ -430,7 +604,13 @@ function HistoricoTab({ onEditarProgramacao, onExcluirProgramacao }) {
                         <span className="text-sm font-medium text-gray-900 dark:text-white flex-1">{hymn.titulo}</span>
                         {tipoLabel && <span className="text-xs text-gray-400 dark:text-gray-500">Tipo: {tipoLabel}</span>}
                         {regente && <span className="text-xs text-gray-400 dark:text-gray-500 border-l border-gray-300 dark:border-gray-600 pl-2">Regente: {regente}</span>}
-                        {solista && <span className="text-xs text-gray-400 dark:text-gray-500 border-l border-gray-300 dark:border-gray-600 pl-2">Solista: {solista}</span>}
+                        {(() => {
+                          const solistas = Array.isArray(solista) ? solista : (solista ? [solista] : []);
+                          if (solistas.length === 0) return null;
+                          return <span className="text-xs text-gray-400 dark:text-gray-500 border-l border-gray-300 dark:border-gray-600 pl-2">Solista: {solistas.join(', ')}</span>;
+                        })()}
+                        {piano && <span className="text-xs text-emerald-600 dark:text-emerald-400 border-l border-gray-300 dark:border-gray-600 pl-2">Piano: {piano}</span>}
+                        {violao && <span className="text-xs text-amber-600 dark:text-amber-400 border-l border-gray-300 dark:border-gray-600 pl-2">Violão: {violao}</span>}
                       </div>
                     )
                   })}
@@ -441,8 +621,11 @@ function HistoricoTab({ onEditarProgramacao, onExcluirProgramacao }) {
                     <button
                       onClick={() => navigate('/impressao', {
                         state: {
+                          programId: prog.id,
                           hymns: Array.isArray(prog.hinos_json) ? prog.hinos_json : [],
-                          meta: { data: prog.data, tipo: prog.tipo_culto || prog.contexto, responsavel: prog.responsavel }
+                          meta: { data: prog.data, tipo: prog.tipo_culto || prog.contexto, responsavel: prog.responsavel },
+                          layout: prog.layout_json,
+                          fromTab: 'historico'
                         }
                       })}
                       className="w-full sm:flex-1 py-2 text-sm font-medium text-purple-600 dark:text-purple-400 border border-dashed border-purple-300/30 rounded-xl hover:bg-purple-50 dark:hover:bg-purple-900/10 transition-colors flex items-center justify-center gap-2"
@@ -492,6 +675,7 @@ function ProgramacaoForm({ programacaoEditando, onLimparEdicao, onCancelarEdicao
   const [errors, setErrors] = useState({})
   const [draggedIdx, setDraggedIdx] = useState(null)
   const [confirmClear, setConfirmClear] = useState(false)
+  const [selectedTipo, setSelectedTipo] = useState('')
 
   const validate = () => {
     const newErrors = {}
@@ -512,6 +696,9 @@ function ProgramacaoForm({ programacaoEditando, onLimparEdicao, onCancelarEdicao
     }
   }, [programacaoEditando])
 
+  // Resetar página quando filtros mudarem
+  useEffect(() => { setPage(1) }, [searchTerm, selectedTipo])
+
   // Mapa de hinos por ID para busca O(1)
   const hymnsById = useMemo(() => {
     const map = {}
@@ -519,9 +706,20 @@ function ProgramacaoForm({ programacaoEditando, onLimparEdicao, onCancelarEdicao
     return map
   }, [hymns])
 
+  // Contagem de hinos por tipo (para exibir nas opções do select)
+  const tiposComContagem = useMemo(() => {
+    const counts = {}
+    hymns.forEach(h => { if (h.tonalidade) counts[h.tonalidade] = (counts[h.tonalidade] || 0) + 1 })
+    return Object.entries(counts).sort(([a], [b]) => a.localeCompare(b))
+  }, [hymns])
+
   const PAGE_SIZE = 30
   const [page, setPage] = useState(1)
-  const allFiltered = useMemo(() => searchHymns(searchTerm), [searchHymns, searchTerm])
+  const allFiltered = useMemo(() => {
+    const byText = searchHymns(searchTerm)
+    if (!selectedTipo) return byText
+    return byText.filter(h => h.tonalidade === selectedTipo)
+  }, [searchHymns, searchTerm, selectedTipo])
   const totalPages = Math.ceil(allFiltered.length / PAGE_SIZE)
   const filteredHymns = useMemo(() => {
     const start = (page - 1) * PAGE_SIZE
@@ -531,15 +729,20 @@ function ProgramacaoForm({ programacaoEditando, onLimparEdicao, onCancelarEdicao
     if (typeof item === 'object' && item.type === 'custom') return item;
     const id = typeof item === 'object' ? item.id : item;
     const regente = typeof item === 'object' ? item.regente || '' : '';
-    const solista = typeof item === 'object' ? item.solista || '' : '';
+    const rawSolista = typeof item === 'object' ? item.solista : '';
+    const solista = Array.isArray(rawSolista) ? rawSolista : (rawSolista ? [rawSolista] : []);
+    const piano = typeof item === 'object' ? item.piano || '' : '';
+    const violao = typeof item === 'object' ? item.violao || '' : '';
     const h = hymnsById[id]
-    return h ? { ...h, regente, solista } : null;
+    return h ? { ...h, regente, solista, piano, violao } : null;
   }).filter(Boolean), [todayProgram, hymnsById])
 
   const handleAddHymn = (hymn) => addToTodayProgram(hymn.id)
   const handleRemove = (id) => removeFromTodayProgram(id)
   const handleUpdateRegente = (id, regente) => updateTodayProgramItem(id, { regente })
   const handleUpdateSolista = (id, solista) => updateTodayProgramItem(id, { solista })
+  const handleUpdatePiano = (id, piano) => updateTodayProgramItem(id, { piano })
+  const handleUpdateViolao = (id, violao) => updateTodayProgramItem(id, { violao })
   const handleMove = (idx, dir) => {
     const arr = [...todayProgram]
     const newIdx = idx + dir
@@ -612,8 +815,11 @@ function ProgramacaoForm({ programacaoEditando, onLimparEdicao, onCancelarEdicao
       const programToSave = todayProgram.map(item => {
         const id = typeof item === 'object' ? item.id : item;
         const regente = typeof item === 'object' ? item.regente || '' : '';
-        const solista = typeof item === 'object' ? item.solista || '' : '';
-        return { id, regente, solista };
+        const rawSolista = typeof item === 'object' ? item.solista : '';
+        const solista = Array.isArray(rawSolista) ? rawSolista : (rawSolista ? [rawSolista] : []);
+        const piano = typeof item === 'object' ? item.piano || '' : '';
+        const violao = typeof item === 'object' ? item.violao || '' : '';
+        return { id, regente, solista, piano, violao };
       });
 
       if (programacaoEditando?.id) {
@@ -658,16 +864,29 @@ function ProgramacaoForm({ programacaoEditando, onLimparEdicao, onCancelarEdicao
         </div>
 
         {/* Main Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
           {/* Left — Acervo */}
           <div className="md:col-span-5 space-y-4">
             <div className="apple-card p-4 flex flex-col h-full">
-              <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2 shrink-0">
-                <Music size={18} className="text-[#007AFF]" /> Acervo de Hinos
-              </h3>
-              <div className="relative mb-3 shrink-0">
-                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Buscar por número ou título..." className="input-apple pl-10 w-full" />
+              <div className="flex items-center justify-between mb-4 shrink-0">
+                <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                  <Music size={18} className="text-[#007AFF]" /> Acervo de Hinos
+                </h3>
+                <span className="badge-info">{allFiltered.length} {allFiltered.length === 1 ? 'Hino' : 'Hinos'}</span>
+              </div>
+              <div className="flex gap-2 mb-3 shrink-0">
+                <div className="relative flex-1">
+                  <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10" />
+                  <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Buscar por número ou título..." className="input-apple pl-10 w-full" />
+                </div>
+                <div className="w-40 shrink-0">
+                  <Select
+                    options={[{ value: '', label: 'Todos os tipos' }, ...tiposComContagem.map(([tipo]) => ({ value: tipo, label: tipo.toUpperCase() }))]}
+                    value={selectedTipo}
+                    onChange={(val) => setSelectedTipo(val)}
+                    sortOptions={false}
+                  />
+                </div>
               </div>
               <button onClick={() => { setEditingHymn(null); setHymnModalOpen(true); }} className="w-full mb-3 text-sm font-medium text-[#007AFF] hover:text-[#0062CC] flex items-center justify-center gap-1 py-2 rounded-xl border border-dashed border-[#007AFF]/30 hover:border-[#007AFF] hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors shrink-0">
                 <Plus size={16} /> Novo Hino
@@ -725,7 +944,7 @@ function ProgramacaoForm({ programacaoEditando, onLimparEdicao, onCancelarEdicao
               ) : (
                 <div className="space-y-3 flex-1 overflow-y-auto max-h-[480px] pr-2">
                   {programHymns.map((hymn, idx) => hymn && (
-                    <ProgrammedHymnItem key={hymn.id} hymn={hymn} index={idx} total={todayProgram.length} onRemove={handleRemove} onMove={handleMove} isFirst={idx === 0} isLast={idx === todayProgram.length - 1} onUpdateRegente={handleUpdateRegente} onUpdateSolista={handleUpdateSolista} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd} />
+                    <ProgrammedHymnItem key={hymn.id} hymn={hymn} index={idx} total={todayProgram.length} onRemove={handleRemove} onMove={handleMove} isFirst={idx === 0} isLast={idx === todayProgram.length - 1} onUpdateRegente={handleUpdateRegente} onUpdateSolista={handleUpdateSolista} onUpdatePiano={handleUpdatePiano} onUpdateViolao={handleUpdateViolao} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd} />
                   ))}
                 </div>
               )}
@@ -746,13 +965,18 @@ function ProgramacaoForm({ programacaoEditando, onLimparEdicao, onCancelarEdicao
                       const hymnsWithDetails = todayProgram.map(item => {
                         const id = typeof item === 'object' ? item.id : item
                         const regente = typeof item === 'object' ? item.regente || '' : ''
-                        const solista = typeof item === 'object' ? item.solista || '' : ''
-                        return { id, regente, solista }
+                        const rawSolista = typeof item === 'object' ? item.solista : ''
+                        const solista = Array.isArray(rawSolista) ? rawSolista : (rawSolista ? [rawSolista] : [])
+                        const piano = typeof item === 'object' ? item.piano || '' : ''
+                        const violao = typeof item === 'object' ? item.violao || '' : ''
+                        return { id, regente, solista, piano, violao }
                       })
                       navigate('/impressao', {
                         state: {
+                          programId: programacaoEditando?.id || null,
                           hymns: hymnsWithDetails,
-                          meta: { data: serviceDate, tipo: serviceType, responsavel }
+                          meta: { data: serviceDate, tipo: serviceType, responsavel },
+                          fromTab: 'programar'
                         }
                       })
                     }}
@@ -804,7 +1028,8 @@ function ProgramacaoForm({ programacaoEditando, onLimparEdicao, onCancelarEdicao
 
 // ─── Page ────────────────────────────────────────────────────────────────────
 export default function ProgrammingPage() {
-  const [activeTab, setActiveTab] = useState('programar')
+  const location = useLocation()
+  const [activeTab, setActiveTab] = useState(location.state?.activeTab || 'programar')
   const [programacaoEditando, setProgramacaoEditando] = useState(null)
   const [programToDelete, setProgramToDelete] = useState(null)
 

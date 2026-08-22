@@ -3,20 +3,82 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import {
   ArrowLeft, GripVertical, Trash2, Printer, Save,
   ChevronDown, Plus, Church, X, Check, Hash, Tag, User, LayoutTemplate,
-  Minus
+  Minus, Music, Calendar
 } from 'lucide-react'
 import useHymnsStore from '../store/hymnsStore'
 import useAuthStore from '../store/authStore'
 import Topbar from '../components/layout/Topbar'
+import useToastStore from '../store/toastStore'
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const TEMPLATES_KEY = 'hymnprint_templates'
+const LAYOUT_CACHE_KEY = 'hymnprint_last_layout'
+
+function saveLayoutToLS(hymnsKey, headerConfig, sections) {
+  try {
+    const cache = JSON.parse(localStorage.getItem(LAYOUT_CACHE_KEY) || '{}')
+    cache[hymnsKey] = { headerConfig, sections, savedAt: Date.now() }
+    // Keep only last 20
+    const keys = Object.keys(cache)
+    if (keys.length > 20) {
+      const oldest = keys.slice(0, keys.length - 20)
+      oldest.forEach(k => delete cache[k])
+    }
+    localStorage.setItem(LAYOUT_CACHE_KEY, JSON.stringify(cache))
+  } catch { /* localStorage full or unavailable */ }
+}
+
+function loadLayoutFromLS(hymnsKey) {
+  try {
+    const cache = JSON.parse(localStorage.getItem(LAYOUT_CACHE_KEY) || '{}')
+    return cache[hymnsKey] || null
+  } catch { return null }
+}
+
+function makeHymnsKey(hymns) {
+  if (!hymns || hymns.length === 0) return 'empty'
+  return hymns.map(h => `${h.id}-${h.regente || ''}-${h.soloist || ''}-${h.piano || ''}-${h.violao || ''}`).join('|')
+}
+
+const TYPE_FULL_NAMES = {
+  gc: 'Grande Coral',
+  cs: 'Coro da Sede',
+  oh: 'Orquestra do Hinário',
+  oc: 'Orquestra do Coral',
+  sc: 'Solos com Coral',
+  ocam: 'Orquestra de Câmara',
+  cj: 'Coral Jovem',
+  ccam: 'Coro de Câmara',
+  cf: 'Coro Feminino',
+  cij: 'Coro Infanto-Juvenil',
+  cm: 'Coro Masculino',
+  dm: 'Dia das Mães',
+  inst: 'Instrumentais',
+  ov: 'Orquestra de Violões',
+  se: 'Solos Especiais',
+  sn: 'Solos Normais',
+  hinario: 'Hinário',
+}
+
+function getFullTypeName(tonalidade) {
+  if (!tonalidade) return ''
+  return TYPE_FULL_NAMES[tonalidade.toLowerCase()] || tonalidade
+}
 
 // ─── Utilities ───────────────────────────────────────────────────────────────
 
 function genId() {
   return Math.random().toString(36).slice(2, 10)
+}
+
+function toTitleCase(str) {
+  if (!str) return ''
+  return str
+    .replace(/_/g, ' ')
+    .split(/(\s+)/)
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join('')
 }
 
 function loadTemplatesLS() {
@@ -28,12 +90,29 @@ function saveTemplatesLS(templates) {
   localStorage.setItem(TEMPLATES_KEY, JSON.stringify(templates))
 }
 
+const WEEKDAYS = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado']
+const MONTHS = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']
+
+function toISODateString(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 function formatDateDisplay(dateStr) {
-  if (!dateStr) return ''
-  if (dateStr.includes('/')) return dateStr
+  if (!dateStr) {
+    const today = new Date()
+    return `${WEEKDAYS[today.getDay()]}, ${today.getDate()} de ${MONTHS[today.getMonth()]} de ${today.getFullYear()}`
+  }
   try {
-    const [y, m, d] = dateStr.split('T')[0].split('-')
-    return `${d}/${m}/${y}`
+    let d
+    if (dateStr.includes('/')) {
+      const [p1, p2, p3] = dateStr.split('/')
+      d = new Date(+p3, +p2 - 1, +p1)
+    } else {
+      const [y, m, day] = dateStr.split('T')[0].split('-')
+      d = new Date(+y, +m - 1, +day)
+    }
+    if (isNaN(d.getTime())) return dateStr
+    return `${WEEKDAYS[d.getDay()]}, ${d.getDate()} de ${MONTHS[d.getMonth()]} de ${d.getFullYear()}`
   } catch { return dateStr }
 }
 
@@ -44,21 +123,30 @@ const DEFAULT_SECTIONS = [
 
 // ─── buildPrintHTML ───────────────────────────────────────────────────────────
 
-function buildPrintHTML(canvasSections, headerConfig, sectionFontSize = 11) {
+function buildPrintHTML(canvasSections, headerConfig, sectionFontSize = 14, hymnFontSize = 12) {
   const sectionsHTML = canvasSections
-    .filter(s => s.hymns.length > 0)
     .map(section => {
       const hymnsHTML = section.hymns.map(hymn => `
         <div class="hymn-card">
           ${hymn.showNumber ? `<span class="hymn-num">Nº ${hymn.numero}</span>` : ''}
-          <span class="hymn-title">${(hymn.titulo || '').toUpperCase()}</span>
-          ${hymn.showType && hymn.tonalidade ? `<span class="hymn-key">${hymn.tonalidade}</span>` : ''}
+          <span class="hymn-title">
+            ${(hymn.titulo || '').toUpperCase()}
+            ${hymn.showCustomLabel !== false && hymn.customLabel ? `<span class="hymn-custom-label">${hymn.customLabel}</span>` : ''}
+          </span>
+          ${hymn.showType && hymn.tonalidade ? `<span class="hymn-key">${getFullTypeName(hymn.tonalidade)}</span>` : ''}
           ${hymn.showRegente && hymn.regente ? `<span class="hymn-regent">Reg: ${hymn.regente}</span>` : ''}
+          ${hymn.showSoloist !== false && hymn.soloist ? `<span class="hymn-soloist">Solo: ${hymn.soloist}</span>` : ''}
+          ${hymn.showPiano !== false && hymn.piano ? `<span class="hymn-piano">Pno: ${hymn.piano}</span>` : ''}
+          ${hymn.showViolao !== false && hymn.violao ? `<span class="hymn-violao">Vlao: ${hymn.violao}</span>` : ''}
         </div>`).join('')
+      const obsHTML = section.observations
+        ? `<div class="section-observations">${section.observations}</div>`
+        : ''
       return `
         <div class="section">
           <div class="section-title"><span>${section.name}</span></div>
           <div class="section-hymns">${hymnsHTML}</div>
+          ${obsHTML}
         </div>`
     }).join('')
 
@@ -83,34 +171,39 @@ function buildPrintHTML(canvasSections, headerConfig, sectionFontSize = 11) {
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Inter', sans-serif; padding: 15mm; color: #111827; }
-    .doc-header { text-align: center; padding-bottom: 20px; margin-bottom: 24px; }
-    .header-logo { max-width: 280px; object-fit: contain; margin: 0 auto 12px; display: block; }
-    .header-title { font-family: 'Playfair Display', Georgia, serif; font-size: 22px; font-weight: 700; color: #1C1C1E; letter-spacing: 0.3px; margin-bottom: 4px; }
-    .header-subtitle { font-family: 'Inter', sans-serif; font-size: 11px; color: #6B7280; font-weight: 500; margin-bottom: 2px; }
-    .header-meta { font-family: 'Inter', sans-serif; font-size: 10px; color: #6B7280; margin-top: 2px; }
-    .header-sep { width: 60px; height: 1.5px; background: #007AFF; margin: 10px auto 0; }
-    .section { margin-bottom: 20px; }
+    body { font-family: 'Inter', sans-serif; padding: 12mm; color: #111827; }
+    .doc-header { text-align: center; padding-bottom: 12px; margin-bottom: 16px; }
+    .header-logo { max-width: 200px; object-fit: contain; margin: 0 auto 8px; display: block; }
+    .header-title { font-family: 'Playfair Display', Georgia, serif; font-size: 22pt; font-weight: 700; color: #1C1C1E; letter-spacing: 0.3px; margin-bottom: 4px; }
+    .header-subtitle { font-family: 'Inter', sans-serif; font-size: 11pt; color: #6B7280; font-weight: 500; margin-bottom: 3px; }
+    .header-meta { font-family: 'Inter', sans-serif; font-size: 10pt; color: #6B7280; margin-top: 2px; }
+    .header-sep { width: 40px; height: 1px; background: #007AFF; margin: 8px auto 0; }
+    .section { margin-bottom: 12px; }
     .section-title {
-      display: flex; align-items: center; gap: 8px;
-      font-family: 'Inter', sans-serif; font-size: ${sectionFontSize}px;
-      font-weight: 600; text-transform: uppercase; letter-spacing: 0.15em;
-      color: #9CA3AF; margin: 14px 0 8px;
+      display: flex; align-items: center; gap: 6px;
+      font-family: 'Inter', sans-serif; font-size: ${sectionFontSize}pt;
+      font-weight: 600; text-transform: uppercase; letter-spacing: 0.12em;
+      color: #9CA3AF; margin: 12px 0 6px;
     }
     .section-title::before, .section-title::after {
       content: ''; flex: 1; border-top: 1px solid #E5E7EB;
     }
     .section-title span { white-space: nowrap; }
+    .section-observations { font-family: 'Inter', sans-serif; font-size: 8pt; color: #4B5563; font-style: italic; padding: 4px 8px; margin: 4px 0; background: #F9FAFB; border-radius: 3px; border: 1px dashed #E5E7EB; white-space: pre-line; }
     .hymn-card {
-      display: flex; align-items: center; gap: 8px;
-      background: #FAFCFF; border-left: 2px solid rgba(0,122,255,0.25);
-      border-radius: 4px; padding: 5px 8px; margin-bottom: 4px;
+      display: flex; align-items: center; gap: 6px;
+      background: #FAFCFF; border-left: 2px solid rgba(0,122,255,0.35);
+      border-radius: 3px; padding: 6px 10px; margin-bottom: 4px;
     }
-    .hymn-num { font-family: 'Inter', sans-serif; font-size: 9px; font-weight: 700; color: #007AFF; min-width: 40px; white-space: nowrap; }
-    .hymn-title { font-family: 'Inter', sans-serif; font-size: 9px; font-weight: 600; color: #1C1C1E; flex: 1; text-transform: uppercase; letter-spacing: 0.3px; }
-    .hymn-key { font-family: 'Inter', sans-serif; font-size: 8px; color: #9CA3AF; font-weight: 500; white-space: nowrap; }
-    .hymn-regent { font-family: 'Inter', sans-serif; font-size: 8px; color: #9CA3AF; white-space: nowrap; }
-    @media print { @page { margin: 0; } body { padding: 15mm; } }
+    .hymn-num { font-family: 'Inter', sans-serif; font-size: 11pt; font-weight: 700; color: #007AFF; min-width: 44px; white-space: nowrap; }
+    .hymn-title { font-family: 'Inter', sans-serif; font-size: ${hymnFontSize}pt; font-weight: 600; color: #1C1C1E; flex: 1; text-transform: uppercase; letter-spacing: 0.2px; }
+    .hymn-key { font-family: 'Inter', sans-serif; font-size: 9pt; color: #9CA3AF; font-weight: 500; white-space: nowrap; }
+    .hymn-regent { font-family: 'Inter', sans-serif; font-size: 9pt; color: #9CA3AF; white-space: nowrap; }
+    .hymn-soloist { font-family: 'Inter', sans-serif; font-size: 9pt; color: #2563EB; font-weight: 500; white-space: nowrap; }
+    .hymn-custom-label { font-family: 'Inter', sans-serif; font-size: 8pt; color: #9A3412; background: #FFEDD5; padding: 1px 6px; border-radius: 3px; font-weight: 600; white-space: nowrap; }
+    .hymn-piano { font-family: 'Inter', sans-serif; font-size: 9pt; color: #059669; font-weight: 500; white-space: nowrap; }
+    .hymn-violao { font-family: 'Inter', sans-serif; font-size: 9pt; color: #D97706; font-weight: 500; white-space: nowrap; }
+    @media print { @page { margin: 0; } body { padding: 10mm; } }
   </style>
 </head>
 <body>
@@ -156,7 +249,7 @@ function PrintSidebar({ sidebarHymns, canvasSections, onDragStart, onBack }) {
         )}
         {sidebarHymns.map(hymn => {
           const inCanvas = hymnIdsInCanvas.includes(hymn.id)
-          const meta = [hymn.numero ? `Nº ${hymn.numero}` : null, hymn.tonalidade || null].filter(Boolean).join(' · ')
+          const meta = [hymn.numero ? `Nº ${hymn.numero}` : null, getFullTypeName(hymn.tonalidade) || null].filter(Boolean).join(' · ')
           return (
             <div
               key={hymn.id}
@@ -184,7 +277,7 @@ function PrintSidebar({ sidebarHymns, canvasSections, onDragStart, onBack }) {
   )
 }
 
-function PrintToolbar({ templates, activeTemplateId, onSelectTemplate, onSaveTemplate, onPrint, sectionFontSize, onSectionFontSizeChange }) {
+function PrintToolbar({ templates, activeTemplateId, onSelectTemplate, onDeleteTemplate, onSaveTemplate, onSaveLayout, onPrint, sectionFontSize, onSectionFontSizeChange, hymnFontSize, onHymnFontSizeChange }) {
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const activeTemplate = templates.find(t => t.id === activeTemplateId)
 
@@ -208,18 +301,27 @@ function PrintToolbar({ templates, activeTemplateId, onSelectTemplate, onSaveTem
                 <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">Templates</p>
               </div>
               {templates.map(t => (
-                <button
-                  key={t.id}
-                  onClick={() => { onSelectTemplate(t); setDropdownOpen(false) }}
-                  className={`w-full text-left px-4 py-2.5 text-sm transition-colors flex items-center justify-between ${
-                    t.id === activeTemplateId
-                      ? 'bg-blue-50 dark:bg-blue-900/20 text-[#007AFF] font-medium'
-                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
-                  }`}
-                >
-                  {t.name}
-                  {t.id === activeTemplateId && <Check size={13} />}
-                </button>
+                <div key={t.id} className="flex items-center justify-between group">
+                  <button
+                    onClick={() => { onSelectTemplate(t); setDropdownOpen(false) }}
+                    className={`flex-1 text-left px-4 py-2.5 text-sm transition-colors ${
+                      t.id === activeTemplateId
+                        ? 'bg-blue-50 dark:bg-blue-900/20 text-[#007AFF] font-medium'
+                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                    }`}
+                  >
+                    {t.name}
+                  </button>
+                  {templates.length > 1 && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onDeleteTemplate(t.id); setDropdownOpen(false) }}
+                      className="px-3 py-2.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                      title="Excluir template"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  )}
+                </div>
               ))}
             </div>
           </>
@@ -234,18 +336,44 @@ function PrintToolbar({ templates, activeTemplateId, onSelectTemplate, onSaveTem
         Salvar Template
       </button>
 
+      <button
+        onClick={onSaveLayout}
+        className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-[#007AFF] bg-white dark:bg-[#3A3A3C] border border-[#007AFF]/30 dark:border-[#007AFF]/50 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all"
+      >
+        <Save size={14} />
+        Salvar Configuração
+      </button>
+
       {/* Section font size control */}
       <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-[#3A3A3C] border border-gray-200 dark:border-gray-600 rounded-lg">
         <span className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mr-1">Seções</span>
         <button
-          onClick={() => onSectionFontSizeChange(Math.max(8, sectionFontSize - 1))}
+          onClick={() => onSectionFontSizeChange(Math.max(10, sectionFontSize - 1))}
           className="w-5 h-5 rounded-md flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
         >
           <Minus size={10} />
         </button>
         <span className="text-xs font-semibold text-gray-600 dark:text-gray-300 w-6 text-center">{sectionFontSize}</span>
         <button
-          onClick={() => onSectionFontSizeChange(Math.min(20, sectionFontSize + 1))}
+          onClick={() => onSectionFontSizeChange(Math.min(28, sectionFontSize + 1))}
+          className="w-5 h-5 rounded-md flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+        >
+          <Plus size={10} />
+        </button>
+      </div>
+
+      {/* Hymn font size control */}
+      <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-[#3A3A3C] border border-gray-200 dark:border-gray-600 rounded-lg">
+        <span className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mr-1">Hinos</span>
+        <button
+          onClick={() => onHymnFontSizeChange(Math.max(8, hymnFontSize - 1))}
+          className="w-5 h-5 rounded-md flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+        >
+          <Minus size={10} />
+        </button>
+        <span className="text-xs font-semibold text-gray-600 dark:text-gray-300 w-6 text-center">{hymnFontSize}</span>
+        <button
+          onClick={() => onHymnFontSizeChange(Math.min(24, hymnFontSize + 1))}
           className="w-5 h-5 rounded-md flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
         >
           <Plus size={10} />
@@ -267,11 +395,33 @@ function PrintToolbar({ templates, activeTemplateId, onSelectTemplate, onSaveTem
 
 function PrintHeader({ headerConfig, onChange }) {
   const logoHeight = headerConfig.logoHeight || 64
+  const datePickerRef = useRef(null)
+
+  const parseDateFromDisplay = (displayStr) => {
+    if (!displayStr) return new Date()
+    try {
+      const match = displayStr.match(/(\d{1,2}) de (\w+) de (\d{4})/)
+      if (match) {
+        const monthIdx = MONTHS.findIndex(m => m.toLowerCase() === match[2].toLowerCase())
+        if (monthIdx >= 0) return new Date(+match[3], monthIdx, +match[1])
+      }
+      const isoMatch = displayStr.match(/(\d{4})-(\d{2})-(\d{2})/)
+      if (isoMatch) return new Date(+isoMatch[1], +isoMatch[2] - 1, +isoMatch[3])
+    } catch {}
+    return new Date()
+  }
+
+  const handleDatePickerChange = (e) => {
+    const val = e.target.value
+    if (val) onChange('date', formatDateDisplay(val))
+  }
+
+  const todayISO = toISODateString(parseDateFromDisplay(headerConfig.date))
 
   return (
-    <div className="text-center pb-5 mb-6">
+    <div className="text-center pb-3 mb-4">
       {/* Logo / image */}
-      <div className="mx-auto mb-1" style={{ height: `${logoHeight}px`, maxWidth: '280px' }}>
+      <div className="mx-auto mb-1" style={{ height: `${logoHeight}px`, maxWidth: '200px' }}>
         {headerConfig.imageUrl ? (
           <img
             src={headerConfig.imageUrl}
@@ -281,32 +431,32 @@ function PrintHeader({ headerConfig, onChange }) {
           />
         ) : (
           <div className="w-full h-full rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center">
-            <Church size={24} className="text-gray-300" />
+            <Church size={20} className="text-gray-300" />
           </div>
         )}
       </div>
 
       {/* Image URL + size slider */}
-      <div className="flex items-center justify-center gap-2 mb-3">
+      <div className="flex items-center justify-center gap-2 mb-2">
         <input
           type="text"
           placeholder="URL da imagem / logo"
           value={headerConfig.imageUrl}
           onChange={e => onChange('imageUrl', e.target.value)}
-          className="text-[10px] text-center text-gray-400 bg-transparent border-b border-gray-100 focus:outline-none focus:border-[#007AFF] transition-colors placeholder:text-gray-200 pb-0.5 w-40"
+          className="text-[9px] text-center text-gray-400 bg-transparent border-b border-gray-100 focus:outline-none focus:border-[#007AFF] transition-colors placeholder:text-gray-200 pb-0.5 w-32"
         />
         {headerConfig.imageUrl && (
           <div className="flex items-center gap-1.5">
-            <span className="text-[9px] text-gray-300 uppercase tracking-wider">tam</span>
+            <span className="text-[8px] text-gray-300 uppercase tracking-wider">tam</span>
             <input
               type="range"
-              min={32}
-              max={160}
+              min={24}
+              max={120}
               value={logoHeight}
               onChange={e => onChange('logoHeight', Number(e.target.value))}
-              className="w-16 accent-[#007AFF] h-1"
+              className="w-12 accent-[#007AFF] h-1"
             />
-            <span className="text-[9px] text-gray-300 w-6">{logoHeight}px</span>
+            <span className="text-[8px] text-gray-300 w-5">{logoHeight}px</span>
           </div>
         )}
       </div>
@@ -316,7 +466,7 @@ function PrintHeader({ headerConfig, onChange }) {
         value={headerConfig.title}
         onChange={e => onChange('title', e.target.value)}
         placeholder="Título principal"
-        className="text-xl font-extrabold text-[#1a2b42] text-center bg-transparent w-full focus:outline-none focus:ring-1 focus:ring-[#007AFF]/20 hover:bg-gray-50 focus:bg-gray-50 rounded transition-colors px-2 py-0.5"
+        className="text-lg font-extrabold text-[#1a2b42] text-center bg-transparent w-full focus:outline-none focus:ring-1 focus:ring-[#007AFF]/20 hover:bg-gray-50 focus:bg-gray-50 rounded transition-colors px-2 py-0.5"
         style={{ fontFamily: "'Playfair Display', Georgia, serif", letterSpacing: '0.5px' }}
       />
       <input
@@ -324,29 +474,62 @@ function PrintHeader({ headerConfig, onChange }) {
         value={headerConfig.subtitle}
         onChange={e => onChange('subtitle', e.target.value)}
         placeholder="Subtítulo (tipo de reunião)"
-        className="text-xs font-semibold text-gray-500 uppercase text-center bg-transparent w-full focus:outline-none focus:ring-1 focus:ring-[#007AFF]/20 hover:bg-gray-50 focus:bg-gray-50 rounded transition-colors mt-1 px-2 py-0.5"
-        style={{ letterSpacing: '2px' }}
+        className="text-[11px] font-semibold text-gray-500 uppercase text-center bg-transparent w-full focus:outline-none focus:ring-1 focus:ring-[#007AFF]/20 hover:bg-gray-50 focus:bg-gray-50 rounded transition-colors mt-0.5 px-2 py-0.5"
+        style={{ letterSpacing: '1.5px' }}
       />
-      <input
-        type="text"
-        value={headerConfig.date}
-        onChange={e => onChange('date', e.target.value)}
-        placeholder="Data"
-        className="text-xs text-gray-400 text-center bg-transparent w-full focus:outline-none focus:ring-1 focus:ring-[#007AFF]/20 hover:bg-gray-50 focus:bg-gray-50 rounded transition-colors mt-0.5 px-2 py-0.5"
-      />
+      <div className="relative flex items-center justify-center mt-0.5">
+        <input
+          type="text"
+          value={headerConfig.date}
+          onChange={e => onChange('date', formatDateDisplay(e.target.value))}
+          placeholder="Data"
+          className="text-[11px] text-gray-400 text-center bg-transparent w-full focus:outline-none focus:ring-1 focus:ring-[#007AFF]/20 hover:bg-gray-50 focus:bg-gray-50 rounded transition-colors px-2 py-0.5 pr-7"
+        />
+        <button
+          type="button"
+          onClick={() => datePickerRef.current?.showPicker()}
+          className="absolute right-1 top-1/2 -translate-y-1/2 p-0.5 text-gray-300 hover:text-[#007AFF] transition-colors"
+        >
+          <Calendar size={14} />
+        </button>
+        <input
+          ref={datePickerRef}
+          type="date"
+          value={todayISO}
+          onChange={handleDatePickerChange}
+          className="absolute opacity-0 w-0 h-0 pointer-events-none"
+        />
+      </div>
       <input
         type="text"
         value={headerConfig.location}
-        onChange={e => onChange('location', e.target.value)}
+        onChange={e => onChange('location', toTitleCase(e.target.value))}
         placeholder="Localização"
-        className="text-xs text-gray-400 text-center bg-transparent w-full focus:outline-none focus:ring-1 focus:ring-[#007AFF]/20 hover:bg-gray-50 focus:bg-gray-50 rounded transition-colors mt-0.5 px-2 py-0.5"
+        className="text-[11px] text-gray-400 text-center bg-transparent w-full focus:outline-none focus:ring-1 focus:ring-[#007AFF]/20 hover:bg-gray-50 focus:bg-gray-50 rounded transition-colors mt-0.5 px-2 py-0.5"
       />
-      <div className="w-[60px] h-[1.5px] bg-[#007AFF] mx-auto mt-3" />
+
+      <div className="w-[40px] h-[1px] bg-[#007AFF] mx-auto mt-2" />
     </div>
   )
 }
 
-function PrintHymnCard({ hymn, sectionId, index, onRemove, onToggleVisibility, onDragStart, onDragOver, onDragEnd }) {
+function PrintHymnCard({ hymn, sectionId, index, onRemove, onToggleVisibility, onUpdateHymnField, onDragStart, onDragOver, onDragEnd }) {
+  const [editingLabel, setEditingLabel] = useState(false)
+  const [labelDraft, setLabelDraft] = useState('')
+  const inputRef = useRef(null)
+
+  useEffect(() => {
+    if (editingLabel) {
+      setLabelDraft(hymn.customLabel || '')
+      setTimeout(() => inputRef.current?.focus(), 50)
+    }
+  }, [editingLabel])
+
+  const handleSaveLabel = () => {
+    onUpdateHymnField(sectionId, hymn.id, 'customLabel', labelDraft.trim())
+    setEditingLabel(false)
+  }
+
   return (
     <div
       draggable
@@ -363,43 +546,116 @@ function PrintHymnCard({ hymn, sectionId, index, onRemove, onToggleVisibility, o
             <span className="text-[#007AFF] font-bold text-xs">Nº {hymn.numero}</span>
           )}
           <span className="font-semibold text-gray-900 text-xs uppercase tracking-wide">{hymn.titulo}</span>
+          {hymn.showCustomLabel !== false && editingLabel ? (
+            <input
+              ref={inputRef}
+              type="text"
+              value={labelDraft}
+              onChange={e => setLabelDraft(e.target.value)}
+              onBlur={handleSaveLabel}
+              onKeyDown={e => { if (e.key === 'Enter') handleSaveLabel(); if (e.key === 'Escape') setEditingLabel(false) }}
+              className="w-24 text-[9px] px-1.5 py-0.5 rounded border border-gray-300 bg-white focus:outline-none focus:border-[#007AFF]"
+              placeholder="rótulo..."
+            />
+          ) : hymn.showCustomLabel !== false && hymn.customLabel ? (
+            <span
+              onClick={() => setEditingLabel(true)}
+              className="text-[9px] bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded-full font-semibold cursor-pointer hover:bg-orange-200 transition-colors"
+              title="Clique para editar"
+            >
+              {hymn.customLabel}
+            </span>
+          ) : hymn.showCustomLabel !== false ? (
+            <button
+              onClick={() => { setEditingLabel(true); setLabelDraft('') }}
+              className="opacity-0 group-hover:opacity-100 text-[9px] text-orange-400 border border-dashed border-orange-300/40 px-1.5 py-0.5 rounded-full font-semibold hover:bg-orange-50 hover:text-orange-500 hover:border-orange-400 transition-all"
+              title="Adicionar rótulo"
+            >
+              + rótulo
+            </button>
+          ) : null}
           {hymn.showType && hymn.tonalidade && (
-            <span className="text-[9px] bg-gray-100 px-1.5 py-0.5 rounded-full text-gray-500 font-bold uppercase tracking-tight">
-              {hymn.tonalidade}
+            <span className="text-[9px] bg-gray-100 px-1.5 py-0.5 rounded-full text-gray-500 font-bold tracking-tight">
+              {getFullTypeName(hymn.tonalidade)}
             </span>
           )}
         </div>
         {hymn.showRegente && hymn.regente && (
           <p className="text-[10px] text-[#007AFF] font-medium mt-0.5">Reg: {hymn.regente}</p>
         )}
+        {hymn.showSoloist !== false && hymn.soloist && (
+          <p className="text-[10px] text-blue-500 font-medium">Solo: {hymn.soloist}</p>
+        )}
+        {hymn.showPiano !== false && hymn.piano && (
+          <p className="text-[10px] text-emerald-600 font-medium">Pno: {hymn.piano}</p>
+        )}
+        {hymn.showViolao !== false && hymn.violao && (
+          <p className="text-[10px] text-amber-600 font-medium">Vlao: {hymn.violao}</p>
+        )}
       </div>
       <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+        {hymn.soloist && (
+          <button
+            onClick={() => onToggleVisibility(sectionId, hymn.id, 'showSoloist')}
+            title="Mostrar/ocultar solista"
+            className={`w-5 h-5 rounded-lg flex items-center justify-center transition-colors ${hymn.showSoloist !== false ? 'text-blue-500 bg-blue-50' : 'text-gray-300 hover:text-gray-500'}`}
+          >
+            <Music size={10} />
+          </button>
+        )}
         <button
           onClick={() => onToggleVisibility(sectionId, hymn.id, 'showRegente')}
           title="Mostrar/ocultar regente"
-          className={`w-6 h-6 rounded-lg flex items-center justify-center transition-colors ${hymn.showRegente ? 'text-[#007AFF] bg-blue-50' : 'text-gray-300 hover:text-gray-500'}`}
+          className={`w-5 h-5 rounded-lg flex items-center justify-center transition-colors ${hymn.showRegente ? 'text-[#007AFF] bg-blue-50' : 'text-gray-300 hover:text-gray-500'}`}
         >
-          <User size={11} />
+          <User size={10} />
         </button>
+        {hymn.piano && (
+          <button
+            onClick={() => onToggleVisibility(sectionId, hymn.id, 'showPiano')}
+            title="Mostrar/ocultar piano"
+            className={`w-5 h-5 rounded-lg flex items-center justify-center transition-colors ${hymn.showPiano !== false ? 'text-emerald-600 bg-emerald-50' : 'text-gray-300 hover:text-gray-500'}`}
+          >
+            <Music size={10} />
+          </button>
+        )}
+        {hymn.violao && (
+          <button
+            onClick={() => onToggleVisibility(sectionId, hymn.id, 'showViolao')}
+            title="Mostrar/ocultar violão"
+            className={`w-5 h-5 rounded-lg flex items-center justify-center transition-colors ${hymn.showViolao !== false ? 'text-amber-600 bg-amber-50' : 'text-gray-300 hover:text-gray-500'}`}
+          >
+            <Music size={10} />
+          </button>
+        )}
+        {hymn.customLabel && (
+          <button
+            onClick={() => onToggleVisibility(sectionId, hymn.id, 'showCustomLabel')}
+            title="Mostrar/ocultar rótulo"
+            className={`w-5 h-5 rounded-lg flex items-center justify-center transition-colors ${hymn.showCustomLabel !== false ? 'text-orange-600 bg-orange-50' : 'text-gray-300 hover:text-gray-500'}`}
+          >
+            <Tag size={10} />
+          </button>
+        )}
         <button
           onClick={() => onToggleVisibility(sectionId, hymn.id, 'showNumber')}
           title="Mostrar/ocultar número"
-          className={`w-6 h-6 rounded-lg flex items-center justify-center transition-colors ${hymn.showNumber ? 'text-[#007AFF] bg-blue-50' : 'text-gray-300 hover:text-gray-500'}`}
+          className={`w-5 h-5 rounded-lg flex items-center justify-center transition-colors ${hymn.showNumber ? 'text-[#007AFF] bg-blue-50' : 'text-gray-300 hover:text-gray-500'}`}
         >
-          <Hash size={11} />
+          <Hash size={10} />
         </button>
         <button
           onClick={() => onToggleVisibility(sectionId, hymn.id, 'showType')}
           title="Mostrar/ocultar tipo"
-          className={`w-6 h-6 rounded-lg flex items-center justify-center transition-colors ${hymn.showType ? 'text-[#007AFF] bg-blue-50' : 'text-gray-300 hover:text-gray-500'}`}
+          className={`w-5 h-5 rounded-lg flex items-center justify-center transition-colors ${hymn.showType ? 'text-[#007AFF] bg-blue-50' : 'text-gray-300 hover:text-gray-500'}`}
         >
-          <Tag size={11} />
+          <Tag size={10} />
         </button>
         <button
           onClick={() => onRemove(sectionId, hymn.id)}
-          className="w-6 h-6 rounded-lg flex items-center justify-center text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors"
+          className="w-5 h-5 rounded-lg flex items-center justify-center text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors"
         >
-          <Trash2 size={11} />
+          <Trash2 size={10} />
         </button>
       </div>
     </div>
@@ -408,9 +664,9 @@ function PrintHymnCard({ hymn, sectionId, index, onRemove, onToggleVisibility, o
 
 function PrintSection({
   section, canvasSections, dragOver, fontSize,
-  onRenameSection, onRemoveSection,
+  onRenameSection, onUpdateSection, onRemoveSection,
   onDrop, onDragOver, onDragLeave,
-  onHymnRemove, onToggleVisibility,
+  onHymnRemove, onToggleVisibility, onUpdateHymnField,
   onCardDragStart, onCardDragOver, onCardDragEnd
 }) {
   const [editing, setEditing] = useState(false)
@@ -471,17 +727,12 @@ function PrintSection({
         onDragOver={e => onDragOver(e, section.id)}
         onDragLeave={onDragLeave}
         onDrop={e => onDrop(e, section.id)}
-        className={`min-h-[52px] rounded-xl border-2 border-dashed transition-all flex flex-col gap-1.5 p-1.5 ${
+        className={`min-h-[40px] rounded-xl border-2 border-dashed transition-all flex flex-col gap-1.5 p-1.5 ${
           isOver
             ? 'border-[#007AFF] bg-blue-50/60'
             : 'border-gray-100 hover:border-gray-200'
         }`}
       >
-        {section.hymns.length === 0 && (
-          <p className="text-[10px] text-gray-300 text-center py-2.5 pointer-events-none select-none">
-            Arraste hinos aqui
-          </p>
-        )}
         {section.hymns.map((hymn, index) => (
           <PrintHymnCard
             key={`${hymn.id}-${index}`}
@@ -490,11 +741,28 @@ function PrintSection({
             index={index}
             onRemove={onHymnRemove}
             onToggleVisibility={onToggleVisibility}
+            onUpdateHymnField={onUpdateHymnField}
             onDragStart={onCardDragStart}
             onDragOver={onCardDragOver}
             onDragEnd={onCardDragEnd}
           />
         ))}
+        {section.hymns.length === 0 && (
+          <p className="text-[10px] text-gray-300 text-center py-2 pointer-events-none select-none">
+            Arraste hinos aqui
+          </p>
+        )}
+      </div>
+
+      {/* Observações da seção */}
+      <div className="mt-1.5">
+        <textarea
+          value={section.observations || ''}
+          onChange={e => onUpdateSection(section.id, { observations: e.target.value })}
+          placeholder="Observações / avisos desta seção..."
+          rows={1}
+          className="w-full text-[10px] text-gray-500 bg-transparent border border-dashed border-gray-200 rounded-lg px-2 py-1 resize-none focus:outline-none focus:border-[#007AFF]/30 hover:bg-gray-50 transition-colors"
+        />
       </div>
     </div>
   )
@@ -559,6 +827,11 @@ export default function HymnPrintPage() {
     return map
   }, [hymns])
   const user = useAuthStore(s => s.user)
+  const saveProgramLayout = useHymnsStore(s => s.saveProgramLayout)
+  const showToast = useToastStore(s => s.showToast)
+  const programId = state?.programId || null
+  const savedLayout = state?.layout || null
+  const fromTab = state?.fromTab || 'programar'
 
   // Load Playfair Display font for the canvas preview
   useEffect(() => {
@@ -575,10 +848,13 @@ const sidebarHymns = useMemo(() => {
     return state.hymns.map(item => {
       const id = typeof item === 'object' ? item.id : item
       const regente = typeof item === 'object' ? item.regente : ''
-      const soloist = typeof item === 'object' ? item.solista : ''
+      const rawSolista = typeof item === 'object' ? item.solista : ''
+      const soloist = Array.isArray(rawSolista) ? rawSolista.join(', ') : (rawSolista || '')
+      const piano = typeof item === 'object' ? item.piano || '' : ''
+      const violao = typeof item === 'object' ? item.violao || '' : ''
       const hymn = hymnsById[id]
       if (!hymn) return null
-      return { ...hymn, regente, soloist }
+      return { ...hymn, regente, soloist, piano, violao }
     }).filter(Boolean)
   }, [state?.hymns, hymnsById])
 
@@ -601,20 +877,67 @@ const sidebarHymns = useMemo(() => {
   const [templateModalOpen, setTemplateModalOpen] = useState(false)
 
   // Canvas state
-  const [headerConfig, setHeaderConfig] = useState({
-    imageUrl: '',
-    title: user?.churchName || 'Programação Musical',
-    subtitle: state?.meta?.tipo || '',
-    date: formatDateDisplay(state?.meta?.data || ''),
-    location: '',
-    logoHeight: 64,
+  const [headerConfig, setHeaderConfig] = useState(() => {
+    if (savedLayout?.headerConfig) {
+      return {
+        imageUrl: savedLayout.headerConfig.imageUrl || '',
+        title: savedLayout.headerConfig.title || toTitleCase(user?.churchName) || 'Programação Musical',
+        subtitle: savedLayout.headerConfig.subtitle || toTitleCase(state?.meta?.tipo) || '',
+        date: formatDateDisplay(savedLayout.headerConfig.date || state?.meta?.data || ''),
+        location: savedLayout.headerConfig.location || '',
+        logoHeight: savedLayout.headerConfig.logoHeight || 48,
+      }
+    }
+    return {
+      imageUrl: '',
+      title: toTitleCase(user?.churchName) || 'Programação Musical',
+      subtitle: toTitleCase(state?.meta?.tipo) || '',
+      date: formatDateDisplay(state?.meta?.data || toISODateString(new Date())),
+      location: '',
+      logoHeight: 48,
+    }
   })
 
-  const [canvasSections, setCanvasSections] = useState(() =>
-    DEFAULT_SECTIONS.map(s => ({ ...s, id: genId(), hymns: [] }))
-  )
+  const [canvasSections, setCanvasSections] = useState(() => {
+    if (savedLayout?.sections && savedLayout.sections.length > 0) {
+      return savedLayout.sections.map(s => ({
+        ...s,
+        id: genId(),
+        hymns: s.hymns || []
+      }))
+    }
+    return DEFAULT_SECTIONS.map(s => ({ ...s, id: genId(), hymns: [] }))
+  })
 
-  const [sectionFontSize, setSectionFontSize] = useState(11)
+  const [sectionFontSize, setSectionFontSize] = useState(14)
+  const [hymnFontSize, setHymnFontSize] = useState(12)
+  const hymnsKey = useMemo(() => makeHymnsKey(sidebarHymns), [sidebarHymns])
+
+  // Restore saved layout from server when program changes
+  useEffect(() => {
+    if (!sidebarHymns.length) return
+    if (savedLayout) return // já foi restaurado do state inicial
+    const saved = loadLayoutFromLS(hymnsKey)
+    if (saved) {
+      if (saved.headerConfig) setHeaderConfig(prev => ({ ...prev, ...saved.headerConfig }))
+      if (saved.sections) setCanvasSections(saved.sections)
+    }
+  }, [hymnsKey])
+
+  // Auto-save layout whenever headerConfig or canvasSections change (debounced)
+  const saveTimer = useRef(null)
+  useEffect(() => {
+    if (!sidebarHymns.length) return
+    clearTimeout(saveTimer.current)
+    saveTimer.current = setTimeout(() => {
+      const layout = { headerConfig, sections: canvasSections }
+      saveLayoutToLS(hymnsKey, headerConfig, canvasSections)
+      if (programId) {
+        saveProgramLayout(programId, layout)
+      }
+    }, 1000)
+    return () => clearTimeout(saveTimer.current)
+  }, [headerConfig, canvasSections, hymnsKey, programId])
 
   // DnD ref
   const dragItem = useRef(null)
@@ -647,6 +970,9 @@ const sidebarHymns = useMemo(() => {
   const handleRenameSection = (sectionId, name) =>
     setCanvasSections(prev => prev.map(s => s.id === sectionId ? { ...s, name } : s))
 
+  const handleUpdateSection = (sectionId, updates) =>
+    setCanvasSections(prev => prev.map(s => s.id === sectionId ? { ...s, ...updates } : s))
+
   const handleHymnRemove = (sectionId, hymnId) =>
     setCanvasSections(prev => prev.map(s =>
       s.id === sectionId ? { ...s, hymns: s.hymns.filter(h => h.id !== hymnId) } : s
@@ -656,6 +982,13 @@ const sidebarHymns = useMemo(() => {
     setCanvasSections(prev => prev.map(s =>
       s.id === sectionId
         ? { ...s, hymns: s.hymns.map(h => h.id === hymnId ? { ...h, [field]: !h[field] } : h) }
+        : s
+    ))
+
+  const handleUpdateHymnField = (sectionId, hymnId, field, value) =>
+    setCanvasSections(prev => prev.map(s =>
+      s.id === sectionId
+        ? { ...s, hymns: s.hymns.map(h => h.id === hymnId ? { ...h, [field]: value } : h) }
         : s
     ))
 
@@ -685,7 +1018,7 @@ const sidebarHymns = useMemo(() => {
       setCanvasSections(prev => prev.map(s => {
         if (s.id !== targetSectionId) return s
         if (s.hymns.some(h => h.id === hymn.id)) return s
-        return { ...s, hymns: [...s.hymns, { ...hymn, showRegente: true, showNumber: true, showType: true }] }
+        return { ...s, hymns: [...s.hymns, { ...hymn, showRegente: true, showNumber: true, showType: true, showSoloist: true, customLabel: '', showCustomLabel: true }] }
       }))
     } else if (item.type === 'canvas' && item.sectionId !== targetSectionId) {
       setCanvasSections(prev => {
@@ -739,8 +1072,8 @@ const sidebarHymns = useMemo(() => {
     const tpl = {
       id: genId(),
       name,
-      headerConfig: { imageUrl: headerConfig.imageUrl, title: headerConfig.title, subtitle: headerConfig.subtitle },
-      sections: canvasSections.map(s => ({ id: s.id, name: s.name })),
+      headerConfig: { imageUrl: headerConfig.imageUrl, title: headerConfig.title, subtitle: headerConfig.subtitle, date: headerConfig.date, location: headerConfig.location, logoHeight: headerConfig.logoHeight },
+      sections: canvasSections.map(s => ({ id: s.id, name: s.name, observations: s.observations })),
     }
     const updated = [...templates, tpl]
     setTemplates(updated)
@@ -749,9 +1082,33 @@ const sidebarHymns = useMemo(() => {
     setTemplateModalOpen(false)
   }
 
+  // Delete template
+  const handleDeleteTemplate = (templateId) => {
+    if (!confirm('Tem certeza que deseja excluir este template?')) return
+    const updated = templates.filter(t => t.id !== templateId)
+    setTemplates(updated)
+    saveTemplatesLS(updated)
+    if (activeTemplateId === templateId) {
+      setActiveTemplateId(updated[0]?.id || null)
+    }
+  }
+
+  // Save layout to server (if programId exists)
+  const handleSaveLayout = useCallback(() => {
+    const layout = { headerConfig, sections: canvasSections }
+    saveLayoutToLS(hymnsKey, headerConfig, canvasSections)
+    if (programId) {
+      saveProgramLayout(programId, layout)
+      showToast('Configuração de impressão salva!', 'success')
+    } else {
+      showToast('Configuração salva no navegador', 'success')
+    }
+  }, [headerConfig, canvasSections, hymnsKey, programId, saveProgramLayout, showToast])
+
   // Print
   const handlePrint = () => {
-    const html = buildPrintHTML(canvasSections, headerConfig, sectionFontSize)
+    handleSaveLayout()
+    const html = buildPrintHTML(canvasSections, headerConfig, sectionFontSize, hymnFontSize)
     const win = window.open('', '_blank', 'width=800,height=900')
     if (!win) { window.print(); return }
     win.document.write(html)
@@ -768,7 +1125,7 @@ const sidebarHymns = useMemo(() => {
         sidebarHymns={sidebarHymns}
         canvasSections={canvasSections}
         onDragStart={handleDragStart}
-        onBack={() => navigate(-1)}
+        onBack={() => navigate('/programacao', { state: { activeTab: fromTab } })}
       />
 
       <main className="ml-80 pt-16 min-h-screen flex flex-col">
@@ -776,7 +1133,7 @@ const sidebarHymns = useMemo(() => {
           <div className="mb-6">
             <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Preparação para Impressão</h1>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-              {state?.meta?.tipo && <span>{state.meta.tipo}</span>}
+              {state?.meta?.tipo && <span>{toTitleCase(state.meta.tipo)}</span>}
               {state?.meta?.data && <span> • {formatDateDisplay(state.meta.data)}</span>}
             </p>
           </div>
@@ -785,17 +1142,21 @@ const sidebarHymns = useMemo(() => {
             templates={templates}
             activeTemplateId={activeTemplateId}
             onSelectTemplate={handleSelectTemplate}
+            onDeleteTemplate={handleDeleteTemplate}
             onSaveTemplate={() => setTemplateModalOpen(true)}
+            onSaveLayout={handleSaveLayout}
             onPrint={handlePrint}
             sectionFontSize={sectionFontSize}
             onSectionFontSizeChange={setSectionFontSize}
+            hymnFontSize={hymnFontSize}
+            onHymnFontSizeChange={setHymnFontSize}
           />
 
           <div className="flex justify-center pb-10">
             <div
               id="printable-canvas"
               className="bg-white shadow-xl rounded-2xl"
-              style={{ width: '680px', minHeight: '842px', padding: '48px 56px' }}
+              style={{ width: '680px', minHeight: '842px', padding: '32px 40px' }}
             >
               <PrintHeader headerConfig={headerConfig} onChange={handleHeaderChange} />
 
@@ -808,12 +1169,14 @@ const sidebarHymns = useMemo(() => {
                     dragOver={dragOver}
                     fontSize={sectionFontSize}
                     onRenameSection={handleRenameSection}
+                    onUpdateSection={handleUpdateSection}
                     onRemoveSection={handleRemoveSection}
                     onDrop={handleSectionDrop}
                     onDragOver={handleSectionDragOver}
                     onDragLeave={handleSectionDragLeave}
                     onHymnRemove={handleHymnRemove}
                     onToggleVisibility={handleToggleVisibility}
+                    onUpdateHymnField={handleUpdateHymnField}
                     onCardDragStart={handleCardDragStart}
                     onCardDragOver={handleCardDragOver}
                     onCardDragEnd={handleCardDragEnd}

@@ -110,6 +110,16 @@ function HistoryCard({ program, hymns, onToggle, isExpanded }) {
                         Solo: {h.solista}
                       </span>
                     )}
+                    {h.piano && (
+                      <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 px-2.5 py-1 rounded-md">
+                        Pno: {h.piano}
+                      </span>
+                    )}
+                    {h.violao && (
+                      <span className="text-xs font-semibold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 px-2.5 py-1 rounded-md">
+                        Vao: {h.violao}
+                      </span>
+                    )}
                   </div>
                 </div>
               ))}

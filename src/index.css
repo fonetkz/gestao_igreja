@@ -351,3 +351,57 @@
 .dark ::-webkit-scrollbar-thumb:hover {
   background: var(--apple-gray-600);
 }
+
+/* Print styles */
+@page {
+  size: A4;
+  margin: 8mm;
+}
+
+@media print {
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  body {
+    margin: 0;
+    background: white;
+  }
+
+  .print-hide {
+    display: none !important;
+  }
+
+  .print-show {
+    display: block !important;
+  }
+
+  .print-a4 {
+    box-shadow: none !important;
+    border: none !important;
+    width: 100% !important;
+    min-height: auto !important;
+    padding: 15mm !important;
+    margin: 0 !important;
+    background: white !important;
+  }
+
+  .print-container {
+    display: block !important;
+    overflow: visible !important;
+  }
+
+  .print-a4 h1 {
+    font-size: 32pt !important;
+    font-weight: 900 !important;
+  }
+
+  .print-a4 p {
+    font-size: 18pt !important;
+  }
+
+  .print-a4 div {
+    font-size: inherit !important;
+  }
+}

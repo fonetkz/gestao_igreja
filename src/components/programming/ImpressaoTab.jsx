@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { ChevronUp, ChevronDown, Printer, AlertTriangle, RotateCcw, Plus, Trash2, FileText, Eye, ExternalLink, LayoutTemplate, Save, Download, Share2 } from 'lucide-react'
 import Modal from '../ui/Modal'
 import Card from '../ui/Card'
@@ -136,14 +136,14 @@ function BlockRenderer({ block, config, hymns, isPreview, onChange }) {
         <div className="text-center pb-5 mb-5" style={{ borderBottom: '2px solid #1E2A78' }}>
           {isPreview ? (
             <>
-              <h1 style={{ fontSize: '18px', fontWeight: 800, color: '#1E2A78', letterSpacing: '1px', marginBottom: '4px' }}>
+              <h1 style={{ fontSize: '48px', fontWeight: 900, color: '#1E2A78', letterSpacing: '2px', marginBottom: '10px' }}>
                 {config.churchName}
               </h1>
-              <p style={{ fontSize: '14px', fontWeight: 600, color: '#1E2A78', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '2px' }}>
+              <p style={{ fontSize: '36px', fontWeight: 700, color: '#1E2A78', textTransform: 'uppercase', letterSpacing: '3px', marginBottom: '8px' }}>
                 {config.mainTitle}
               </p>
-              <p style={{ fontSize: '12px', color: '#64748B', fontWeight: 500 }}>{config.serviceType}</p>
-              <p style={{ fontSize: '12px', color: '#64748B' }}>{formatDateBR(config.date)}</p>
+              <p style={{ fontSize: '24px', color: '#64748B', fontWeight: 500 }}>{config.serviceType}</p>
+              <p style={{ fontSize: '20px', color: '#64748B' }}>{formatDateBR(config.date)}</p>
             </>
           ) : (
             <div className="space-y-2">
@@ -179,7 +179,7 @@ function BlockRenderer({ block, config, hymns, isPreview, onChange }) {
       return (
         <div className="text-center my-3">
           {isPreview ? (
-            <h2 style={{ fontSize: '13px', fontWeight: 800, color: '#1E2A78', textTransform: 'uppercase', letterSpacing: '3px', borderBottom: '1px solid #E2E8F0', paddingBottom: '4px' }}>
+            <h2 style={{ fontSize: '32px', fontWeight: 900, color: '#1E2A78', textTransform: 'uppercase', letterSpacing: '4px', borderBottom: '2px solid #E2E8F0', paddingBottom: '10px' }}>
               {block.content}
             </h2>
           ) : (
@@ -197,7 +197,7 @@ function BlockRenderer({ block, config, hymns, isPreview, onChange }) {
       return (
         <div className="text-center my-2">
           {isPreview ? (
-            <div className={`text-xs leading-relaxed ${block.bold ? 'font-bold' : 'font-medium'}`} style={{ color: '#334155', whiteSpace: 'pre-line' }}>
+            <div className={`text-base leading-relaxed ${block.bold ? 'font-bold' : 'font-medium'}`} style={{ color: '#334155', whiteSpace: 'pre-line' }}>
               {block.content}
             </div>
           ) : (
@@ -213,17 +213,32 @@ function BlockRenderer({ block, config, hymns, isPreview, onChange }) {
 
     case 'hymns_centered':
       return (
-        <div className="py-3 text-center">
+        <div className="py-4 text-center">
           {hymns.length === 0 ? (
-            <p className="text-xs text-slate-400 italic">Nenhum hino selecionado</p>
+            <p className="text-base text-slate-400 italic">Nenhum hino selecionado</p>
           ) : (
-            <div className="space-y-1.5">
-              {hymns.map((h, i) => (
-                <div key={h.id} style={{ fontSize: '12px', color: '#0F172A', fontWeight: 600 }}>
-                  <span className="uppercase">{h.titulo}</span>
-                  <span className="text-slate-500"> — Nº {h.numero}</span>
-                  {config.showConductor && <span className="text-slate-500 text-xs"> • {h.regente || h.tonalidade}</span>}
-                  {h.solista && <span className="text-blue-600 text-xs"> • Solo: {h.solista}</span>}
+            <div>
+              {hymns.map((h) => (
+                <div key={h.id} style={{ marginBottom: '20px', lineHeight: 1.6 }}>
+                  <div style={{ fontSize: '32px', fontWeight: 700, color: '#0F172A' }}>
+                    <span className="uppercase">{h.titulo}</span>
+                    {config.showNumber && (
+                      <span style={{ color: '#64748B', fontWeight: 500 }}> — Nº {h.numero}</span>
+                    )}
+                    {h.solista && (
+                      <span style={{ color: '#2563EB', fontWeight: 500 }}> • Solo: {h.solista}</span>
+                    )}
+                  </div>
+                  {config.showConductor && h.regente && (
+                    <div style={{ fontSize: '22px', color: '#64748B', fontWeight: 400 }}>
+                      Regente: {h.regente}
+                    </div>
+                  )}
+                  {config.showKey && h.tonalidade && (
+                    <div style={{ fontSize: '22px', color: '#64748B', fontWeight: 400 }}>
+                      Tom: {h.tonalidade}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -235,14 +250,14 @@ function BlockRenderer({ block, config, hymns, isPreview, onChange }) {
       return (
         <div className="mt-8 pt-3 text-center" style={{ borderTop: '1px solid #E2E8F0' }}>
           {isPreview ? (
-            <p style={{ fontSize: '8px', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '3px', fontWeight: 700 }}>
+            <p style={{ fontSize: '11px', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '3px', fontWeight: 700 }}>
               {config.footerText}
             </p>
           ) : (
             <input 
               value={config.footerText} 
               onChange={e => onChange('footerText', e.target.value)}
-              className="text-[9px] font-bold text-slate-400 uppercase tracking-[3px] text-center bg-transparent w-full focus:outline-none focus:ring-2 focus:ring-blue-500/20 rounded hover:bg-slate-50 transition-colors" 
+              className="text-sm font-bold text-slate-400 uppercase tracking-[3px] text-center bg-transparent w-full focus:outline-none focus:ring-2 focus:ring-blue-500/20 rounded hover:bg-slate-50 transition-colors" 
             />
           )}
         </div>
@@ -352,7 +367,23 @@ export default function ImpressaoTab({ initialDate, initialServiceType }) {
     setResetModalOpen(false)
   }
 
-  const toggle = (key) => setConfig(c => ({ ...c, [key]: !c[key] }))
+const toggle = (key) => setConfig(c => ({ ...c, [key]: !c[key] }))
+
+  const handlePrint = () => {
+    window.print()
+  }
+
+  // Intercepta Ctrl+P para garantir funcionamento
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+        e.preventDefault()
+        handlePrint()
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+}, [])
 
   return (
     <div className="animate-fade-in">
@@ -361,7 +392,7 @@ export default function ImpressaoTab({ initialDate, initialServiceType }) {
         previewMode={previewMode}
         onTogglePreview={() => setPreviewMode(!previewMode)}
         onReset={() => setResetModalOpen(true)}
-        onPrint={() => window.print()}
+        onPrint={handlePrint}
         onOpenBrowser={() => window.open(window.location.href, '_blank')}
       />
 
@@ -377,10 +408,11 @@ export default function ImpressaoTab({ initialDate, initialServiceType }) {
         </div>
       </Modal>
 
-      <div className="flex justify-center mb-8 overflow-x-auto pb-4">
-        <div 
-          className="print-a4 bg-white shadow-2xl shadow-slate-900/10 border border-slate-200 relative shrink-0" 
-          style={{ width: '595px', minHeight: '842px', padding: '48px 52px' }}
+      <div className="flex justify-center mb-8 overflow-x-auto pb-4 print-container">
+        <div
+          id="print-area"
+          className="print-a4 bg-white shadow-2xl shadow-slate-900/10 border border-slate-200 relative shrink-0"
+          style={{ width: '800px', minHeight: '1130px', padding: '60px 70px' }}
         >
           <div className="absolute top-0 left-0 w-20 h-1 bg-blue-900 print-show" />
           <div className="absolute top-0 left-0 w-1 h-20 bg-blue-900 print-show" />

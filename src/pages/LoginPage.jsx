@@ -58,20 +58,11 @@ export default function LoginPage() {
   }, [isAuthenticated, navigate])
 
   useEffect(() => {
-    const fetchRememberedEmail = async () => {
-      try {
-        const { data } = await api.get('/api/config/remembered_email')
-        const parsed = JSON.parse(data.valor_json || '{}')
-        if (parsed && parsed.email) {
-          setEmail(parsed.email)
-          if (parsed.password) setPassword(parsed.password)
-          setRememberMe(true)
-        }
-      } catch (err) {
-        // Primeira vez ou não configurado no banco, apenas ignora
-      }
+    const savedEmail = localStorage.getItem('gestao_igreja_remembered_email')
+    if (savedEmail) {
+      setEmail(savedEmail)
+      setRememberMe(true)
     }
-    fetchRememberedEmail()
   }, [])
 
   const handleSubmit = async (e) => {
@@ -86,24 +77,16 @@ export default function LoginPage() {
 
     setLoading(true)
 
-    // Simula delay de rede
-    await new Promise((r) => setTimeout(r, 800))
-
     const result = await login(email, password)
     if (result.success) {
-      try {
-        await api.put('/api/config/remembered_email', {
-          valor: {
-            email: rememberMe ? email : '',
-            password: rememberMe ? password : ''
-          }
-        })
-      } catch (err) {
-        console.error('Erro ao salvar preferência de e-mail no banco', err)
+      if (rememberMe) {
+        localStorage.setItem('gestao_igreja_remembered_email', email.trim())
+      } else {
+        localStorage.removeItem('gestao_igreja_remembered_email')
       }
       navigate('/dashboard')
     } else {
-      setError(result.error)
+      setError(result.error || 'E-mail ou senha incorretos.')
     }
 
     setLoading(false)
@@ -455,7 +438,7 @@ export default function LoginPage() {
                         onChange={(e) => setRecoveryEmail(e.target.value)}
                         placeholder="admin@igreja.com"
                         className="input-base mt-1 dark:bg-slate-900 dark:border-slate-700 dark:text-white"
-                        autoComplete="email"
+                        autoComplete="off"
                         disabled={loading}
                       />
                     </div>
@@ -517,7 +500,7 @@ export default function LoginPage() {
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="admin@igreja.com"
                       className="input-base mt-1 dark:bg-slate-900 dark:border-slate-700 dark:text-white"
-                      autoComplete="email"
+                      autoComplete="off"
                       disabled={loading}
                     />
                   </div>
@@ -535,7 +518,7 @@ export default function LoginPage() {
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="••••••••"
                         className="input-base mt-1 pr-10 dark:bg-slate-900 dark:border-slate-700 dark:text-white w-full"
-                        autoComplete="current-password"
+                        autoComplete="new-password"
                         disabled={loading}
                       />
                       <button

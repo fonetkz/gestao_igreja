@@ -4,25 +4,26 @@ Aplicação FastAPI – endpoints REST + fallback para o React SPA.
 import os
 import sys
 import time
+import json
+import bcrypt
 from collections import defaultdict
 from contextlib import asynccontextmanager
 from collections.abc import AsyncGenerator
 from pathlib import Path
 from typing import Sequence
 
-from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.routing import APIRoute
 from fastapi.staticfiles import StaticFiles
-from sqlmodel import Session, select
+from sqlmodel import Session, select, text
 from starlette.middleware.base import BaseHTTPMiddleware
-
 from pydantic import BaseModel, field_validator
 import secrets
-import json
-import re
 from datetime import datetime, timedelta, date
+from jwt import PyJWTError
+import jwt
 
 def _compare_dates(d1_str, d2_str):
     try:
@@ -58,7 +59,56 @@ from backend.models import (
     ProgramacaoCreate,
     ProgramacaoRead,
     ProgramacaoUpdate,
+    Usuario,
 )
+
+JWT_SECRET = os.getenv("JWT_SECRET", "gestao_igreja_secret_key_2024_very_secure")
+JWT_ALGORITHM = "HS256"
+
+
+class TokenData(BaseModel):
+    id: int
+    nome: str
+    email: str
+    papel: str
+    contexto_padrao: str | None = None
+
+
+def create_token(user_data: dict) -> str:
+    payload = {
+        "id": user_data["id"],
+        "nome": user_data["nome"],
+        "email": user_data["email"],
+        "papel": user_data["papel"],
+        "contexto_padrao": user_data.get("contexto_padrao"),
+        "exp": datetime.utcnow() + timedelta(days=7),
+    }
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+
+def get_current_user(request: Request) -> TokenData:
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Não autenticado")
+
+    token = auth_header.split(" ")[1]
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        return TokenData(
+            id=payload["id"],
+            nome=payload["nome"],
+            email=payload["email"],
+            papel=payload["papel"],
+            contexto_padrao=payload.get("contexto_padrao"),
+        )
+    except PyJWTError:
+        raise HTTPException(status_code=401, detail="Token inválido ou expirado")
+
+
+def require_admin(current_user: TokenData = Depends(get_current_user)) -> TokenData:
+    if current_user.papel != "admin":
+        raise HTTPException(status_code=403, detail="Acesso administrativo necessário")
+    return current_user
 
 
 # ─── Lifecycle ────────────────────────────────────────────
@@ -253,17 +303,23 @@ def remover_hino(
 
 @app.get("/api/chamadas", response_model=list[ChamadaRead])
 def listar_chamadas(
+    current_user: TokenData = Depends(get_current_user),
     session: Session = Depends(get_session),
 ) -> Sequence[Chamada]:
-    return session.exec(select(Chamada).order_by(Chamada.data.desc())).all()
+    stmt = select(Chamada)
+    if current_user.papel == "responsavel":
+        stmt = stmt.where(Chamada.criado_por_id == current_user.id)
+    return session.exec(stmt.order_by(Chamada.data.desc())).all()
 
 
 @app.post("/api/chamadas", response_model=ChamadaRead, status_code=201)
 def criar_chamada(
     payload: ChamadaCreate,
+    current_user: TokenData = Depends(get_current_user),
     session: Session = Depends(get_session),
 ) -> Chamada:
     chamada = Chamada.model_validate(payload, from_attributes=True)
+    chamada.criado_por_id = current_user.id
     session.add(chamada)
     session.commit()
     session.refresh(chamada)
@@ -376,6 +432,37 @@ def criar_programacao(
     return prog
 
 
+def _atualizar_data_ultima_apresentacao(session, hinos_ids):
+    """Atualiza data_ultima_apresentacao para uma lista de hinos buscando em todas as programações."""
+    def _parse_json(js):
+        if isinstance(js, list):
+            return js
+        if isinstance(js, str):
+            try:
+                return json.loads(js)
+            except:
+                return []
+        return []
+    
+    todas_progs = session.exec(select(Programacao)).all()
+    for item in hinos_ids:
+        hino_id = item.get("id") if isinstance(item, dict) else item
+        try:
+            hino = session.get(Hino, int(hino_id))
+            if hino:
+                ultima_data = None
+                for p in todas_progs:
+                    p_hinos = _parse_json(p.hinos_json)
+                    if any(str(x.get("id") if isinstance(x, dict) else x) == str(int(hino_id)) for x in p_hinos):
+                        if ultima_data is None or _compare_dates(ultima_data, p.data):
+                            ultima_data = p.data
+                
+                hino.data_ultima_apresentacao = ultima_data
+                session.add(hino)
+        except (ValueError, TypeError):
+            pass
+
+
 @app.patch("/api/programacoes/{prog_id}", response_model=ProgramacaoRead)
 def atualizar_programacao(
     prog_id: int,
@@ -405,18 +492,7 @@ def atualizar_programacao(
     if hinos_json:
         prog.hinos_json = hinos_json
         hinos_ids = _parse_json(hinos_json)
-        data_culto = prog.data
-        
-        for item in hinos_ids:
-            hino_id = item.get("id") if isinstance(item, dict) else item
-            try:
-                hino = session.get(Hino, int(hino_id))
-                if hino:
-                    if not hino.data_ultima_apresentacao or _compare_dates(hino.data_ultima_apresentacao, data_culto):
-                        hino.data_ultima_apresentacao = data_culto
-                        session.add(hino)
-            except (ValueError, TypeError):
-                pass
+        _atualizar_data_ultima_apresentacao(session, hinos_ids)
     
     session.add(prog)
     session.commit()
@@ -449,26 +525,8 @@ def remover_programacao(
         session.delete(prog)
         session.commit()
         
-        # Recalcula a data_ultima_apresentacao para os hinos que estavam nesta programação
         if hinos_afetados:
-            todas_progs = session.exec(select(Programacao)).all()
-            for item in hinos_afetados:
-                hino_id = item.get("id") if isinstance(item, dict) else item
-                try:
-                    hino = session.get(Hino, int(hino_id))
-                    if hino:
-                        ultima_data = None
-                        for p in todas_progs:
-                            p_hinos = _parse_json(p.hinos_json)
-                            if any(str(x.get("id") if isinstance(x, dict) else x) == str(int(hino_id)) for x in p_hinos):
-                                # Usa a mesma função de comparação para achar a maior data
-                                if ultima_data is None or _compare_dates(ultima_data, p.data):
-                                    ultima_data = p.data
-                        
-                        hino.data_ultima_apresentacao = ultima_data
-                        session.add(hino)
-                except (ValueError, TypeError):
-                    pass
+            _atualizar_data_ultima_apresentacao(session, hinos_afetados)
             session.commit()
             
     except HTTPException:
@@ -493,10 +551,11 @@ def obter_config(
     return JSONResponse({"chave": cfg.key, "valor_json": cfg.valor_json})
 
 
-@app.put("/api/config/{chave}")
-def salvar_config(
+@app.patch("/api/config/{chave}")
+def patch_config(
     chave: str,
     payload: dict,
+    current_user: TokenData = Depends(require_admin),
     session: Session = Depends(get_session),
 ) -> JSONResponse:
     import json
@@ -512,9 +571,165 @@ def salvar_config(
     return JSONResponse({"chave": cfg.key, "valor_json": cfg.valor_json})
 
 
+@app.post("/api/config/{chave}")
+def post_config(
+    chave: str,
+    payload: dict,
+    current_user: TokenData = Depends(require_admin),
+    session: Session = Depends(get_session),
+) -> JSONResponse:
+    return patch_config(chave, payload, current_user, session)
+
+
+@app.delete("/api/config/{chave}")
+def delete_config(
+    chave: str,
+    current_user: TokenData = Depends(require_admin),
+    session: Session = Depends(get_session),
+) -> JSONResponse:
+    cfg = session.get(Configuracao, chave)
+    if cfg:
+        session.delete(cfg)
+        session.commit()
+    return JSONResponse({"message": "Configuração removida."})
+
+
+# ═══════════════════════════════════════════════════════════
+# Auth (Login)
+# ═══════════════════════════════════════════════════════════
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+
+@app.post("/api/auth/login", status_code=200)
+def login(
+    payload: LoginRequest,
+    session: Session = Depends(get_session),
+) -> JSONResponse:
+    if not login_limiter.is_allowed(payload.email.lower()):
+        raise HTTPException(429, "Muitas tentativas. Aguarde 1 minuto.")
+
+    user = session.exec(
+        select(Usuario).where(
+            Usuario.email == payload.email.lower(),
+            Usuario.ativo == 1
+        )
+    ).first()
+
+    if not user:
+        raise HTTPException(401, "E-mail ou senha incorretos.")
+
+    try:
+        password_ok = bcrypt.checkpw(
+            payload.password.encode(),
+            user.senha_hash.encode()
+        )
+    except Exception:
+        password_ok = False
+
+    if not password_ok:
+        raise HTTPException(401, "E-mail ou senha incorretos.")
+
+    login_limiter.clear(payload.email.lower())
+
+    token = create_token({
+        "id": user.id,
+        "nome": user.nome,
+        "email": user.email,
+        "papel": user.papel,
+        "contexto_padrao": user.contexto_padrao,
+    })
+
+    return JSONResponse({
+        "token": token,
+        "user": {
+            "id": user.id,
+            "nome": user.nome,
+            "email": user.email,
+            "papel": user.papel,
+            "contexto_padrao": user.contexto_padrao,
+        }
+    })
+
+
+@app.get("/api/auth/me")
+def get_me(
+    current_user: TokenData = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> JSONResponse:
+    user = session.exec(select(Usuario).where(Usuario.id == current_user.id)).first()
+    if not user:
+        raise HTTPException(404, "Usuário não encontrado")
+    return JSONResponse({
+        "id": user.id,
+        "nome": user.nome,
+        "email": user.email,
+        "papel": user.papel,
+        "contexto_padrao": user.contexto_padrao,
+    })
+
+
 # ═══════════════════════════════════════════════════════════
 # Auth (Password Recovery)
 # ═══════════════════════════════════════════════════════════
+
+class RedefineOwnPasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+
+@app.post("/api/auth/redefinir-senha-propria")
+def redefinir_senha_propria(
+    payload: RedefineOwnPasswordRequest,
+    current_user: TokenData = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> JSONResponse:
+    user = session.exec(
+        select(Usuario).where(Usuario.id == current_user.id)
+    ).first()
+    if not user:
+        raise HTTPException(404, "Usuário não encontrado.")
+
+    try:
+        password_ok = bcrypt.checkpw(
+            payload.current_password.encode(),
+            user.senha_hash.encode()
+        )
+    except Exception:
+        password_ok = False
+
+    if not password_ok:
+        raise HTTPException(401, "Senha atual incorreta.")
+
+    new_hash = bcrypt.hashpw(payload.new_password.encode(), bcrypt.gensalt()).decode()
+    session.execute(
+        text("UPDATE usuarios SET senha_hash = :hash WHERE id = :id"),
+        {"hash": new_hash, "id": current_user.id}
+    )
+    session.commit()
+    return JSONResponse({"message": "Senha alterada com sucesso."})
+
+
+class UpdateUserProfileRequest(BaseModel):
+    nome: str
+
+
+@app.post("/api/auth/profile")
+@app.patch("/api/auth/profile")
+def atualizar_perfil(
+    payload: UpdateUserProfileRequest,
+    current_user: TokenData = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> JSONResponse:
+    session.execute(
+        text("UPDATE usuarios SET nome = :nome WHERE id = :id"),
+        {"nome": payload.nome, "id": current_user.id}
+    )
+    session.commit()
+    return JSONResponse({"message": "Perfil atualizado.", "nome": payload.nome})
+
 
 class ForgotPasswordRequest(BaseModel):
     email: str
@@ -532,56 +747,39 @@ def esqueci_senha(
     request: Request,
     session: Session = Depends(get_session),
 ) -> JSONResponse:
-    # Obtém as configurações de auth
-    cfg = session.get(Configuracao, "auth_settings")
-    
-    if not cfg:
-        # Se não há config de auth, usa o fallback padrão para validação inicial
-        if payload.email != "email@email.com":
-            raise HTTPException(404, "E-mail não encontrado na base de dados.")
-        
-        # Cria a configuração se não existe
-        cfg = Configuracao(
-            key="auth_settings", 
-            valor_json=json.dumps({"user": {"email": "adm@ia.com"}, "passwordHash": "adm123"})
-        )
-        session.add(cfg)
-        session.commit()
-        session.refresh(cfg)
-        
-    auth_data = json.loads(cfg.valor_json)
-    user = auth_data.get("user", {})
-    stored_email = user.get("email", "email@email.com")
+    if not password_reset_limiter.is_allowed(payload.email.lower()):
+        raise HTTPException(429, "Muitas tentativas. Aguarde 5 minutos.")
 
-    if payload.email != stored_email:
+    user = session.exec(
+        select(Usuario).where(
+            Usuario.email == payload.email.lower(),
+            Usuario.ativo == 1
+        )
+    ).first()
+
+    if not user:
         raise HTTPException(404, "E-mail não encontrado na base de dados.")
 
-    # Gera token
     token = secrets.token_hex(4).upper()
     expiry = (datetime.now() + timedelta(hours=1)).isoformat()
-    
-    # Salva o token na base de dados (em uma configuração separada para reset)
+
     reset_cfg = session.get(Configuracao, "reset_token_data")
-    reset_data = {"token": token, "expiry": expiry, "email": stored_email}
-    
+    reset_data = {"token": token, "expiry": expiry, "email": user.email}
+
     if reset_cfg:
         reset_cfg.valor_json = json.dumps(reset_data)
     else:
         reset_cfg = Configuracao(key="reset_token_data", valor_json=json.dumps(reset_data))
-        
+
     session.add(reset_cfg)
     session.commit()
 
-    # Pega a URL correta do frontend dinamicamente (útil para dev e PyWebView)
     base_url = request.headers.get("origin", str(request.base_url).rstrip('/'))
-
-    # Envia o email
     success = send_password_reset_email(payload.email, token, base_url)
-    
+
     if success:
         return JSONResponse({"message": "E-mail de recuperação enviado com sucesso."})
     else:
-        # Se não há SMTP configurado, no dev ambiente retorna sucesso simulado
         print(f"DEV MOCK: Token gerado: {token}")
         return JSONResponse({"message": "E-mail simulado com sucesso (SMTP não configurado)."})
 
@@ -614,32 +812,32 @@ def redefinir_senha(
     reset_cfg = session.get(Configuracao, "reset_token_data")
     if not reset_cfg:
         raise HTTPException(400, "Nenhuma solicitação de redefinição encontrada.")
-        
+
     reset_data = json.loads(reset_cfg.valor_json)
-    
+
     if reset_data.get("token") != payload.token.strip().upper():
         raise HTTPException(400, "Token inválido ou expirado.")
-        
+
     expiry = datetime.fromisoformat(reset_data.get("expiry", "2000-01-01T00:00:00"))
     if datetime.now() > expiry:
         raise HTTPException(400, "O link de redefinição expirou. Solicite um novo.")
 
-    # Token válido, atualiza a senha
-    auth_cfg = session.get(Configuracao, "auth_settings")
-    if not auth_cfg:
-        raise HTTPException(500, "Configurações de usuário não encontradas.")
-        
-    auth_data = json.loads(auth_cfg.valor_json)
-    auth_data["passwordHash"] = payload.new_password
-    
-    auth_cfg.valor_json = json.dumps(auth_data)
-    
-    # Invalida o token
+    user = session.exec(
+        select(Usuario).where(Usuario.email == reset_data["email"])
+    ).first()
+
+    if not user:
+        raise HTTPException(500, "Usuário não encontrado.")
+
+    new_hash = bcrypt.hashpw(payload.new_password.encode(), bcrypt.gensalt()).decode()
+
+    session.execute(
+        text("UPDATE usuarios SET senha_hash = :hash WHERE id = :id"),
+        {"hash": new_hash, "id": user.id}
+    )
     session.delete(reset_cfg)
-    
-    session.add(auth_cfg)
     session.commit()
-    
+
     return JSONResponse({"message": "Senha redefinida com sucesso."})
 
 

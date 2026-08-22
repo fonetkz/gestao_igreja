@@ -125,16 +125,22 @@ const sectionConfigs = [
 export default function SettingsPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const sectionFromUrl = searchParams.get('section')
-  const [activeSection, setActiveSection] = useState(sectionFromUrl || 'tabelas')
+  const [activeSection, setActiveSection] = useState(sectionFromUrl || 'perfil')
 
   const user = useAuthStore((s) => s.user)
+  const isAdmin = user?.papel === 'admin'
   const updateProfile = useAuthStore((s) => s.updateProfile)
   const updateCredentials = useAuthStore((s) => s.updateCredentials)
-  const passwordHash = useAuthStore((s) => s.passwordHash)
 
-  const [localName, setLocalName] = useState(user?.name || '')
+  const [localName, setLocalName] = useState(user?.nome || user?.name || '')
   const [localEmail, setLocalEmail] = useState(user?.email || '')
+
+  useEffect(() => {
+    if (user?.nome) setLocalName(user.nome)
+    if (user?.email) setLocalEmail(user.email)
+  }, [user])
   const [profileSaved, setProfileSaved] = useState(false)
+  const [profileError, setProfileError] = useState('')
   const [showEmailCodeInput, setShowEmailCodeInput] = useState(false)
   const [emailCode, setEmailCode] = useState('')
   const [emailCodeError, setEmailCodeError] = useState('')
@@ -160,6 +166,7 @@ export default function SettingsPage() {
 
   const handleSaveProfile = async () => {
     if (!localName.trim() || !localEmail.trim()) return
+    setProfileError('')
 
     if (localEmail !== user?.email) {
       setIsEmailLoading(true)
@@ -174,9 +181,13 @@ export default function SettingsPage() {
         setIsEmailLoading(false)
       }
     } else {
-      await updateProfile({ name: localName, email: localEmail })
-      setProfileSaved(true)
-      setTimeout(() => setProfileSaved(false), 2000)
+      try {
+        await updateProfile({ nome: localName, email: localEmail })
+        setProfileSaved(true)
+        setTimeout(() => setProfileSaved(false), 2000)
+      } catch (err) {
+        setProfileError(err.response?.data?.detail || 'Erro ao salvar o perfil. Verifique a conexão e tente novamente.')
+      }
     }
   }
 
@@ -188,7 +199,7 @@ export default function SettingsPage() {
     setIsEmailLoading(true)
     try {
       const res = await api.post('/api/auth/confirmar-troca-email', { token: emailCode })
-      await updateProfile({ name: localName, email: res.data.new_email })
+      await updateProfile({ nome: localName, email: res.data.new_email })
       setShowEmailCodeInput(false)
       setEmailCode('')
       setProfileSaved(true)
@@ -227,7 +238,9 @@ export default function SettingsPage() {
         await updateCredentials(user?.email || localEmail, newPassword)
       } else {
         if (!currentPassword) { setPwdError('Digite a senha atual'); setIsPwdLoading(false); return }
-        if (currentPassword !== (passwordHash || 'admin123')) { setPwdError('Senha atual incorreta'); setIsPwdLoading(false); return }
+        if (currentPassword !== (sessionStorage.getItem('gestao_igreja_pwd') || '')) { setPwdError('Senha atual incorreta'); setIsPwdLoading(false); return }
+        await api.post('/api/auth/redefinir-senha-propria', { current_password: currentPassword, new_password: newPassword })
+        sessionStorage.setItem('gestao_igreja_pwd', newPassword)
         await updateCredentials(user?.email || localEmail, newPassword)
       }
       setPwdSaved(true)
@@ -245,10 +258,16 @@ export default function SettingsPage() {
   }
 
   const sidebarItems = [
-    { id: 'tabelas', label: 'Tabelas Auxiliares', icon: Award },
+    ...(isAdmin ? [{ id: 'tabelas', label: 'Tabelas Auxiliares', icon: Award }] : []),
     { id: 'perfil', label: 'Meu Perfil', icon: User },
     { id: 'seguranca', label: 'Segurança', icon: Lock },
   ]
+
+  useEffect(() => {
+    if (!isAdmin && activeSection === 'tabelas') {
+      setActiveSection('perfil')
+    }
+  }, [isAdmin, activeSection])
 
   return (
     <div className="min-h-screen pb-12 bg-[#F5F5F7] dark:bg-[#1C1C1E]">
@@ -402,7 +421,7 @@ export default function SettingsPage() {
                       <Shield size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                       <input
                         type="text"
-                        value="Administrador Principal"
+                        value={user?.papel === 'admin' ? 'Administrador' : 'Responsável'}
                         disabled
                         className="input-apple pl-10 opacity-60 cursor-not-allowed bg-gray-50 dark:bg-gray-800"
                       />
@@ -410,10 +429,17 @@ export default function SettingsPage() {
                   </div>
                 </div>
                 {!showEmailCodeInput && (
-                  <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-700 flex justify-end">
-                    <button onClick={handleSaveProfile} disabled={isEmailLoading} className="btn-apple-primary">
-                      {isEmailLoading ? <><Loader2 size={16} className="animate-spin" /> Processando...</> : profileSaved ? <><Check size={16} /> Salvo!</> : <><Save size={16} /> Salvar Alterações</>}
-                    </button>
+                  <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-700">
+                    {profileError && (
+                      <div className="mb-4 text-sm text-red-500 flex items-center gap-1.5 font-medium bg-red-50 dark:bg-red-900/10 p-3 rounded-xl border border-red-100 dark:border-red-800/30 animate-fade-in">
+                        <AlertTriangle size={16} /> {profileError}
+                      </div>
+                    )}
+                    <div className="flex justify-end">
+                      <button onClick={handleSaveProfile} disabled={isEmailLoading} className="btn-apple-primary">
+                        {isEmailLoading ? <><Loader2 size={16} className="animate-spin" /> Processando...</> : profileSaved ? <><Check size={16} /> Salvo!</> : <><Save size={16} /> Salvar Alterações</>}
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>

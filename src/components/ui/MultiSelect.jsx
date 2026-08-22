@@ -62,9 +62,11 @@ export default function MultiSelect({ label, options = [], values = [], onChange
     ? [...normalizedOptions].sort((a, b) => a.label.localeCompare(b.label, 'pt-BR'))
     : normalizedOptions;
 
+  const normalizeStr = (s) => (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+
   const filteredOptions = searchTerm
     ? sortedOptions.filter(opt =>
-        opt.label.toLowerCase().includes(searchTerm.toLowerCase())
+        normalizeStr(opt.label).toLowerCase().includes(normalizeStr(searchTerm).toLowerCase())
       )
     : sortedOptions;
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Search, Edit2, Plus, ClipboardList, History, Bell, Users2, MessageSquare, Check, X, Cake, CheckCircle, BellRing, Clock, XCircle, Music, ChevronUp, ChevronDown, Trash2, Info } from 'lucide-react'
 import Topbar from '../components/layout/Topbar'
@@ -7,6 +7,7 @@ import MultiSelect from '../components/ui/MultiSelect'
 import useMembersStore from '../store/membersStore'
 import useSettingsStore from '../store/settingsStore'
 import useToastStore from '../store/toastStore'
+import useAuthStore from '../store/authStore'
 
 function Badge({ children, variant = 'default' }) {
   const variants = {
@@ -61,6 +62,8 @@ const mockHistorico = [
   { id: 2, data: '12/04/2026', tipo: 'Ensaio Geral', presentes: 38, ausentes: 10, registros: [{ membro_id: 1, presente: false, justificativa: '' }, { membro_id: 2, presente: true }, { membro_id: 3, presente: false, justificativa: 'Problema de saúde' }, { membro_id: 4, presente: true }] },
   { id: 3, data: '05/04/2026', tipo: 'Culto Dominical', presentes: 45, ausentes: 3, registros: [] },
 ]
+
+const normalizeStr = (s) => (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
 
 const formatarDataNascimento = (data) => {
   if (!data) return '—'
@@ -118,12 +121,24 @@ export default function MembersPage() {
   const [historicoFilter, setHistoricoFilter] = useState('')
   const [historicoDateFilter, setHistoricoDateFilter] = useState('')
   const [historicoNameFilter, setHistoricoNameFilter] = useState('')
+  const [historicoPage, setHistoricoPage] = useState(1)
+  const [historicoItemsPerPage, setHistoricoItemsPerPage] = useState(20)
   const [alertSearch, setAlertSearch] = useState('')
   const [alertSubTab, setAlertSubTab] = useState('pendentes')
   const [alertMonth, setAlertMonth] = useState(new Date().toISOString().slice(0, 7))
   const [activeMetric, setActiveMetric] = useState(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(20)
 
-  const toggleMetric = (metric) => setActiveMetric(prev => prev === metric ? null : metric)
+  const toggleMetric = (metric) => {
+    setActiveMetric(prev => {
+      const next = prev === metric ? null : metric
+      if (next === 'aniversarios') {
+        setSortConfig({ key: 'data_nascimento', direction: 'asc' })
+      }
+      return next
+    })
+  }
 
   const storeMembers = useMembersStore((s) => s.members) || []
   const storeAttendance = useMembersStore((s) => s.attendance) || []
@@ -146,6 +161,10 @@ export default function MembersPage() {
     }
   }, [searchParams])
 
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchText, vozFilter, instrumentoFilter, funcaoFilter, statusFilter, activeMetric])
+
   const handleTabChange = (tab) => {
     setActiveTab(tab)
     if (searchParams.has('view')) {
@@ -155,32 +174,60 @@ export default function MembersPage() {
     }
   }
 
+  const SECOES_VOCAIS = ['soprano', 'contralto', 'tenor', 'baixo', 'alto', 'mezzo', 'mezzo-soprano', 'barítono', 'baritono']
+
+  const isOrquestra = (m) => {
+    const instrumento = (m.instrumento_voz || '').trim().toLowerCase()
+    return instrumento !== '' && !SECOES_VOCAIS.includes(instrumento)
+  }
+
   const filteredMembers = storeMembers.filter(member => {
     if (searchText) {
-      const searchLower = searchText.toLowerCase()
+      const searchNorm = normalizeStr(searchText).toLowerCase()
       const searchDigits = searchText.replace(/\D/g, '')
-      const matchNome = member.nome.toLowerCase().includes(searchLower)
+      const matchNome = normalizeStr(member.nome).toLowerCase().includes(searchNorm)
       const matchTelefone = member.telefone && searchDigits && member.telefone.replace(/\D/g, '').includes(searchDigits)
       if (!matchNome && !matchTelefone) return false
     }
     if (vozFilter && member.secao !== vozFilter) return false
-    if (instrumentoFilter && !member.instrumento_voz?.includes(instrumentoFilter)) return false
-    if (funcaoFilter && !member.cargo?.includes(funcaoFilter)) return false
+    if (instrumentoFilter && !normalizeStr(member.instrumento_voz).toLowerCase().includes(normalizeStr(instrumentoFilter).toLowerCase())) return false
+    if (funcaoFilter && !normalizeStr(member.cargo).toLowerCase().includes(normalizeStr(funcaoFilter).toLowerCase())) return false
     if (statusFilter && member.status !== statusFilter) return false
     if (activeMetric === 'ativos' && member.status !== 'Ativo') return false
     if (activeMetric === 'licenca' && member.status !== 'Licença') return false
     if (activeMetric === 'inativos' && member.status !== 'Inativo') return false
-    if (activeMetric === 'orquestra' && !member.instrumento_voz) return false
+    if (activeMetric === 'orquestra' && !isOrquestra(member)) return false
     if (activeMetric === 'aniversarios' && !isAniversarioMes(member.data_nascimento)) return false
     return true
   }).sort((a, b) => {
     if (!sortConfig.key) return 0
+
+    if (activeMetric === 'aniversarios' && sortConfig.key === 'data_nascimento') {
+      const extractDayMonth = (data) => {
+        if (!data) return ''
+        if (data.includes('-')) {
+          const parts = data.split('-')
+          return `${parts[1]}-${parts[2]}`
+        }
+        const parts = data.split('/')
+        return `${parts[1]}-${parts[0]}`
+      }
+      const aVal = extractDayMonth(a[sortConfig.key])
+      const bVal = extractDayMonth(b[sortConfig.key])
+      if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1
+      if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1
+      return 0
+    }
+
     const aVal = a[sortConfig.key] || ''
     const bVal = b[sortConfig.key] || ''
     if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1
     if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1
     return 0
   })
+
+  const totalPages = Math.ceil(filteredMembers.length / itemsPerPage)
+  const paginatedMembers = filteredMembers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
 
   const getMemberAbsences = (memberId) => {
     const absences = []
@@ -210,8 +257,9 @@ export default function MembersPage() {
     const justified = absences.filter(a => a.justificativa && a.justificativa.trim() !== '')
     return { ...m, unjustified_absences: unjustified.length, justified_absences: justified.length, all_absences: absences, unjustified_list: unjustified, justified_list: justified }
   })
-  const pendingAlerts = membersWithAbsencesData.filter(m => m.unjustified_absences >= 3 && (!alertSearch || m.nome.toLowerCase().includes(alertSearch.toLowerCase())))
-  const justifiedAlerts = membersWithAbsencesData.filter(m => m.justified_absences > 0 && (!alertSearch || m.nome.toLowerCase().includes(alertSearch.toLowerCase())))
+  const alertSearchNorm = normalizeStr(alertSearch).toLowerCase()
+  const pendingAlerts = membersWithAbsencesData.filter(m => m.unjustified_absences >= 3 && (!alertSearch || normalizeStr(m.nome).toLowerCase().includes(alertSearchNorm)))
+  const justifiedAlerts = membersWithAbsencesData.filter(m => m.justified_absences > 0 && (!alertSearch || normalizeStr(m.nome).toLowerCase().includes(alertSearchNorm)))
   const hasPendingAlerts = membersWithAbsencesData.some(m => m.unjustified_absences >= 3)
 
   const handleSaveEdicaoChamada = async (chamadaId, novosRegistros, novoContexto) => {
@@ -263,8 +311,13 @@ export default function MembersPage() {
     ativos: storeMembers.filter(m => m.status === 'Ativo').length,
     licenca: storeMembers.filter(m => m.status === 'Licença').length,
     inativos: storeMembers.filter(m => m.status === 'Inativo').length,
-    orquestra: storeMembers.filter(m => m.instrumento_voz && m.instrumento_voz !== '').length,
+    orquestra: storeMembers.filter(m => isOrquestra(m)).length,
     aniversariantes: storeMembers.filter(m => isAniversarioMes(m.data_nascimento)).length
+  }
+
+  if (storeMembers.length > 0) {
+    const debug = storeMembers.slice(0, 3).map(m => `${m.nome}: instrumento=${m.instrumento_voz}, isOrq=${isOrquestra(m)}`)
+    console.log('MembersPage - storeMembers:', storeMembers.length, debug)
   }
 
   return (
@@ -462,7 +515,7 @@ export default function MembersPage() {
                       </td>
                     </tr>
                   ) : (
-                    filteredMembers.map(member => (
+                    paginatedMembers.map(member => (
                       <tr key={member.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30">
                         <td className="px-4 py-3 w-76 max-w-0">
                           <div className="flex items-center gap-3">
@@ -498,6 +551,67 @@ export default function MembersPage() {
                   )}
                 </tbody>
               </table>
+              {filteredMembers.length > 0 && (
+                <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 dark:border-gray-700">
+                  <div className="flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
+                    <span>Mostrando</span>
+                    <span className="font-semibold text-gray-900 dark:text-white">
+                      {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, filteredMembers.length)}
+                    </span>
+                    <span>de</span>
+                    <span className="font-semibold text-gray-900 dark:text-white">{filteredMembers.length}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={itemsPerPage}
+                      onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1) }}
+                      className="text-sm border-0 bg-gray-50 dark:bg-[#3A3A3C] rounded-lg px-2 py-1.5 text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-blue-500/30 cursor-pointer"
+                    >
+                      <option value={5}>5</option>
+                      <option value={10}>10</option>
+                      <option value={20}>20</option>
+                      <option value={50}>50</option>
+                    </select>
+                    <div className="flex items-center gap-1 ml-2">
+                      <button
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        disabled={currentPage === 1}
+                        className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                      >
+                        <ChevronUp className="rotate-[-90deg]" size={18} />
+                      </button>
+                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                        let pageNum
+                        if (totalPages <= 5) {
+                          pageNum = i + 1
+                        } else if (currentPage <= 3) {
+                          pageNum = i + 1
+                        } else if (currentPage >= totalPages - 2) {
+                          pageNum = totalPages - 4 + i
+                        } else {
+                          pageNum = currentPage - 2 + i
+                        }
+                        return (
+                          <button
+                            key={pageNum}
+                            onClick={() => setCurrentPage(pageNum)}
+                            className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${currentPage === pageNum ? 'bg-blue-500 text-white' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
+                          >
+                            {pageNum}
+                          </button>
+                        )
+                      })}
+                      <button
+                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                        disabled={currentPage === totalPages}
+                        className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                      >
+                        <ChevronUp className="rotate-[90deg]" size={18} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -517,7 +631,7 @@ export default function MembersPage() {
                       type="text"
                       placeholder="Buscar por nome..."
                       value={historicoNameFilter}
-                      onChange={(e) => setHistoricoNameFilter(e.target.value)}
+                      onChange={(e) => { setHistoricoNameFilter(e.target.value); setHistoricoPage(1) }}
                       className="input-apple pl-10 w-full"
                     />
                   </div>
@@ -527,7 +641,7 @@ export default function MembersPage() {
                   <Select
                     options={[{ value: '', label: 'Todos os contextos' }, ...attendanceContexts.map(ctx => ({ value: ctx.label, label: ctx.label }))]}
                     value={historicoFilter}
-                    onChange={(val) => setHistoricoFilter(val)}
+                    onChange={(val) => { setHistoricoFilter(val); setHistoricoPage(1) }}
                     size="sm"
                   />
                 </div>
@@ -536,7 +650,7 @@ export default function MembersPage() {
                   <input
                     type="month"
                     value={historicoDateFilter}
-                    onChange={(e) => setHistoricoDateFilter(e.target.value)}
+                    onChange={(e) => { setHistoricoDateFilter(e.target.value); setHistoricoPage(1) }}
                     className="input-apple w-auto min-w-[140px]"
                   />
                 </div>
@@ -545,7 +659,7 @@ export default function MembersPage() {
             <div className="bg-white dark:bg-[#2C2C2E] rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden mt-4">
               {(() => {
                 const filtered = storeAttendance.filter(item => {
-                  if (historicoFilter && !item.contexto?.toLowerCase().includes(historicoFilter.toLowerCase())) return false
+                    if (historicoFilter && !normalizeStr(item.contexto).toLowerCase().includes(normalizeStr(historicoFilter).toLowerCase())) return false
                   if (historicoDateFilter) {
                     const itemDate = item.data ? item.data.split('T')[0] : item.data
                     let itemYearMonth = ''
@@ -561,7 +675,7 @@ export default function MembersPage() {
                     const registros = item.registros_json || []
                     const hasName = registros.some(r => {
                       const member = storeMembers.find(m => m.id === r.membro_id)
-                      return member?.nome?.toLowerCase().includes(historicoNameFilter.toLowerCase())
+                      return normalizeStr(member?.nome).toLowerCase().includes(normalizeStr(historicoNameFilter).toLowerCase())
                     })
                     if (!hasName) return false
                   }
@@ -578,64 +692,128 @@ export default function MembersPage() {
                   )
                 }
 
+                const historicoTotalPages = Math.ceil(filtered.length / historicoItemsPerPage)
+                const paginatedHistorico = filtered.slice((historicoPage - 1) * historicoItemsPerPage, historicoPage * historicoItemsPerPage)
+
                 return (
-                  <div className="divide-y divide-gray-100 dark:divide-gray-700">
-                    {filtered.map(item => {
-                      const registros = item.registros_json || []
-                      const presentes = registros.filter(r => r.presente).length
-                      const ausentes = registros.filter(r => !r.presente).length
-                      const attendancePercent = registros.length > 0 ? Math.round((presentes / registros.length) * 100) : 0
+                  <>
+                    <div className="divide-y divide-gray-100 dark:divide-gray-700">
+                      {paginatedHistorico.map(item => {
+                        const registros = item.registros_json || []
+                        const presentes = registros.filter(r => r.presente).length
+                        const ausentes = registros.filter(r => !r.presente).length
+                        const attendancePercent = registros.length > 0 ? Math.round((presentes / registros.length) * 100) : 0
 
-                      let dataFormatada = '—'
-                      if (item.data) {
-                        const dataStr = item.data.includes('/') ? item.data.split('/').reverse().join('-') : item.data
-                        const dateObj = new Date(`${dataStr}T12:00:00`)
-                        if (!isNaN(dateObj.getTime())) {
-                          const rawDate = dateObj.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
-                          dataFormatada = rawDate.charAt(0).toUpperCase() + rawDate.slice(1)
-                        } else {
-                          dataFormatada = item.data
+                        let dataFormatada = '—'
+                        if (item.data) {
+                          const dataStr = item.data.includes('/') ? item.data.split('/').reverse().join('-') : item.data
+                          const dateObj = new Date(`${dataStr}T12:00:00`)
+                          if (!isNaN(dateObj.getTime())) {
+                            const rawDate = dateObj.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+                            dataFormatada = rawDate.charAt(0).toUpperCase() + rawDate.slice(1)
+                          } else {
+                            dataFormatada = item.data
+                          }
                         }
-                      }
 
-                      const percentClass = attendancePercent >= 80 ? 'text-green-600' : attendancePercent >= 50 ? 'text-yellow-600' : 'text-red-600'
+                        const percentClass = attendancePercent >= 80 ? 'text-green-600' : attendancePercent >= 50 ? 'text-yellow-600' : 'text-red-600'
 
-                      return (
-                        <div key={item.id} className="p-4 hover:bg-gray-50 dark:hover:bg-[#3A3A3C] transition-colors">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
-                                <History size={18} />
+                        return (
+                          <div key={item.id} className="p-4 hover:bg-gray-50 dark:hover:bg-[#3A3A3C] transition-colors">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
+                                  <History size={18} />
+                                </div>
+                                <div>
+                                  <p className="font-semibold text-gray-900 dark:text-white">{dataFormatada}</p>
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 mt-0.5">
+                                    {item.contexto}
+                                  </span>
+                                </div>
                               </div>
-                              <div>
-                                <p className="font-semibold text-gray-900 dark:text-white">{dataFormatada}</p>
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 mt-0.5">
-                                  {item.contexto}
-                                </span>
+                              <div className="flex items-center gap-6">
+                                <div className="text-center">
+                                  <p className="text-xl font-bold text-green-600">{presentes}</p>
+                                  <p className="text-xs text-gray-400 dark:text-gray-500">presentes</p>
+                                </div>
+                                <div className="text-center">
+                                  <p className="text-xl font-bold text-red-500">{ausentes}</p>
+                                  <p className="text-xs text-gray-400 dark:text-gray-500">ausentes</p>
+                                </div>
+                                <div className="text-center">
+                                  <p className={`text-xl font-bold ${percentClass}`}>{attendancePercent}%</p>
+                                  <p className="text-xs text-gray-400 dark:text-gray-500">presença</p>
+                                </div>
+                                <button onClick={() => setEditingChamada(item)} className="px-3 py-1.5 text-sm font-medium text-[#007AFF] border border-dashed border-[#007AFF]/30 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors flex items-center gap-2">
+                                  <Edit2 size={16} /> Editar
+                                </button>
                               </div>
-                            </div>
-                            <div className="flex items-center gap-6">
-                              <div className="text-center">
-                                <p className="text-xl font-bold text-green-600">{presentes}</p>
-                                <p className="text-xs text-gray-400 dark:text-gray-500">presentes</p>
-                              </div>
-                              <div className="text-center">
-                                <p className="text-xl font-bold text-red-500">{ausentes}</p>
-                                <p className="text-xs text-gray-400 dark:text-gray-500">ausentes</p>
-                              </div>
-                              <div className="text-center">
-                                <p className={`text-xl font-bold ${percentClass}`}>{attendancePercent}%</p>
-                                <p className="text-xs text-gray-400 dark:text-gray-500">presença</p>
-                              </div>
-                              <button onClick={() => setEditingChamada(item)} className="px-3 py-1.5 text-sm font-medium text-[#007AFF] border border-dashed border-[#007AFF]/30 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors flex items-center gap-2">
-                                <Edit2 size={16} /> Editar
-                              </button>
                             </div>
                           </div>
+                        )
+                      })}
+                    </div>
+                    <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 dark:border-gray-700">
+                      <div className="flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
+                        <span>Mostrando</span>
+                        <span className="font-semibold text-gray-900 dark:text-white">
+                          {((historicoPage - 1) * historicoItemsPerPage) + 1} - {Math.min(historicoPage * historicoItemsPerPage, filtered.length)}
+                        </span>
+                        <span>de</span>
+                        <span className="font-semibold text-gray-900 dark:text-white">{filtered.length}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <select
+                          value={historicoItemsPerPage}
+                          onChange={(e) => { setHistoricoItemsPerPage(Number(e.target.value)); setHistoricoPage(1) }}
+                          className="text-sm border-0 bg-gray-50 dark:bg-[#3A3A3C] rounded-lg px-2 py-1.5 text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-blue-500/30 cursor-pointer"
+                        >
+                          <option value={5}>5</option>
+                          <option value={10}>10</option>
+                          <option value={20}>20</option>
+                          <option value={50}>50</option>
+                        </select>
+                        <div className="flex items-center gap-1 ml-2">
+                          <button
+                            onClick={() => setHistoricoPage(p => Math.max(1, p - 1))}
+                            disabled={historicoPage === 1}
+                            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                          >
+                            <ChevronUp className="rotate-[-90deg]" size={18} />
+                          </button>
+                          {Array.from({ length: Math.min(5, historicoTotalPages) }, (_, i) => {
+                            let pageNum
+                            if (historicoTotalPages <= 5) {
+                              pageNum = i + 1
+                            } else if (historicoPage <= 3) {
+                              pageNum = i + 1
+                            } else if (historicoPage >= historicoTotalPages - 2) {
+                              pageNum = historicoTotalPages - 4 + i
+                            } else {
+                              pageNum = historicoPage - 2 + i
+                            }
+                            return (
+                              <button
+                                key={pageNum}
+                                onClick={() => setHistoricoPage(pageNum)}
+                                className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${historicoPage === pageNum ? 'bg-blue-500 text-white' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
+                              >
+                                {pageNum}
+                              </button>
+                            )
+                          })}
+                          <button
+                            onClick={() => setHistoricoPage(p => Math.min(historicoTotalPages, p + 1))}
+                            disabled={historicoPage === historicoTotalPages}
+                            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                          >
+                            <ChevronUp className="rotate-[90deg]" size={18} />
+                          </button>
                         </div>
-                      )
-                    })}
-                  </div>
+                      </div>
+                    </div>
+                  </>
                 )
               })()}
 
@@ -888,9 +1066,12 @@ function ChamadaTab({ members, isEditing = false, chamada = null, onSaveEdit = n
   const attendanceContexts = useSettingsStore((s) => s.attendanceContexts) || []
   const saveAttendance = useMembersStore((s) => s.saveAttendance)
   const showToast = useToastStore((s) => s.showToast)
+  const currentUser = useAuthStore((s) => s.user)
+
+  const defaultContexto = chamada?.tipo || currentUser?.contexto_padrao || attendanceContexts[0]?.label || 'Ensaio Geral'
 
   const [dataChamada, setDataChamada] = useState(chamada?.data ? chamada.data.split('/').reverse().join('-') : new Date().toISOString().split('T')[0])
-  const [contextoChamada, setContextoChamada] = useState(chamada?.tipo || (attendanceContexts[0]?.label || 'Ensaio Geral'))
+  const [contextoChamada, setContextoChamada] = useState(defaultContexto)
   const [presencas, setPresencas] = useState(() => {
     if (chamada?.registros) {
       const map = {}
@@ -908,12 +1089,25 @@ function ChamadaTab({ members, isEditing = false, chamada = null, onSaveEdit = n
     return {}
   })
   const [searchChamada, setSearchChamada] = useState('')
+  const [filtroGrupo, setFiltroGrupo] = useState(defaultContexto.toLowerCase().includes('orquestra') ? 'orquestra' : 'todos')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(20)
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
 
-  const filteredMembers = members
-    .filter(m => !searchChamada || m.nome.toLowerCase().includes(searchChamada.toLowerCase()))
+  const SECOES_VOCAIS = ['soprano', 'contralto', 'tenor', 'baixo', 'alto', 'mezzo', 'mezzo-soprano', 'barítono', 'baritono']
+  const isOrquestra = (m) => {
+    const instrumento = (m.instrumento_voz || '').trim().toLowerCase()
+    return instrumento !== '' && !SECOES_VOCAIS.includes(instrumento)
+  }
+
+  const membersDoGrupo = members
+    .filter(m => filtroGrupo === 'orquestra' ? isOrquestra(m) : true)
+  const filteredMembers = membersDoGrupo
+    .filter(m => !searchChamada || normalizeStr(m.nome).toLowerCase().includes(normalizeStr(searchChamada).toLowerCase()))
     .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
+  const totalPages = Math.ceil(filteredMembers.length / itemsPerPage)
+  const paginatedMembers = filteredMembers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
   const total = filteredMembers.length
   const presentes = filteredMembers.filter(m => presencas[m.id] !== false && presencas[m.id] !== undefined).length || (total > 0 && Object.keys(presencas).length === 0 ? total : filteredMembers.filter(m => presencas[m.id] !== false).length)
   const ausentes = filteredMembers.filter(m => presencas[m.id] === false).length
@@ -923,7 +1117,7 @@ function ChamadaTab({ members, isEditing = false, chamada = null, onSaveEdit = n
   const updateJustificativa = (id, text) => setJustificativas(prev => ({ ...prev, [id]: text }))
 
   const handleSave = async () => {
-    const registros = members.map(m => ({
+    const registros = membersDoGrupo.map(m => ({
       membro_id: m.id,
       presente: presencas[m.id] !== false,
       justificativa: justificativas[m.id] || ''
@@ -964,9 +1158,9 @@ function ChamadaTab({ members, isEditing = false, chamada = null, onSaveEdit = n
           <div>
             <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Contexto</label>
             <Select
-              options={attendanceContexts.length > 0 ? attendanceContexts.map(ctx => ({ value: ctx.label, label: ctx.label })) : [{ value: 'Ensaio Geral', label: 'Ensaio Geral' }]}
+              options={attendanceContexts.map(ctx => ({ value: ctx.label, label: ctx.label }))}
               value={contextoChamada}
-              onChange={(val) => setContextoChamada(val)}
+              onChange={(val) => { setContextoChamada(val); setFiltroGrupo(val.toLowerCase().includes('orquestra') ? 'orquestra' : 'todos'); setCurrentPage(1) }}
               size="sm"
             />
           </div>
@@ -974,8 +1168,17 @@ function ChamadaTab({ members, isEditing = false, chamada = null, onSaveEdit = n
             <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Buscar</label>
             <div className="relative">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input type="text" placeholder="Buscar integrante..." value={searchChamada} onChange={(e) => setSearchChamada(e.target.value)} className="input-apple pl-10 w-full" />
+              <input type="text" placeholder="Buscar integrante..." value={searchChamada} onChange={(e) => { setSearchChamada(e.target.value); setCurrentPage(1) }} className="input-apple pl-10 w-full" />
             </div>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Grupo</label>
+            <Select
+              options={[{ value: 'todos', label: 'Todos' }, { value: 'orquestra', label: 'Orquestra' }]}
+              value={filtroGrupo}
+              onChange={(val) => { setFiltroGrupo(val); setCurrentPage(1) }}
+              size="sm"
+            />
           </div>
         </div>
       </div>
@@ -989,7 +1192,7 @@ function ChamadaTab({ members, isEditing = false, chamada = null, onSaveEdit = n
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Adicione membros ativos para começar a registrar chamadas.</p>
             </div>
           ) : (
-            filteredMembers.map(member => {
+            paginatedMembers.map(member => {
               const presente = presencas[member.id] !== false
               const showJustificativa = presencas[member.id] === false
               return (
@@ -999,7 +1202,7 @@ function ChamadaTab({ members, isEditing = false, chamada = null, onSaveEdit = n
                       <Avatar name={member.nome} size="sm" />
                       <div>
                         <p className="font-medium">{member.nome}</p>
-                        <p className="text-xs text-gray-500">{member.secao || member.instrumento_voz || 'Músico'}</p>
+                        <p className="text-xs text-gray-500">{filtroGrupo === 'orquestra' ? (member.instrumento_voz || 'Orquestra') : (member.secao || member.instrumento_voz || 'Músico')}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -1028,6 +1231,67 @@ function ChamadaTab({ members, isEditing = false, chamada = null, onSaveEdit = n
                 </div>
               )
             }))}
+          {filteredMembers.length > 0 && (
+            <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 dark:border-gray-700">
+              <div className="flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
+                <span>Mostrando</span>
+                <span className="font-semibold text-gray-900 dark:text-white">
+                  {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, filteredMembers.length)}
+                </span>
+                <span>de</span>
+                <span className="font-semibold text-gray-900 dark:text-white">{filteredMembers.length}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <select
+                  value={itemsPerPage}
+                  onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1) }}
+                  className="text-sm border-0 bg-gray-50 dark:bg-[#3A3A3C] rounded-lg px-2 py-1.5 text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-blue-500/30 cursor-pointer"
+                >
+                  <option value={5}>5</option>
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                </select>
+                <div className="flex items-center gap-1 ml-2">
+                  <button
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                  >
+                    <ChevronUp className="rotate-[-90deg]" size={18} />
+                  </button>
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNum
+                    if (totalPages <= 5) {
+                      pageNum = i + 1
+                    } else if (currentPage <= 3) {
+                      pageNum = i + 1
+                    } else if (currentPage >= totalPages - 2) {
+                      pageNum = totalPages - 4 + i
+                    } else {
+                      pageNum = currentPage - 2 + i
+                    }
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => setCurrentPage(pageNum)}
+                        className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${currentPage === pageNum ? 'bg-blue-500 text-white' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
+                      >
+                        {pageNum}
+                      </button>
+                    )
+                  })}
+                  <button
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                  >
+                    <ChevronUp className="rotate-[90deg]" size={18} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -1065,22 +1329,46 @@ function EdicaoChamadaForm({ chamada, members, onSave, onCancel }) {
       return existente || { membro_id: m.id, presente: true, justificativa: '' }
     })
   })
+  const [searchEditar, setSearchEditar] = useState('')
+  const [filtroGrupoEditar, setFiltroGrupoEditar] = useState(() =>
+    (chamada?.tipo || chamada?.contexto || '').toLowerCase().includes('orquestra') ? 'orquestra' : 'todos'
+  )
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(20)
+
+  const SECOES_VOCAIS = ['soprano', 'contralto', 'tenor', 'baixo', 'alto', 'mezzo', 'mezzo-soprano', 'barítono', 'baritono']
+  const isOrquestra = (m) => {
+    const instrumento = (m?.instrumento_voz || '').trim().toLowerCase()
+    return instrumento !== '' && !SECOES_VOCAIS.includes(instrumento)
+  }
+
+  const getMember = (id) => members.find(m => m.id === id)
+  const getMemberName = (id) => getMember(id)?.nome || 'Desconhecido'
+  const getMemberRole = (id) => {
+    const m = getMember(id)
+    if (!m) return 'Músico'
+    return filtroGrupoEditar === 'orquestra' ? (m.instrumento_voz || 'Orquestra') : (m.secao || m.instrumento_voz || 'Músico')
+  }
 
   const updateRegistro = (membroId, updates) => {
     setRegistros(prev => prev.map(r => r.membro_id === membroId ? { ...r, ...updates } : r))
   }
 
-  const getMemberName = (id) => members.find(m => m.id === id)?.nome || 'Desconhecido'
-  const getMemberRole = (id) => {
-    const m = members.find(x => x.id === id)
-    return m?.secao || m?.instrumento_voz || 'Músico'
-  }
+  const filteredRegistros = registros.filter(reg => {
+    const m = getMember(reg.membro_id)
+    if (!m) return false
+    if (filtroGrupoEditar === 'orquestra' && !isOrquestra(m)) return false
+    if (searchEditar && !normalizeStr(m.nome).toLowerCase().includes(normalizeStr(searchEditar).toLowerCase())) return false
+    return true
+  })
+  const totalPages = Math.ceil(filteredRegistros.length / itemsPerPage)
+  const paginatedRegistros = filteredRegistros.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
 
   const presentes = registros.filter(r => r.presente).length
   const ausentes = registros.filter(r => !r.presente).length
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-[#3A3A3C] rounded-xl">
         <div className="text-center">
           <p className="text-2xl font-bold text-green-600">{presentes}</p>
@@ -1092,32 +1380,111 @@ function EdicaoChamadaForm({ chamada, members, onSave, onCancel }) {
         </div>
       </div>
 
-      <div className="space-y-2 max-h-[50vh] overflow-y-auto">
-        {registros.map(reg => (
-          <div key={reg.membro_id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-[#3A3A3C] rounded-xl">
-            <div className="flex items-center gap-3">
-              <Avatar name={getMemberName(reg.membro_id)} size="sm" />
-              <div>
-                <p className="font-medium text-gray-900 dark:text-white">{getMemberName(reg.membro_id)}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">{getMemberRole(reg.membro_id)}</p>
+      <div className="flex gap-3">
+        <div className="relative flex-1">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Buscar integrante..."
+            value={searchEditar}
+            onChange={(e) => { setSearchEditar(e.target.value); setCurrentPage(1) }}
+            className="input-apple pl-9 w-full text-sm"
+          />
+        </div>
+        <div>
+          <Select
+            options={[{ value: 'todos', label: 'Todos' }, { value: 'orquestra', label: 'Orquestra' }]}
+            value={filtroGrupoEditar}
+            onChange={(val) => { setFiltroGrupoEditar(val); setCurrentPage(1) }}
+            size="sm"
+          />
+        </div>
+      </div>
+
+      <div className="border border-gray-100 dark:border-gray-700 rounded-xl overflow-hidden">
+        <div className="divide-y divide-gray-100 dark:divide-gray-700">
+          {paginatedRegistros.map(reg => (
+            <div key={reg.membro_id} className="flex items-center justify-between p-3 hover:bg-gray-50 dark:hover:bg-[#3A3A3C] transition-colors">
+              <div className="flex items-center gap-3">
+                <Avatar name={getMemberName(reg.membro_id)} size="sm" />
+                <div>
+                  <p className="font-medium text-gray-900 dark:text-white">{getMemberName(reg.membro_id)}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{getMemberRole(reg.membro_id)}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => updateRegistro(reg.membro_id, { presente: true, justificativa: '' })}
+                  className={`w-12 h-8 rounded-lg font-semibold text-sm transition-all ${reg.presente ? 'bg-green-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-400 hover:bg-green-50 dark:hover:bg-green-900/30 hover:text-green-600'}`}
+                >
+                  P
+                </button>
+                <button
+                  onClick={() => updateRegistro(reg.membro_id, { presente: false })}
+                  className={`w-12 h-8 rounded-lg font-semibold text-sm transition-all ${!reg.presente ? 'bg-red-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-400 hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-600'}`}
+                >
+                  F
+                </button>
               </div>
             </div>
+          ))}
+        </div>
+        {filteredRegistros.length > 0 && (
+          <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 dark:border-gray-700">
+            <div className="flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
+              <span>Mostrando</span>
+              <span className="font-semibold text-gray-900 dark:text-white">
+                {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, filteredRegistros.length)}
+              </span>
+              <span>de</span>
+              <span className="font-semibold text-gray-900 dark:text-white">{filteredRegistros.length}</span>
+            </div>
             <div className="flex items-center gap-2">
-              <button
-                onClick={() => updateRegistro(reg.membro_id, { presente: true, justificativa: '' })}
-                className={`w-12 h-8 rounded-lg font-semibold text-sm transition-all ${reg.presente ? 'bg-green-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-400 hover:bg-green-50 dark:hover:bg-green-900/30 hover:text-green-600'}`}
+              <select
+                value={itemsPerPage}
+                onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1) }}
+                className="text-sm border-0 bg-gray-50 dark:bg-[#3A3A3C] rounded-lg px-2 py-1.5 text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-blue-500/30 cursor-pointer"
               >
-                P
-              </button>
-              <button
-                onClick={() => updateRegistro(reg.membro_id, { presente: false })}
-                className={`w-12 h-8 rounded-lg font-semibold text-sm transition-all ${!reg.presente ? 'bg-red-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-400 hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-600'}`}
-              >
-                F
-              </button>
+                <option value={5}>5</option>
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+              </select>
+              <div className="flex items-center gap-1 ml-2">
+                <button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                >
+                  <ChevronUp className="rotate-[-90deg]" size={18} />
+                </button>
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let pageNum
+                  if (totalPages <= 5) pageNum = i + 1
+                  else if (currentPage <= 3) pageNum = i + 1
+                  else if (currentPage >= totalPages - 2) pageNum = totalPages - 4 + i
+                  else pageNum = currentPage - 2 + i
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => setCurrentPage(pageNum)}
+                      className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${currentPage === pageNum ? 'bg-blue-500 text-white' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
+                    >
+                      {pageNum}
+                    </button>
+                  )
+                })}
+                <button
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                >
+                  <ChevronUp className="rotate-[90deg]" size={18} />
+                </button>
+              </div>
             </div>
           </div>
-        ))}
+        )}
       </div>
 
       <div className="flex gap-3 pt-4 border-t border-gray-100 dark:border-gray-700">
@@ -1331,22 +1698,33 @@ function EdicaoDrawer({ chamada, members, onSave, onDelete, onClose }) {
   })
   const [search, setSearch] = useState('')
   const [contexto, setContexto] = useState(chamada?.contexto || chamada?.tipo || 'Ensaio Geral')
+  const [filtroGrupo, setFiltroGrupo] = useState(() =>
+    (chamada?.contexto || chamada?.tipo || '').toLowerCase().includes('orquestra') ? 'orquestra' : 'todos'
+  )
 
-  const filteredMembers = members
+  const SECOES_VOCAIS = ['soprano', 'contralto', 'tenor', 'baixo', 'alto', 'mezzo', 'mezzo-soprano', 'barítono', 'baritono']
+  const isOrquestra = (m) => {
+    const instrumento = (m?.instrumento_voz || '').trim().toLowerCase()
+    return instrumento !== '' && !SECOES_VOCAIS.includes(instrumento)
+  }
+
+  const membersDoGrupo = members
+    .filter(m => filtroGrupo === 'orquestra' ? isOrquestra(m) : true)
+  const filteredMembers = membersDoGrupo
     .filter(m => !search || m.nome.toLowerCase().includes(search.toLowerCase()))
     .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
 
   const presenteKey = temRegistros ? (m) => presencas[m.id] !== false : () => true
   const ausenteKey = temRegistros ? (m) => presencas[m.id] === false : () => false
 
-  const presentes = filteredMembers.filter(m => presenteKey(m)).length
-  const ausentes = filteredMembers.filter(m => ausenteKey(m)).length
+  const presentes = membersDoGrupo.filter(m => presenteKey(m)).length
+  const ausentes = membersDoGrupo.filter(m => ausenteKey(m)).length
 
   const togglePresenca = (id) => setPresencas(p => ({ ...p, [id]: p[id] === false ? true : false }))
   const updateJustificativa = (id, text) => setJustificativas(prev => ({ ...prev, [id]: text }))
 
   const handleSalvar = async () => {
-    const registros = filteredMembers.map(m => ({
+    const registros = membersDoGrupo.map(m => ({
       membro_id: m.id,
       presente: presencas[m.id] !== false,
       justificativa: justificativas[m.id] || ''
@@ -1396,15 +1774,15 @@ function EdicaoDrawer({ chamada, members, onSave, onDelete, onClose }) {
               />
             </div>
             <Select
-              options={[
-                ...attendanceContexts.map(ctx => ({ value: ctx.label, label: ctx.label })),
-                { value: 'Ensaio Geral', label: 'Ensaio Geral' },
-                { value: 'Culto Dominical', label: 'Culto Dominical' },
-                { value: 'Culto de Celebração', label: 'Culto de Celebração' },
-                { value: 'Ensaio de Naipe', label: 'Ensaio de Naipe' }
-              ]}
+              options={attendanceContexts.map(ctx => ({ value: ctx.label, label: ctx.label }))}
               value={contexto}
-              onChange={(val) => setContexto(val)}
+              onChange={(val) => { setContexto(val); setFiltroGrupo(val.toLowerCase().includes('orquestra') ? 'orquestra' : 'todos') }}
+              size="sm"
+            />
+            <Select
+              options={[{ value: 'todos', label: 'Todos' }, { value: 'orquestra', label: 'Orquestra' }]}
+              value={filtroGrupo}
+              onChange={(val) => setFiltroGrupo(val)}
               size="sm"
             />
           </div>
@@ -1419,7 +1797,7 @@ function EdicaoDrawer({ chamada, members, onSave, onDelete, onClose }) {
                     <Avatar name={member.nome} size="sm" />
                     <div>
                       <p className="font-medium text-gray-900 dark:text-white">{member.nome}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">{member.secao || member.instrumento_voz || 'Músico'}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{filtroGrupo === 'orquestra' ? (member.instrumento_voz || 'Orquestra') : (member.secao || member.instrumento_voz || 'Músico')}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">

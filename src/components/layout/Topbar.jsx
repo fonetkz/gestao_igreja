@@ -176,9 +176,9 @@ export default function Topbar({ title = 'Gestão Igreja', searchPlaceholder, on
                 onClick={() => setMenuOpen(!menuOpen)}
                 className="flex items-center gap-2 p-1.5 pr-3 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-all duration-200"
               >
-                <Avatar name={user?.name || 'Admin'} size="sm" />
+                <Avatar name={user?.nome || user?.name || 'Admin'} size="sm" />
                 <div className="hidden sm:block text-left">
-                  <p className="text-sm font-semibold text-gray-900 dark:text-white leading-none">{user?.name || 'Admin'}</p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white leading-none">{user?.nome || user?.name || 'Admin'}</p>
                 </div>
                 <ChevronDown size={14} className={`text-gray-400 transition-transform duration-200 ${menuOpen ? 'rotate-180' : ''}`} />
               </button>

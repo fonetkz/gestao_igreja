@@ -9,7 +9,7 @@ const safeParseJson = (jsonStr, defaultValue = []) => {
   try {
     if (!jsonStr) return defaultValue
     const parsed = JSON.parse(jsonStr)
-    return Array.isArray(parsed) ? parsed : defaultValue
+    return parsed
   } catch {
     return defaultValue
   }
@@ -40,7 +40,8 @@ const useHymnsStore = create(
       const { data } = await api.get('/api/programacoes')
       const history = data.map(p => ({
         ...p,
-        hinos_json: safeParseJson(p.hinos_json)
+        hinos_json: safeParseJson(p.hinos_json),
+        layout_json: safeParseJson(p.layout_json, null)
       }))
       set({ programHistory: history })
     } catch (error) {
@@ -151,23 +152,81 @@ const useHymnsStore = create(
     set({ todayProgram: newOrder })
   },
 
+  // Gerar layout padrão a partir da ordem de hinos da programação
+  buildDefaultLayout: (programToSave, data_culto, tipo_culto) => {
+    const { hymns } = get()
+    const hymnsById = {}
+    hymns.forEach(h => { hymnsById[h.id] = h })
+
+    const sectionHymns = programToSave.map(item => {
+      const id = typeof item === 'object' ? item.id : item
+      const regente = typeof item === 'object' ? item.regente || '' : ''
+      const rawSolista = typeof item === 'object' ? item.solista : ''
+      const soloist = Array.isArray(rawSolista) ? rawSolista.join(', ') : (rawSolista || '')
+      const hymn = hymnsById[id]
+      if (!hymn) return null
+      return {
+        ...hymn, regente, soloist,
+        showRegente: true, showNumber: true, showType: true, showSoloist: true
+      }
+    }).filter(Boolean)
+
+    return {
+      headerConfig: {
+        imageUrl: '',
+        title: 'Programação Musical',
+        subtitle: tipo_culto || '',
+        date: data_culto || '',
+        location: '',
+        logoHeight: 48,
+      },
+      sections: [
+        { id: 'sec-abertura', name: 'Abertura', hymns: sectionHymns, observations: '' }
+      ]
+    }
+  },
+
+  // Buscar layout salvo no localStorage do print page
+  getSavedLayoutFromPrint: (programToSave) => {
+    try {
+      const cache = JSON.parse(localStorage.getItem('hymnprint_last_layout') || '{}')
+      const key = programToSave.map(item => {
+        const id = typeof item === 'object' ? item.id : item
+        const reg = typeof item === 'object' ? item.regente || '' : ''
+        const rawSol = typeof item === 'object' ? item.solista : ''
+        const sol = Array.isArray(rawSol) ? rawSol.join(', ') : (rawSol || '')
+        return `${id}-${reg}-${sol}`
+      }).join('|')
+      const saved = cache[key]
+      if (saved && saved.sections) {
+        return { headerConfig: saved.headerConfig, sections: saved.sections }
+      }
+      return null
+    } catch { return null }
+  },
+
   confirmTodayProgram: async (data_culto, tipo_culto, responsavel, customProgram) => {
     try {
       const { todayProgram } = get()
       const programToSave = customProgram || todayProgram
+
+      const savedLayout = get().getSavedLayoutFromPrint(programToSave)
+      const layout = savedLayout || get().buildDefaultLayout(programToSave, data_culto, tipo_culto)
 
       const payload = {
         data: data_culto,
         tipo_culto,
         responsavel,
         status: 'confirmado',
-        hinos_json: JSON.stringify(programToSave)
+        hinos_json: JSON.stringify(programToSave),
+        layout_json: JSON.stringify(layout)
       }
       const { data } = await api.post('/api/programacoes', payload)
 
       const newEntry = {
         ...data,
-        hinos_json: safeParseJson(data.hinos_json)
+        hinos_json: safeParseJson(data.hinos_json),
+        layout_json: safeParseJson(data.layout_json, null)
       }
 
       set((state) => ({
@@ -194,18 +253,23 @@ const useHymnsStore = create(
       const { todayProgram } = get()
       const programToSave = customProgram || todayProgram
 
+      const savedLayout = get().getSavedLayoutFromPrint(programToSave)
+      const layout = savedLayout || get().buildDefaultLayout(programToSave, data_culto, tipo_culto)
+
       const payload = {
         data: data_culto,
         tipo_culto,
         responsavel,
         status: 'confirmado',
-        hinos_json: JSON.stringify(programToSave)
+        hinos_json: JSON.stringify(programToSave),
+        layout_json: JSON.stringify(layout)
       }
       const { data } = await api.patch(`/api/programacoes/${id}`, payload)
 
       const updatedEntry = {
         ...data,
-        hinos_json: safeParseJson(data.hinos_json)
+        hinos_json: safeParseJson(data.hinos_json),
+        layout_json: safeParseJson(data.layout_json, null)
       }
 
       set((state) => ({
@@ -239,6 +303,24 @@ const useHymnsStore = create(
 
   // Apelido para manter a compatibilidade com o ProgrammingPage.jsx
   deleteProgramacao: async (id) => get().removeProgram(id),
+
+  // Salvar layout de impressão de uma programação
+  saveProgramLayout: async (progId, layout) => {
+    try {
+      const { data } = await api.patch(`/api/programacoes/${progId}`, {
+        layout_json: JSON.stringify(layout)
+      })
+      set((state) => ({
+        programHistory: state.programHistory.map(p =>
+          p.id === progId
+            ? { ...p, layout_json: layout }
+            : p
+        )
+      }))
+    } catch (error) {
+      console.error('Erro ao salvar layout de impressão', error)
+    }
+  },
 
   // Obter hino por ID
   getHymnById: (id) => {

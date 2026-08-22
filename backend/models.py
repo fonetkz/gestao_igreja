@@ -125,13 +125,40 @@ class HinoUpdate(SQLModel):
 
 
 # ═══════════════════════════════════════════════════════════
+# Usuários
+# ═══════════════════════════════════════════════════════════
+
+class UsuarioBase(SQLModel):
+    nome: str = Field(max_length=120, index=True)
+    email: str = Field(max_length=120, unique=True, index=True)
+    senha_hash: str = Field(max_length=255)
+    papel: str = Field(max_length=20)
+    ativo: int = Field(default=1)
+    contexto_padrao: Optional[str] = Field(default=None, max_length=80)
+
+
+class Usuario(UsuarioBase, table=True):
+    __tablename__ = "usuarios"
+    id: Optional[int] = Field(default=None, primary_key=True)
+
+
+class UsuarioCreate(UsuarioBase):
+    pass
+
+
+class UsuarioRead(UsuarioBase):
+    id: int
+
+
+# ═══════════════════════════════════════════════════════════
 # Chamada (Attendance)
 # ═══════════════════════════════════════════════════════════
 
 class ChamadaBase(SQLModel):
-    data: str = Field(max_length=10, index=True)  # ISO date
+    data: str = Field(max_length=10, index=True)
     contexto: str = Field(max_length=80)
     registros_json: str = Field(default="[]")
+    criado_por_id: Optional[int] = Field(default=None, foreign_key="usuarios.id")
 
 
 class Chamada(ChamadaBase, table=True):
@@ -163,6 +190,7 @@ class ProgramacaoBase(SQLModel):
     responsavel: str = Field(max_length=120)
     status: str = Field(default="confirmado", max_length=20)  # rascunho | confirmado
     tipo_culto: str = Field(max_length=80)
+    layout_json: Optional[str] = Field(default="{}")  # JSON: layout de impressao (secoes, header, etc)
 
 
 class Programacao(ProgramacaoBase, table=True):
@@ -184,6 +212,7 @@ class ProgramacaoUpdate(SQLModel):
     responsavel: Optional[str] = None
     status: Optional[str] = None
     tipo_culto: Optional[str] = None
+    layout_json: Optional[str] = None
 
 
 # ═══════════════════════════════════════════════════════════
