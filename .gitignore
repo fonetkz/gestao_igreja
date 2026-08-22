@@ -20,6 +20,10 @@ orquestra.db
 # Temp scripts
 temp_*.py
 
+# Secrets / environment
+.env
+.env.local
+
 # Tooling / local
 .worktrees/
 .superpowers/
