@@ -13,9 +13,10 @@ export default function ConfirmModal({
   cancelLabel = 'Cancelar',
   danger = false,
   loading = false,
+  zIndex = 50,
 }) {
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={title} size="sm">
+    <Modal isOpen={isOpen} onClose={onClose} title={title} size="sm" zIndex={zIndex}>
       <div className="flex flex-col items-center text-center gap-4">
         {danger && (
           <div className="w-12 h-12 rounded-2xl bg-red-100 dark:bg-red-900/20 flex items-center justify-center shrink-0">

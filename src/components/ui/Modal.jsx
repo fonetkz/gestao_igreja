@@ -1,7 +1,12 @@
 import React, { useEffect, useRef } from 'react'
 import { X } from 'lucide-react'
 
-export default function Modal({ isOpen, onClose, title, children, size = 'lg' }) {
+const Z_INDEX_CLASSES = {
+  50: 'z-50',
+  210: 'z-[210]',
+}
+
+export default function Modal({ isOpen, onClose, title, children, size = 'lg', zIndex = 50 }) {
   const panelRef = useRef(null)
 
   useEffect(() => {
@@ -63,7 +68,7 @@ export default function Modal({ isOpen, onClose, title, children, size = 'lg' })
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in">
+    <div className={`fixed inset-0 ${Z_INDEX_CLASSES[zIndex] || 'z-50'} flex items-center justify-center p-4 animate-fade-in`}>
       <div
         className="absolute inset-0 bg-gray-900/30 dark:bg-black/50 backdrop-blur-sm"
         onClick={onClose}

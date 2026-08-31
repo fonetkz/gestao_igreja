@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Search, Edit2, Plus, ClipboardList, History, Bell, Users2, MessageSquare, Check, X, Cake, CheckCircle, BellRing, Clock, XCircle, Music, ChevronUp, ChevronDown, Trash2 } from 'lucide-react'
 import Topbar from '../components/layout/Topbar'
+import Button from '../components/ui/Button'
 import Select from '../components/ui/Select'
 import MultiSelect from '../components/ui/MultiSelect'
 import ConfirmModal from '../components/ui/ConfirmModal'
@@ -283,6 +284,33 @@ export default function MembersPage() {
     <div className="min-h-screen pb-12">
       <Topbar title="Gestão Igreja" />
       <div className="px-8 max-w-7xl mx-auto mt-8">
+        {editingChamada && (
+          <>
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h1 className="heading-1">Editando Chamada</h1>
+                <p className="text-gray-500 dark:text-gray-400 mt-1">{formatarDataEdicaoTitulo(editingChamada.data)}</p>
+              </div>
+              <button
+                onClick={() => setEditingChamada(null)}
+                title="Fechar edição"
+                className="p-2.5 rounded-xl text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <ChamadaTab
+              members={storeMembers.filter(m => m.status === 'Ativo')}
+              isEditing
+              chamada={editingChamada}
+              onSaveEdit={handleSaveEdicaoChamada}
+              onCancelEdit={() => setEditingChamada(null)}
+              onDeleteEdit={(id) => setChamadaDeleteId(id)}
+            />
+          </>
+        )}
+        {!editingChamada && (
+        <>
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="heading-1">Integrantes</h1>
@@ -814,7 +842,7 @@ export default function MembersPage() {
                 </div>
               </div>
 
-              <div className="bg-white dark:bg-[#2C2C2E] rounded-2xl border border-gray-100 dark:border-gray-500 shadow-sm mt-4">
+              <div className="bg-white dark:bg-[#2C2C2E] rounded-2xl border border-gray-100 dark:border-gray-500 shadow-sm overflow-hidden mt-4">
                 <div className="flex border-b border-gray-100 dark:border-gray-500 px-4">
                   <button
                     onClick={() => setAlertSubTab('pendentes')}
@@ -921,9 +949,10 @@ export default function MembersPage() {
                                   </div>
                                   <button
                                     onClick={() => setJustifyingAlert({ member, mode: 'justificadas' })}
-                                    className="px-3 py-1.5 text-xs font-medium border border-gray-200 dark:border-gray-500 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors whitespace-nowrap shrink-0"
+                                    title="Editar justificativas"
+                                    className="p-2.5 rounded-xl text-gray-400 hover:text-primary dark:hover:text-blue-300 hover:bg-primary/5 dark:hover:bg-primary/10 transition-colors shrink-0"
                                   >
-                                    Editar
+                                    <Edit2 size={18} />
                                   </button>
                                 </div>
                                 <div className="space-y-2 mt-2.5">
@@ -948,6 +977,8 @@ export default function MembersPage() {
             </>
           )
         }
+        </>
+        )}
       </div >
 
       <Modal isOpen={showDrawer} onClose={() => { setShowDrawer(false); setEditingMember(null); }} title={editingMember ? 'Editar Integrante' : 'Novo Integrante'} size="lg">
@@ -983,7 +1014,7 @@ export default function MembersPage() {
         />
       </Modal>
 
-      <Modal isOpen={!!justifyingAlert} onClose={() => setJustifyingAlert(null)} title={justifyingAlert?.mode === 'justificadas' ? `Editar Justificativas - ${justifyingAlert?.member?.nome}` : `Justificar Faltas - ${justifyingAlert?.member?.nome}`} size="md">
+      <Modal isOpen={!!justifyingAlert} onClose={() => setJustifyingAlert(null)} title={justifyingAlert?.mode === 'justificadas' ? `Editar Justificativas - ${justifyingAlert?.member?.nome}` : `Justificar Faltas - ${justifyingAlert?.member?.nome}`} size="lg">
         <div className="space-y-4">
           <p className="text-sm text-gray-500 dark:text-gray-400">
             {justifyingAlert?.mode === 'justificadas' ? 'Edite os motivos das ausências ou deixe em branco para remover a justificativa.' : 'Preencha o motivo para cada ausência pendente.'}
@@ -1028,29 +1059,6 @@ export default function MembersPage() {
         confirmLabel="Sim, excluir chamada"
         danger
       />
-
-      {
-        editingChamada && (
-          <div className="fixed inset-0 z-40 bg-[#F5F5F7] dark:bg-[#1C1C1E] overflow-y-auto">
-            <div className="sticky top-0 z-10 bg-white/80 dark:bg-[#1C1C1E]/80 backdrop-blur-md border-b border-gray-100 dark:border-gray-500 px-4 sm:px-8 py-4 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-gray-900 dark:text-white">Editando Chamada — {formatarDataEdicaoTitulo(editingChamada.data)}</h2>
-              <button onClick={() => setEditingChamada(null)} className="p-2 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full transition-colors">
-                <X size={20} />
-              </button>
-            </div>
-            <div className="max-w-7xl mx-auto px-4 sm:px-8 py-6">
-              <ChamadaTab
-                members={storeMembers.filter(m => m.status === 'Ativo')}
-                isEditing
-                chamada={editingChamada}
-                onSaveEdit={handleSaveEdicaoChamada}
-                onCancelEdit={() => setEditingChamada(null)}
-                onDeleteEdit={(id) => setChamadaDeleteId(id)}
-              />
-            </div>
-          </div>
-        )
-      }
     </div >
   )
 }
@@ -1317,11 +1325,15 @@ function ChamadaTab({ members, isEditing = false, chamada = null, onSaveEdit = n
 
       <div className="fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-[#1C1C1E]/80 backdrop-blur-md border-t border-gray-200 dark:border-gray-500 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-8 py-3 flex justify-between items-center gap-3 w-full">
-          <div className="flex items-center gap-4 sm:gap-6 min-w-0">
+          <div className="flex items-center gap-3 sm:gap-4 min-w-0">
             <span className="font-bold text-gray-900 dark:text-white whitespace-nowrap">{presentes} presentes</span>
+            <span className="text-gray-300 dark:text-gray-600">·</span>
             <span className={`font-bold whitespace-nowrap ${ausentes > 0 ? 'text-red-500' : 'text-gray-900 dark:text-white'}`}>{ausentes} {ausentes === 1 ? 'falta' : 'faltas'}</span>
             {faltasSemJustificativa > 0 && (
-              <span className="hidden md:inline text-xs font-medium text-amber-600 dark:text-amber-400 truncate">{faltasSemJustificativa} sem motivo</span>
+              <>
+                <span className="hidden md:inline text-gray-300 dark:text-gray-600">·</span>
+                <span className="hidden md:inline font-bold whitespace-nowrap text-amber-600 dark:text-amber-400">{faltasSemJustificativa} sem motivo</span>
+              </>
             )}
           </div>
           {isEditing ? (
@@ -1329,8 +1341,7 @@ function ChamadaTab({ members, isEditing = false, chamada = null, onSaveEdit = n
               {onDeleteEdit && (
                 <button onClick={() => onDeleteEdit(chamada.id)} className="px-4 py-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl font-medium hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors">Excluir</button>
               )}
-              <Button variant="secondary" onClick={onCancelEdit}>Cancelar</Button>
-              <button onClick={handleSave} className="bg-primary text-white px-6 py-2 rounded-xl font-medium hover:bg-primary-dark">Salvar Alterações</button>
+              <Button variant="primary" onClick={handleSave}>Salvar Alterações</Button>
             </div>
           ) : (
             <div className="flex items-center gap-2 sm:gap-3">
