@@ -28,3 +28,8 @@ temp_*.py
 .worktrees/
 .superpowers/
 .vscode/
+
+# AI assistant tooling (local config/cache, not app code)
+.impeccable/
+.claude/skills/
+.opencode/

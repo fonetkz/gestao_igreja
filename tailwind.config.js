@@ -15,6 +15,20 @@ export default {
           light: '#2E3E9A',
           dark: '#151D5A',
         },
+        // Rampa da marca: "blue-*" renderiza a escala do Índigo Vespertino (#1E2A78).
+        // NÃO use azuis de sistema (ex.: #007AFF) — veja DESIGN.md.
+        blue: {
+          50: '#EEF1FB',
+          100: '#DCE3F8',
+          200: '#BCC7F0',
+          300: '#93A5EC',
+          400: '#6C84DF',
+          500: '#4761C8',
+          600: '#2E3E9A',
+          700: '#25317D',
+          800: '#1E2A78',
+          900: '#171F55',
+        },
         surface: '#F4F5F8',
         card: '#FFFFFF',
         'text-muted': '#6B7280',
@@ -26,9 +40,9 @@ export default {
           card: '#2D2D2D',
           'text-muted': '#9CA3AF',
           primary: {
-            DEFAULT: '#3B82F6',
-            light: '#60A5FA',
-            dark: '#2563EB',
+            DEFAULT: '#93A5EC',
+            light: '#BCC7F0',
+            dark: '#6C84DF',
           },
         },
       },

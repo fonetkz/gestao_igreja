@@ -2,13 +2,14 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import {
   ArrowLeft, GripVertical, Trash2, Printer, Save,
-  ChevronDown, Plus, Church, X, Check, Hash, Tag, User, LayoutTemplate,
+  ChevronDown, ChevronUp, Plus, Church, X, Check, Hash, Tag, User, LayoutTemplate,
   Minus, Music, Calendar
 } from 'lucide-react'
 import useHymnsStore from '../store/hymnsStore'
 import useAuthStore from '../store/authStore'
 import Topbar from '../components/layout/Topbar'
 import useToastStore from '../store/toastStore'
+import ConfirmModal from '../components/ui/ConfirmModal'
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -128,16 +129,20 @@ function buildPrintHTML(canvasSections, headerConfig, sectionFontSize = 14, hymn
     .map(section => {
       const hymnsHTML = section.hymns.map(hymn => `
         <div class="hymn-card">
-          ${hymn.showNumber ? `<span class="hymn-num">Nº ${hymn.numero}</span>` : ''}
-          <span class="hymn-title">
-            ${(hymn.titulo || '').toUpperCase()}
-            ${hymn.showCustomLabel !== false && hymn.customLabel ? `<span class="hymn-custom-label">${hymn.customLabel}</span>` : ''}
-          </span>
-          ${hymn.showType && hymn.tonalidade ? `<span class="hymn-key">${getFullTypeName(hymn.tonalidade)}</span>` : ''}
-          ${hymn.showRegente && hymn.regente ? `<span class="hymn-regent">Reg: ${hymn.regente}</span>` : ''}
-          ${hymn.showSoloist !== false && hymn.soloist ? `<span class="hymn-soloist">Solo: ${hymn.soloist}</span>` : ''}
-          ${hymn.showPiano !== false && hymn.piano ? `<span class="hymn-piano">Pno: ${hymn.piano}</span>` : ''}
-          ${hymn.showViolao !== false && hymn.violao ? `<span class="hymn-violao">Vlao: ${hymn.violao}</span>` : ''}
+          <div class="hymn-header">
+            ${hymn.showNumber ? `<span class="hymn-num">Nº ${hymn.numero}</span>` : ''}
+            <span class="hymn-title">
+              ${(hymn.titulo || '').toUpperCase()}
+              ${hymn.showCustomLabel !== false && hymn.customLabel ? `<span class="hymn-custom-label">${hymn.customLabel}</span>` : ''}
+            </span>
+          </div>
+          <div class="hymn-meta">
+            ${hymn.showType && hymn.tonalidade ? `<span class="hymn-key">${getFullTypeName(hymn.tonalidade)}</span>` : ''}
+            ${hymn.showRegente && hymn.regente ? `<span class="hymn-regent">Reg: ${hymn.regente}</span>` : ''}
+            ${hymn.showSoloist !== false && hymn.soloist ? `<span class="hymn-soloist">Solo: ${hymn.soloist}</span>` : ''}
+            ${hymn.showPiano !== false && hymn.piano ? `<span class="hymn-piano">Pno: ${hymn.piano}</span>` : ''}
+            ${hymn.showViolao !== false && hymn.violao ? `<span class="hymn-violao">Vlao: ${hymn.violao}</span>` : ''}
+          </div>
         </div>`).join('')
       const obsHTML = section.observations
         ? `<div class="section-observations">${section.observations}</div>`
@@ -166,43 +171,47 @@ function buildPrintHTML(canvasSections, headerConfig, sectionFontSize = 14, hymn
 <head>
   <meta charset="UTF-8" />
   <title>Programação de Hinos</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'Inter', sans-serif; padding: 12mm; color: #111827; }
-    .doc-header { text-align: center; padding-bottom: 12px; margin-bottom: 16px; }
-    .header-logo { max-width: 200px; object-fit: contain; margin: 0 auto 8px; display: block; }
-    .header-title { font-family: 'Playfair Display', Georgia, serif; font-size: 22pt; font-weight: 700; color: #1C1C1E; letter-spacing: 0.3px; margin-bottom: 4px; }
-    .header-subtitle { font-family: 'Inter', sans-serif; font-size: 11pt; color: #6B7280; font-weight: 500; margin-bottom: 3px; }
+    .doc-header { text-align: center; padding-bottom: 16px; margin-bottom: 20px; }
+    .header-logo { max-width: 200px; object-fit: contain; margin: 0 auto 10px; display: block; }
+    .header-title { font-family: 'Playfair Display', Georgia, serif; font-size: 22pt; font-weight: 700; color: #1C1C1E; letter-spacing: 0.3px; margin-bottom: 6px; }
+    .header-subtitle { font-family: 'Inter', sans-serif; font-size: 11pt; color: #6B7280; font-weight: 500; margin-bottom: 4px; }
     .header-meta { font-family: 'Inter', sans-serif; font-size: 10pt; color: #6B7280; margin-top: 2px; }
-    .header-sep { width: 40px; height: 1px; background: #007AFF; margin: 8px auto 0; }
-    .section { margin-bottom: 12px; }
+    .header-sep { width: 40px; height: 1px; background: #1E2A78; margin: 10px auto 0; }
+    .section { margin-bottom: 20px; }
     .section-title {
-      display: flex; align-items: center; gap: 6px;
+      display: flex; align-items: center; gap: 8px;
       font-family: 'Inter', sans-serif; font-size: ${sectionFontSize}pt;
       font-weight: 600; text-transform: uppercase; letter-spacing: 0.12em;
-      color: #9CA3AF; margin: 12px 0 6px;
+      color: #9CA3AF; margin: 16px 0 10px;
     }
     .section-title::before, .section-title::after {
       content: ''; flex: 1; border-top: 1px solid #E5E7EB;
     }
     .section-title span { white-space: nowrap; }
-    .section-observations { font-family: 'Inter', sans-serif; font-size: 8pt; color: #4B5563; font-style: italic; padding: 4px 8px; margin: 4px 0; background: #F9FAFB; border-radius: 3px; border: 1px dashed #E5E7EB; white-space: pre-line; }
+    .section-observations { font-family: 'Inter', sans-serif; font-size: 8pt; color: #4B5563; font-style: italic; padding: 6px 10px; margin: 8px 0; background: #F9FAFB; border-radius: 4px; border: 1px dashed #E5E7EB; white-space: pre-line; }
     .hymn-card {
-      display: flex; align-items: center; gap: 6px;
-      background: #FAFCFF; border-left: 2px solid rgba(0,122,255,0.35);
-      border-radius: 3px; padding: 6px 10px; margin-bottom: 4px;
+      display: flex; flex-direction: column; gap: 2px;
+      background: #FAFCFF; border: 1px solid #E5E7EB;
+      border-radius: 4px; padding: 10px 14px; margin-bottom: 8px;
     }
-    .hymn-num { font-family: 'Inter', sans-serif; font-size: 11pt; font-weight: 700; color: #007AFF; min-width: 44px; white-space: nowrap; }
-    .hymn-title { font-family: 'Inter', sans-serif; font-size: ${hymnFontSize}pt; font-weight: 600; color: #1C1C1E; flex: 1; text-transform: uppercase; letter-spacing: 0.2px; }
-    .hymn-key { font-family: 'Inter', sans-serif; font-size: 9pt; color: #9CA3AF; font-weight: 500; white-space: nowrap; }
-    .hymn-regent { font-family: 'Inter', sans-serif; font-size: 9pt; color: #9CA3AF; white-space: nowrap; }
-    .hymn-soloist { font-family: 'Inter', sans-serif; font-size: 9pt; color: #2563EB; font-weight: 500; white-space: nowrap; }
-    .hymn-custom-label { font-family: 'Inter', sans-serif; font-size: 8pt; color: #9A3412; background: #FFEDD5; padding: 1px 6px; border-radius: 3px; font-weight: 600; white-space: nowrap; }
-    .hymn-piano { font-family: 'Inter', sans-serif; font-size: 9pt; color: #059669; font-weight: 500; white-space: nowrap; }
-    .hymn-violao { font-family: 'Inter', sans-serif; font-size: 9pt; color: #D97706; font-weight: 500; white-space: nowrap; }
+    .hymn-header {
+      display: flex; align-items: baseline; gap: 8px;
+    }
+    .hymn-num { font-family: 'Inter', sans-serif; font-size: 10pt; font-weight: 700; color: #1E2A78; min-width: 40px; white-space: nowrap; }
+    .hymn-title { font-family: 'Inter', sans-serif; font-size: ${hymnFontSize}pt; font-weight: 600; color: #1C1C1E; text-transform: uppercase; letter-spacing: 0.2px; }
+    .hymn-meta {
+      display: flex; flex-wrap: wrap; gap: 6px 14px; padding-left: 48px;
+      font-family: 'Inter', sans-serif; font-size: 8.5pt; color: #9CA3AF;
+    }
+    .hymn-key { font-weight: 500; white-space: nowrap; }
+    .hymn-regent { white-space: nowrap; }
+    .hymn-soloist { color: #2E3E9A; font-weight: 500; white-space: nowrap; }
+    .hymn-custom-label { color: #9A3412; background: #FFEDD5; padding: 1px 6px; border-radius: 3px; font-weight: 600; white-space: nowrap; }
+    .hymn-piano { color: #059669; font-weight: 500; white-space: nowrap; }
+    .hymn-violao { color: #D97706; font-weight: 500; white-space: nowrap; }
     @media print { @page { margin: 0; } body { padding: 10mm; } }
   </style>
 </head>
@@ -215,18 +224,18 @@ function buildPrintHTML(canvasSections, headerConfig, sectionFontSize = 14, hymn
 
 // ─── Sub-componentes ──────────────────────────────────────────────────────────
 
-function PrintSidebar({ sidebarHymns, canvasSections, onDragStart, onBack }) {
+function PrintSidebar({ sidebarHymns, canvasSections, onDragStart, onBack, onAddToSection }) {
   const hymnIdsInCanvas = useMemo(
     () => canvasSections.flatMap(s => s.hymns.map(h => h.id)),
     [canvasSections]
   )
 
   return (
-    <aside className="w-80 shrink-0 fixed left-0 top-16 bottom-0 flex flex-col bg-[#FAFAFA] dark:bg-[#1C1C1E] border-r border-[#E5E7EB] dark:border-gray-700/80 z-30">
-      <div className="px-4 pt-4 pb-3 border-b border-gray-200 dark:border-gray-700">
+    <aside className="w-80 shrink-0 fixed left-0 top-16 bottom-0 flex flex-col bg-[#FAFAFA] dark:bg-[#1C1C1E] border-r border-[#E5E7EB] dark:border-gray-500/80 z-30">
+      <div className="px-4 pt-4 pb-3 border-b border-gray-200 dark:border-gray-500">
         <button
           onClick={onBack}
-          className="flex items-center gap-1.5 text-[#007AFF] text-sm font-medium mb-3 hover:opacity-75 transition-opacity"
+          className="flex items-center gap-1.5 text-primary dark:text-blue-300 text-sm font-medium mb-3 hover:opacity-75 transition-opacity"
         >
           <ArrowLeft size={16} />
           Voltar
@@ -255,20 +264,29 @@ function PrintSidebar({ sidebarHymns, canvasSections, onDragStart, onBack }) {
               key={hymn.id}
               draggable
               onDragStart={e => onDragStart(e, { type: 'sidebar', hymnId: hymn.id })}
-              className={`group flex items-center gap-2 px-3 py-2.5 rounded-xl cursor-grab active:cursor-grabbing hover:bg-[#F0F4FF] dark:hover:bg-blue-900/20 transition-colors select-none ${inCanvas ? 'opacity-40' : ''}`}
+              className={`group flex items-center gap-2 px-3 py-2.5 rounded-xl cursor-grab active:cursor-grabbing hover:bg-primary/5 transition-colors select-none ${inCanvas ? 'opacity-40' : ''}`}
             >
-              <GripVertical size={13} className="text-gray-200 dark:text-gray-600 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+              <GripVertical size={13} className="text-gray-200 dark:text-gray-600 shrink-0 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity" />
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-semibold text-gray-800 dark:text-white truncate">{hymn.titulo}</p>
                 {meta && <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">{meta}</p>}
               </div>
-              {inCanvas && <Check size={12} className="text-[#007AFF] shrink-0" />}
+              {inCanvas && <Check size={12} className="text-primary dark:text-blue-300 shrink-0" />}
+              {!inCanvas && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); onAddToSection(hymn.id) }}
+                  className="opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 text-[10px] text-primary dark:text-blue-300 font-medium px-2 py-0.5 rounded-full border border-primary/30 hover:bg-primary/5 transition-all shrink-0"
+                  title="Adicionar à primeira seção"
+                >
+                  + Adicionar
+                </button>
+              )}
             </div>
           )
         })}
       </div>
 
-      <div className="p-3 border-t border-gray-200 dark:border-gray-700">
+      <div className="p-3 border-t border-gray-200 dark:border-gray-500">
         <p className="text-[10px] text-gray-400 dark:text-gray-500 text-center">
           {sidebarHymns.length} hino{sidebarHymns.length !== 1 ? 's' : ''} disponíve{sidebarHymns.length !== 1 ? 'is' : 'l'}
         </p>
@@ -282,12 +300,12 @@ function PrintToolbar({ templates, activeTemplateId, onSelectTemplate, onDeleteT
   const activeTemplate = templates.find(t => t.id === activeTemplateId)
 
   return (
-    <div className="flex items-center gap-2 mb-6 flex-wrap bg-[#F5F5F7] dark:bg-[#2C2C2E] border border-[#E5E7EB] dark:border-gray-700 rounded-2xl px-4 py-2.5">
+    <div className="flex items-center gap-2 mb-6 flex-wrap bg-[#F5F5F7] dark:bg-[#2C2C2E] border border-[#E5E7EB] dark:border-gray-500 rounded-2xl px-4 py-2.5">
       {/* Templates dropdown */}
       <div className="relative">
         <button
           onClick={() => setDropdownOpen(o => !o)}
-          className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-[#3A3A3C] border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all"
+          className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-[#3A3A3C] border border-gray-200 dark:border-gray-500 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all"
         >
           <LayoutTemplate size={14} className="text-gray-400" />
           <span>{activeTemplate?.name || 'Template'}</span>
@@ -296,8 +314,8 @@ function PrintToolbar({ templates, activeTemplateId, onSelectTemplate, onDeleteT
         {dropdownOpen && (
           <>
             <div className="fixed inset-0 z-40" onClick={() => setDropdownOpen(false)} />
-            <div className="absolute top-full left-0 mt-1.5 w-52 bg-white dark:bg-[#2C2C2E] rounded-xl border border-gray-200 dark:border-gray-700 shadow-xl z-50 overflow-hidden">
-              <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-700">
+            <div className="absolute top-full left-0 mt-1.5 w-52 bg-white dark:bg-[#2C2C2E] rounded-xl border border-gray-200 dark:border-gray-500 shadow-xl z-50 overflow-hidden">
+              <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-500">
                 <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">Templates</p>
               </div>
               {templates.map(t => (
@@ -306,7 +324,7 @@ function PrintToolbar({ templates, activeTemplateId, onSelectTemplate, onDeleteT
                     onClick={() => { onSelectTemplate(t); setDropdownOpen(false) }}
                     className={`flex-1 text-left px-4 py-2.5 text-sm transition-colors ${
                       t.id === activeTemplateId
-                        ? 'bg-blue-50 dark:bg-blue-900/20 text-[#007AFF] font-medium'
+                        ? 'bg-primary/5 dark:bg-primary/10 text-primary dark:text-blue-300 font-medium'
                         : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
                     }`}
                   >
@@ -330,7 +348,7 @@ function PrintToolbar({ templates, activeTemplateId, onSelectTemplate, onDeleteT
 
       <button
         onClick={onSaveTemplate}
-        className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-400 bg-white dark:bg-[#3A3A3C] border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all"
+        className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-400 bg-white dark:bg-[#3A3A3C] border border-gray-200 dark:border-gray-500 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all"
       >
         <Save size={14} />
         Salvar Template
@@ -338,43 +356,43 @@ function PrintToolbar({ templates, activeTemplateId, onSelectTemplate, onDeleteT
 
       <button
         onClick={onSaveLayout}
-        className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-[#007AFF] bg-white dark:bg-[#3A3A3C] border border-[#007AFF]/30 dark:border-[#007AFF]/50 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all"
+        className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-primary dark:text-blue-300 bg-white dark:bg-[#3A3A3C] border border-primary/30 dark:border-primary/50 rounded-lg hover:bg-primary/5 transition-all"
       >
         <Save size={14} />
         Salvar Configuração
       </button>
 
       {/* Section font size control */}
-      <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-[#3A3A3C] border border-gray-200 dark:border-gray-600 rounded-lg">
+      <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-[#3A3A3C] border border-gray-200 dark:border-gray-500 rounded-lg">
         <span className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mr-1">Seções</span>
         <button
           onClick={() => onSectionFontSizeChange(Math.max(10, sectionFontSize - 1))}
-          className="w-5 h-5 rounded-md flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+          className="w-5 h-5 rounded-md flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
         >
           <Minus size={10} />
         </button>
         <span className="text-xs font-semibold text-gray-600 dark:text-gray-300 w-6 text-center">{sectionFontSize}</span>
         <button
           onClick={() => onSectionFontSizeChange(Math.min(28, sectionFontSize + 1))}
-          className="w-5 h-5 rounded-md flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+          className="w-5 h-5 rounded-md flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
         >
           <Plus size={10} />
         </button>
       </div>
 
       {/* Hymn font size control */}
-      <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-[#3A3A3C] border border-gray-200 dark:border-gray-600 rounded-lg">
+      <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-[#3A3A3C] border border-gray-200 dark:border-gray-500 rounded-lg">
         <span className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mr-1">Hinos</span>
         <button
           onClick={() => onHymnFontSizeChange(Math.max(8, hymnFontSize - 1))}
-          className="w-5 h-5 rounded-md flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+          className="w-5 h-5 rounded-md flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
         >
           <Minus size={10} />
         </button>
         <span className="text-xs font-semibold text-gray-600 dark:text-gray-300 w-6 text-center">{hymnFontSize}</span>
         <button
           onClick={() => onHymnFontSizeChange(Math.min(24, hymnFontSize + 1))}
-          className="w-5 h-5 rounded-md flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+          className="w-5 h-5 rounded-md flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
         >
           <Plus size={10} />
         </button>
@@ -384,7 +402,7 @@ function PrintToolbar({ templates, activeTemplateId, onSelectTemplate, onDeleteT
 
       <button
         onClick={onPrint}
-        className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold bg-[#007AFF] text-white rounded-xl hover:bg-[#0062CC] active:scale-95 transition-all shadow-md shadow-[#007AFF]/25"
+        className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold bg-primary text-white rounded-xl hover:bg-primary-dark active:scale-95 transition-all shadow-md shadow-primary/25"
       >
         <Printer size={15} />
         Imprimir
@@ -443,7 +461,7 @@ function PrintHeader({ headerConfig, onChange }) {
           placeholder="URL da imagem / logo"
           value={headerConfig.imageUrl}
           onChange={e => onChange('imageUrl', e.target.value)}
-          className="text-[9px] text-center text-gray-400 bg-transparent border-b border-gray-100 focus:outline-none focus:border-[#007AFF] transition-colors placeholder:text-gray-200 pb-0.5 w-32"
+          className="text-[9px] text-center text-gray-400 dark:text-gray-500 bg-transparent border-b border-gray-100 dark:border-gray-500 focus:outline-none focus:border-primary transition-colors placeholder:text-gray-200 dark:placeholder:text-gray-600 pb-0.5 w-32"
         />
         {headerConfig.imageUrl && (
           <div className="flex items-center gap-1.5">
@@ -454,7 +472,7 @@ function PrintHeader({ headerConfig, onChange }) {
               max={120}
               value={logoHeight}
               onChange={e => onChange('logoHeight', Number(e.target.value))}
-              className="w-12 accent-[#007AFF] h-1"
+              className="w-12 accent-primary h-1"
             />
             <span className="text-[8px] text-gray-300 w-5">{logoHeight}px</span>
           </div>
@@ -466,7 +484,7 @@ function PrintHeader({ headerConfig, onChange }) {
         value={headerConfig.title}
         onChange={e => onChange('title', e.target.value)}
         placeholder="Título principal"
-        className="text-lg font-extrabold text-[#1a2b42] text-center bg-transparent w-full focus:outline-none focus:ring-1 focus:ring-[#007AFF]/20 hover:bg-gray-50 focus:bg-gray-50 rounded transition-colors px-2 py-0.5"
+        className="text-lg font-extrabold text-[#1a2b42] text-center bg-transparent w-full focus:outline-none focus:ring-1 focus:ring-primary/20 hover:bg-gray-50 focus:bg-gray-50 rounded transition-colors px-2 py-0.5"
         style={{ fontFamily: "'Playfair Display', Georgia, serif", letterSpacing: '0.5px' }}
       />
       <input
@@ -474,7 +492,7 @@ function PrintHeader({ headerConfig, onChange }) {
         value={headerConfig.subtitle}
         onChange={e => onChange('subtitle', e.target.value)}
         placeholder="Subtítulo (tipo de reunião)"
-        className="text-[11px] font-semibold text-gray-500 uppercase text-center bg-transparent w-full focus:outline-none focus:ring-1 focus:ring-[#007AFF]/20 hover:bg-gray-50 focus:bg-gray-50 rounded transition-colors mt-0.5 px-2 py-0.5"
+        className="text-[11px] font-semibold text-gray-500 uppercase text-center bg-transparent w-full focus:outline-none focus:ring-1 focus:ring-primary/20 hover:bg-gray-50 focus:bg-gray-50 rounded transition-colors mt-0.5 px-2 py-0.5"
         style={{ letterSpacing: '1.5px' }}
       />
       <div className="relative flex items-center justify-center mt-0.5">
@@ -483,12 +501,12 @@ function PrintHeader({ headerConfig, onChange }) {
           value={headerConfig.date}
           onChange={e => onChange('date', formatDateDisplay(e.target.value))}
           placeholder="Data"
-          className="text-[11px] text-gray-400 text-center bg-transparent w-full focus:outline-none focus:ring-1 focus:ring-[#007AFF]/20 hover:bg-gray-50 focus:bg-gray-50 rounded transition-colors px-2 py-0.5 pr-7"
+          className="text-[11px] text-gray-400 text-center bg-transparent w-full focus:outline-none focus:ring-1 focus:ring-primary/20 hover:bg-gray-50 focus:bg-gray-50 rounded transition-colors px-2 py-0.5 pr-7"
         />
         <button
           type="button"
           onClick={() => datePickerRef.current?.showPicker()}
-          className="absolute right-1 top-1/2 -translate-y-1/2 p-0.5 text-gray-300 hover:text-[#007AFF] transition-colors"
+          className="absolute right-1 top-1/2 -translate-y-1/2 p-0.5 text-gray-300 hover:text-primary transition-colors"
         >
           <Calendar size={14} />
         </button>
@@ -505,15 +523,15 @@ function PrintHeader({ headerConfig, onChange }) {
         value={headerConfig.location}
         onChange={e => onChange('location', toTitleCase(e.target.value))}
         placeholder="Localização"
-        className="text-[11px] text-gray-400 text-center bg-transparent w-full focus:outline-none focus:ring-1 focus:ring-[#007AFF]/20 hover:bg-gray-50 focus:bg-gray-50 rounded transition-colors mt-0.5 px-2 py-0.5"
+        className="text-[11px] text-gray-400 text-center bg-transparent w-full focus:outline-none focus:ring-1 focus:ring-primary/20 hover:bg-gray-50 focus:bg-gray-50 rounded transition-colors mt-0.5 px-2 py-0.5"
       />
 
-      <div className="w-[40px] h-[1px] bg-[#007AFF] mx-auto mt-2" />
+      <div className="w-[40px] h-[1px] bg-primary mx-auto mt-2" />
     </div>
   )
 }
 
-function PrintHymnCard({ hymn, sectionId, index, onRemove, onToggleVisibility, onUpdateHymnField, onDragStart, onDragOver, onDragEnd }) {
+function PrintHymnCard({ hymn, sectionId, index, onRemove, onToggleVisibility, onUpdateHymnField, onDragStart, onDragOver, onDragEnd, onMove, hymnCount }) {
   const [editingLabel, setEditingLabel] = useState(false)
   const [labelDraft, setLabelDraft] = useState('')
   const inputRef = useRef(null)
@@ -537,13 +555,31 @@ function PrintHymnCard({ hymn, sectionId, index, onRemove, onToggleVisibility, o
       onDragOver={e => onDragOver(e, sectionId, index)}
       onDragEnd={onDragEnd}
       className="group flex items-start gap-2 p-2.5 bg-[#FAFCFF] rounded transition-all cursor-grab active:cursor-grabbing select-none"
-      style={{ borderLeft: '2px solid rgba(0,122,255,0.25)', borderTop: 'none', borderRight: 'none', borderBottom: 'none' }}
+      style={{ borderLeft: '2px solid rgba(30,42,120,0.25)', borderTop: 'none', borderRight: 'none', borderBottom: 'none' }}
     >
-      <GripVertical size={13} className="text-gray-300 mt-0.5 shrink-0 group-hover:text-gray-400" />
+      <GripVertical size={13} className="text-gray-300 mt-0.5 shrink-0 group-hover:text-gray-400 group-focus-visible:text-gray-400" />
+      <div className="flex flex-col gap-0.5 shrink-0">
+        <button
+          onClick={() => onMove(sectionId, index, -1)}
+          disabled={index === 0}
+          className="w-4 h-4 rounded flex items-center justify-center text-gray-300 hover:text-primary disabled:opacity-20 disabled:cursor-not-allowed transition-colors"
+          title="Mover para cima"
+        >
+          <ChevronUp size={11} />
+        </button>
+        <button
+          onClick={() => onMove(sectionId, index, 1)}
+          disabled={index === hymnCount - 1}
+          className="w-4 h-4 rounded flex items-center justify-center text-gray-300 hover:text-primary disabled:opacity-20 disabled:cursor-not-allowed transition-colors"
+          title="Mover para baixo"
+        >
+          <ChevronDown size={11} />
+        </button>
+      </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5 flex-wrap">
           {hymn.showNumber && (
-            <span className="text-[#007AFF] font-bold text-xs">Nº {hymn.numero}</span>
+            <span className="text-primary font-bold text-xs">Nº {hymn.numero}</span>
           )}
           <span className="font-semibold text-gray-900 text-xs uppercase tracking-wide">{hymn.titulo}</span>
           {hymn.showCustomLabel !== false && editingLabel ? (
@@ -554,7 +590,7 @@ function PrintHymnCard({ hymn, sectionId, index, onRemove, onToggleVisibility, o
               onChange={e => setLabelDraft(e.target.value)}
               onBlur={handleSaveLabel}
               onKeyDown={e => { if (e.key === 'Enter') handleSaveLabel(); if (e.key === 'Escape') setEditingLabel(false) }}
-              className="w-24 text-[9px] px-1.5 py-0.5 rounded border border-gray-300 bg-white focus:outline-none focus:border-[#007AFF]"
+              className="w-24 text-[9px] px-1.5 py-0.5 rounded border border-gray-300 bg-white text-gray-900 focus:outline-none focus:border-primary"
               placeholder="rótulo..."
             />
           ) : hymn.showCustomLabel !== false && hymn.customLabel ? (
@@ -568,7 +604,7 @@ function PrintHymnCard({ hymn, sectionId, index, onRemove, onToggleVisibility, o
           ) : hymn.showCustomLabel !== false ? (
             <button
               onClick={() => { setEditingLabel(true); setLabelDraft('') }}
-              className="opacity-0 group-hover:opacity-100 text-[9px] text-orange-400 border border-dashed border-orange-300/40 px-1.5 py-0.5 rounded-full font-semibold hover:bg-orange-50 hover:text-orange-500 hover:border-orange-400 transition-all"
+              className="opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 text-[9px] text-orange-400 border border-dashed border-orange-300/40 px-1.5 py-0.5 rounded-full font-semibold hover:bg-orange-50 hover:text-orange-500 hover:border-orange-400 transition-all"
               title="Adicionar rótulo"
             >
               + rótulo
@@ -581,10 +617,10 @@ function PrintHymnCard({ hymn, sectionId, index, onRemove, onToggleVisibility, o
           )}
         </div>
         {hymn.showRegente && hymn.regente && (
-          <p className="text-[10px] text-[#007AFF] font-medium mt-0.5">Reg: {hymn.regente}</p>
+          <p className="text-[10px] text-primary font-medium mt-0.5">Reg: {hymn.regente}</p>
         )}
         {hymn.showSoloist !== false && hymn.soloist && (
-          <p className="text-[10px] text-blue-500 font-medium">Solo: {hymn.soloist}</p>
+          <p className="text-[10px] text-primary font-medium">Solo: {hymn.soloist}</p>
         )}
         {hymn.showPiano !== false && hymn.piano && (
           <p className="text-[10px] text-emerald-600 font-medium">Pno: {hymn.piano}</p>
@@ -593,12 +629,12 @@ function PrintHymnCard({ hymn, sectionId, index, onRemove, onToggleVisibility, o
           <p className="text-[10px] text-amber-600 font-medium">Vlao: {hymn.violao}</p>
         )}
       </div>
-      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity shrink-0">
         {hymn.soloist && (
           <button
             onClick={() => onToggleVisibility(sectionId, hymn.id, 'showSoloist')}
             title="Mostrar/ocultar solista"
-            className={`w-5 h-5 rounded-lg flex items-center justify-center transition-colors ${hymn.showSoloist !== false ? 'text-blue-500 bg-blue-50' : 'text-gray-300 hover:text-gray-500'}`}
+            className={`w-5 h-5 rounded-lg flex items-center justify-center transition-colors ${hymn.showSoloist !== false ? 'text-primary bg-primary/5' : 'text-gray-300 hover:text-gray-500'}`}
           >
             <Music size={10} />
           </button>
@@ -606,7 +642,7 @@ function PrintHymnCard({ hymn, sectionId, index, onRemove, onToggleVisibility, o
         <button
           onClick={() => onToggleVisibility(sectionId, hymn.id, 'showRegente')}
           title="Mostrar/ocultar regente"
-          className={`w-5 h-5 rounded-lg flex items-center justify-center transition-colors ${hymn.showRegente ? 'text-[#007AFF] bg-blue-50' : 'text-gray-300 hover:text-gray-500'}`}
+          className={`w-5 h-5 rounded-lg flex items-center justify-center transition-colors ${hymn.showRegente ? 'text-primary bg-primary/5' : 'text-gray-300 hover:text-gray-500'}`}
         >
           <User size={10} />
         </button>
@@ -640,14 +676,14 @@ function PrintHymnCard({ hymn, sectionId, index, onRemove, onToggleVisibility, o
         <button
           onClick={() => onToggleVisibility(sectionId, hymn.id, 'showNumber')}
           title="Mostrar/ocultar número"
-          className={`w-5 h-5 rounded-lg flex items-center justify-center transition-colors ${hymn.showNumber ? 'text-[#007AFF] bg-blue-50' : 'text-gray-300 hover:text-gray-500'}`}
+          className={`w-5 h-5 rounded-lg flex items-center justify-center transition-colors ${hymn.showNumber ? 'text-primary bg-primary/5' : 'text-gray-300 hover:text-gray-500'}`}
         >
           <Hash size={10} />
         </button>
         <button
           onClick={() => onToggleVisibility(sectionId, hymn.id, 'showType')}
           title="Mostrar/ocultar tipo"
-          className={`w-5 h-5 rounded-lg flex items-center justify-center transition-colors ${hymn.showType ? 'text-[#007AFF] bg-blue-50' : 'text-gray-300 hover:text-gray-500'}`}
+          className={`w-5 h-5 rounded-lg flex items-center justify-center transition-colors ${hymn.showType ? 'text-primary bg-primary/5' : 'text-gray-300 hover:text-gray-500'}`}
         >
           <Tag size={10} />
         </button>
@@ -667,7 +703,8 @@ function PrintSection({
   onRenameSection, onUpdateSection, onRemoveSection,
   onDrop, onDragOver, onDragLeave,
   onHymnRemove, onToggleVisibility, onUpdateHymnField,
-  onCardDragStart, onCardDragOver, onCardDragEnd
+  onCardDragStart, onCardDragOver, onCardDragEnd,
+  onMoveHymn
 }) {
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState(section.name)
@@ -699,24 +736,24 @@ function PrintSection({
               if (e.key === 'Enter') commit()
               if (e.key === 'Escape') { setName(section.name); setEditing(false) }
             }}
-            className="bg-transparent border-b border-[#007AFF] focus:outline-none text-center pb-0.5 min-w-0"
+            className="bg-transparent border-b border-primary focus:outline-none text-center pb-0.5 min-w-0 text-gray-500 dark:text-gray-400"
             style={{ fontSize: `${fontSize}px`, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.15em', color: '#9CA3AF' }}
           />
         ) : (
           <button
             onClick={() => setEditing(true)}
-            className="hover:text-[#007AFF] transition-colors whitespace-nowrap flex items-center gap-1"
+            className="hover:text-primary transition-colors whitespace-nowrap flex items-center gap-1"
             style={{ fontSize: `${fontSize}px`, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.15em', color: '#9CA3AF' }}
           >
             {section.name}
-            <span className="text-[9px] normal-case tracking-normal font-normal text-gray-300 opacity-0 group-hover/header:opacity-100 transition-opacity">editar</span>
+            <span className="text-[9px] normal-case tracking-normal font-normal text-gray-300 opacity-0 group-hover/header:opacity-100 group-focus-visible/header:opacity-100 transition-opacity">editar</span>
           </button>
         )}
         <div className="flex-1 h-px bg-gray-200" />
         {canvasSections.length > 1 && (
           <button
             onClick={() => onRemoveSection(section.id)}
-            className="opacity-0 group-hover/header:opacity-100 w-5 h-5 rounded-lg flex items-center justify-center text-gray-300 hover:text-red-400 hover:bg-red-50 transition-all shrink-0"
+            className="opacity-0 group-hover/header:opacity-100 group-focus-visible/header:opacity-100 w-5 h-5 rounded-lg flex items-center justify-center text-gray-300 hover:text-red-400 hover:bg-red-50 transition-all shrink-0"
           >
             <X size={11} />
           </button>
@@ -729,7 +766,7 @@ function PrintSection({
         onDrop={e => onDrop(e, section.id)}
         className={`min-h-[40px] rounded-xl border-2 border-dashed transition-all flex flex-col gap-1.5 p-1.5 ${
           isOver
-            ? 'border-[#007AFF] bg-blue-50/60'
+            ? 'border-primary bg-primary/5'
             : 'border-gray-100 hover:border-gray-200'
         }`}
       >
@@ -739,12 +776,14 @@ function PrintSection({
             hymn={hymn}
             sectionId={section.id}
             index={index}
+            hymnCount={section.hymns.length}
             onRemove={onHymnRemove}
             onToggleVisibility={onToggleVisibility}
             onUpdateHymnField={onUpdateHymnField}
             onDragStart={onCardDragStart}
             onDragOver={onCardDragOver}
             onDragEnd={onCardDragEnd}
+            onMove={onMoveHymn}
           />
         ))}
         {section.hymns.length === 0 && (
@@ -761,7 +800,7 @@ function PrintSection({
           onChange={e => onUpdateSection(section.id, { observations: e.target.value })}
           placeholder="Observações / avisos desta seção..."
           rows={1}
-          className="w-full text-[10px] text-gray-500 bg-transparent border border-dashed border-gray-200 rounded-lg px-2 py-1 resize-none focus:outline-none focus:border-[#007AFF]/30 hover:bg-gray-50 transition-colors"
+          className="w-full text-[10px] text-gray-500 bg-transparent border border-dashed border-gray-200 rounded-lg px-2 py-1 resize-none focus:outline-none focus:border-primary/30 hover:bg-gray-50 transition-colors"
         />
       </div>
     </div>
@@ -798,17 +837,17 @@ function TemplateModal({ isOpen, onClose, onSave }) {
           onChange={e => setName(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') handleSave() }}
           placeholder="Ex: Reunião Normal, Reunião de Oração..."
-          className="input-apple w-full mb-4"
+          className="input w-full mb-4"
         />
         <div className="flex gap-3">
-          <button onClick={onClose} className="btn-apple-secondary flex-1">Cancelar</button>
-          <button
+          <Button onClick={onClose} variant="secondary" fullWidth>Cancelar</Button>
+          <Button
             onClick={handleSave}
             disabled={!name.trim()}
-            className="btn-apple-primary flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
+            variant="primary" fullWidth className="disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Salvar
-          </button>
+          </Button>
         </div>
       </div>
     </div>
@@ -833,15 +872,6 @@ export default function HymnPrintPage() {
   const savedLayout = state?.layout || null
   const fromTab = state?.fromTab || 'programar'
 
-  // Load Playfair Display font for the canvas preview
-  useEffect(() => {
-    const link = document.createElement('link')
-    link.rel = 'stylesheet'
-    link.href = 'https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;800&family=Inter:wght@400;500;600;700&display=swap'
-    document.head.appendChild(link)
-    return () => link.remove()
-  }, [])
-
   // Resolve sidebar hymns from location.state
 const sidebarHymns = useMemo(() => {
     if (!state?.hymns) return []
@@ -851,7 +881,8 @@ const sidebarHymns = useMemo(() => {
       const rawSolista = typeof item === 'object' ? item.solista : ''
       const soloist = Array.isArray(rawSolista) ? rawSolista.join(', ') : (rawSolista || '')
       const piano = typeof item === 'object' ? item.piano || '' : ''
-      const violao = typeof item === 'object' ? item.violao || '' : ''
+      const rawViolao = typeof item === 'object' ? item.violao : ''
+      const violao = Array.isArray(rawViolao) ? rawViolao.join(', ') : (rawViolao || '')
       const hymn = hymnsById[id]
       if (!hymn) return null
       return { ...hymn, regente, soloist, piano, violao }
@@ -875,6 +906,7 @@ const sidebarHymns = useMemo(() => {
   })
   const [activeTemplateId, setActiveTemplateId] = useState(() => templates[0]?.id)
   const [templateModalOpen, setTemplateModalOpen] = useState(false)
+  const [templateDeleteId, setTemplateDeleteId] = useState(null)
 
   // Canvas state
   const [headerConfig, setHeaderConfig] = useState(() => {
@@ -992,6 +1024,32 @@ const sidebarHymns = useMemo(() => {
         : s
     ))
 
+  const handleMoveHymn = useCallback((sectionId, index, direction) => {
+    setCanvasSections(prev => prev.map(s => {
+      if (s.id !== sectionId) return s
+      const arr = [...s.hymns]
+      const newIndex = index + direction
+      if (newIndex < 0 || newIndex >= arr.length) return s
+      const [moved] = arr.splice(index, 1)
+      arr.splice(newIndex, 0, moved)
+      return { ...s, hymns: arr }
+    }))
+  }, [])
+
+  const handleAddToFirstSection = useCallback((hymnId) => {
+    const hymn = sidebarHymns.find(h => h.id === hymnId)
+    if (!hymn) return
+    setCanvasSections(prev => {
+      if (prev.length === 0) return prev
+      const first = prev[0]
+      if (first.hymns.some(h => h.id === hymn.id)) return prev
+      return prev.map((s, i) => i === 0
+        ? { ...s, hymns: [...s.hymns, { ...hymn, showRegente: true, showNumber: true, showType: true, showSoloist: true, customLabel: '', showCustomLabel: true }] }
+        : s
+      )
+    })
+  }, [sidebarHymns])
+
   // DnD handlers
   const dragItem_ = dragItem
   const handleDragStart = useCallback((e, item) => {
@@ -1084,13 +1142,7 @@ const sidebarHymns = useMemo(() => {
 
   // Delete template
   const handleDeleteTemplate = (templateId) => {
-    if (!confirm('Tem certeza que deseja excluir este template?')) return
-    const updated = templates.filter(t => t.id !== templateId)
-    setTemplates(updated)
-    saveTemplatesLS(updated)
-    if (activeTemplateId === templateId) {
-      setActiveTemplateId(updated[0]?.id || null)
-    }
+    setTemplateDeleteId(templateId)
   }
 
   // Save layout to server (if programId exists)
@@ -1118,13 +1170,14 @@ const sidebarHymns = useMemo(() => {
   }
 
   return (
-    <div id="hymnprint-root" className="min-h-screen bg-[#F5F5F7] dark:bg-[#1C1C1E]">
+    <div id="hymnprint-root" className="min-h-screen">
       <Topbar title="Gestão Igreja" />
 
       <PrintSidebar
         sidebarHymns={sidebarHymns}
         canvasSections={canvasSections}
         onDragStart={handleDragStart}
+        onAddToSection={handleAddToFirstSection}
         onBack={() => navigate('/programacao', { state: { activeTab: fromTab } })}
       />
 
@@ -1180,6 +1233,7 @@ const sidebarHymns = useMemo(() => {
                     onCardDragStart={handleCardDragStart}
                     onCardDragOver={handleCardDragOver}
                     onCardDragEnd={handleCardDragEnd}
+                    onMoveHymn={handleMoveHymn}
                   />
                 ))}
               </div>
@@ -1200,6 +1254,24 @@ const sidebarHymns = useMemo(() => {
         isOpen={templateModalOpen}
         onClose={() => setTemplateModalOpen(false)}
         onSave={handleSaveTemplate}
+      />
+
+      <ConfirmModal
+        isOpen={!!templateDeleteId}
+        onClose={() => setTemplateDeleteId(null)}
+        onConfirm={() => {
+          const updated = templates.filter(t => t.id !== templateDeleteId)
+          setTemplates(updated)
+          saveTemplatesLS(updated)
+          if (activeTemplateId === templateDeleteId) {
+            setActiveTemplateId(updated[0]?.id || null)
+          }
+          setTemplateDeleteId(null)
+        }}
+        title="Excluir Template"
+        description="Este template será removido permanentemente. As seções e configurações salvas nele serão perdidas."
+        confirmLabel="Sim, excluir template"
+        danger
       />
     </div>
   )

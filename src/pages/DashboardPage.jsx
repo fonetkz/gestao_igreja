@@ -4,33 +4,40 @@ import { Users, TrendingUp, AlertTriangle, Cake, Music } from 'lucide-react'
 import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts'
 import Topbar from '../components/layout/Topbar'
 import Avatar from '../components/ui/Avatar'
+import Badge from '../components/ui/Badge'
 import useMembersStore from '../store/membersStore'
 import useHymnsStore from '../store/hymnsStore'
 
-function StatCard({ icon: Icon, label, value, color, suffix = '', to }) {
-  const colorMap = {
-    primary: { bg: 'bg-gray-900 dark:bg-white', icon: 'text-white dark:text-gray-900' },
-    success: { bg: 'bg-green-100 dark:bg-green-900/30', icon: 'text-green-600 dark:text-green-400' },
-    warning: { bg: 'bg-amber-100 dark:bg-amber-900/30', icon: 'text-amber-600 dark:text-amber-400' },
-    info: { bg: 'bg-blue-100 dark:bg-blue-900/30', icon: 'text-blue-600 dark:text-blue-400' },
+function StatCard({ icon: Icon, label, value, variant = 'primary', suffix = '', to }) {
+  const iconBgMap = {
+    primary: 'bg-gray-900 dark:bg-white',
+    success: 'bg-green-100 dark:bg-green-900/30',
+    warning: 'bg-amber-100 dark:bg-amber-900/30',
+    info: 'bg-primary/10 dark:bg-primary/20',
   }
-  const colors = colorMap[color]
+  const iconColorMap = {
+    primary: 'text-white dark:text-gray-900',
+    success: 'text-green-600 dark:text-green-400',
+    warning: 'text-amber-600 dark:text-amber-400',
+    info: 'text-primary dark:text-blue-300',
+  }
+
   const CardWrapper = to ? Link : 'div'
   const wrapperProps = to
     ? {
-      to,
-      className: "metric-card animate-slide-up group block cursor-pointer transition-all hover:shadow-lg hover:-translate-y-1"
-    }
+        to,
+        className: "metric-card animate-slide-up group block cursor-pointer transition-all hover:shadow-medium hover:-translate-y-1"
+      }
     : { className: "metric-card animate-slide-up group" }
 
   return (
     <CardWrapper {...wrapperProps}>
       <div className="flex items-start justify-between mb-4">
-        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${colors.bg} transition-transform duration-300 group-hover:scale-110`}>
-          <Icon size={24} className={colors.icon} strokeWidth={2} />
+        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${iconBgMap[variant]} transition-transform duration-300 group-hover:scale-110`}>
+          <Icon size={24} className={iconColorMap[variant]} strokeWidth={2} />
         </div>
       </div>
-      <p className="text-4xl font-bold text-gray-900 dark:text-white">{value}{suffix === '%' && '%'}</p>
+      <p className="text-4xl font-bold text-gray-900 dark:text-white tabular-nums">{value}{suffix === '%' && '%'}</p>
       <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mt-1">{label}</p>
     </CardWrapper>
   )
@@ -39,10 +46,10 @@ function StatCard({ icon: Icon, label, value, color, suffix = '', to }) {
 function CustomTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null
   return (
-    <div className="bg-gray-900 shadow-lg rounded-xl px-3 py-2">
+    <div className="bg-gray-900 dark:bg-gray-800 shadow-high rounded-xl px-3 py-2">
       <p className="text-xs font-medium text-gray-400 mb-0.5">{label}</p>
       <p className="text-sm font-semibold text-white flex items-center gap-2">
-        <span className="w-2 h-2 rounded-full bg-[#007AFF]" />
+        <span className="w-2 h-2 rounded-full bg-primary" />
         {payload[0].value}% presença
       </p>
     </div>
@@ -215,14 +222,14 @@ export default function DashboardPage() {
   }, [storeAttendance])
 
   return (
-    <div className="min-h-screen pb-12 bg-[#F5F5F7] dark:bg-[#1C1C1E]">
+    <div className="min-h-screen pb-12">
       <Topbar title="Gestão Igreja" />
 
       <div className="px-8 max-w-7xl mx-auto mt-8">
         {/* Page Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-semibold text-gray-900 dark:text-white">Dashboard</h1>
+            <h1 className="heading-1">Dashboard</h1>
             <p className="text-gray-500 dark:text-gray-400 mt-1">Acompanhe as métricas essenciais da sua organização.</p>
           </div>
           <div className="w-40 sm:w-48">
@@ -230,7 +237,7 @@ export default function DashboardPage() {
               type="month"
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(e.target.value)}
-              className="input-apple w-full"
+              className="input w-full"
             />
           </div>
         </div>
@@ -241,14 +248,14 @@ export default function DashboardPage() {
             icon={Users}
             label="Integrantes Ativos"
             value={activeMembers}
-            color="primary"
+            variant="primary"
             to="/membros?view=lista"
           />
           <StatCard
             icon={TrendingUp}
             label="Presença Média"
             value={overallRate}
-            color="success"
+            variant="success"
             suffix="%"
             to="/membros?view=chamada"
           />
@@ -256,14 +263,14 @@ export default function DashboardPage() {
             icon={AlertTriangle}
             label="Alertas Críticos"
             value={problematicMembers.length}
-            color="warning"
+            variant="warning"
             to="/membros?view=alertas"
           />
           <StatCard
             icon={Cake}
             label="Aniversariantes"
             value={birthdayMembers.length}
-            color="info"
+            variant="info"
             to="/membros?view=lista"
           />
         </div>
@@ -271,23 +278,23 @@ export default function DashboardPage() {
         {/* Charts Area */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Frequency Chart */}
-          <div className="apple-card p-6 lg:col-span-2 flex flex-col h-full">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 shrink-0">Frequência Geral</h3>
+          <div className="card p-5 lg:col-span-2 flex flex-col h-full">
+            <h3 className="heading-3 mb-4 shrink-0">Frequência Geral</h3>
             <div className="flex-1 w-full relative min-h-[240px]">
               <div className="absolute inset-0">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                     <defs>
                       <linearGradient id="colorPresenca" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#007AFF" stopOpacity={0.2} />
-                        <stop offset="95%" stopColor="#007AFF" stopOpacity={0} />
+                        <stop offset="5%" stopColor="var(--color-primary)" stopOpacity={0.2} />
+                        <stop offset="95%" stopColor="var(--color-primary)" stopOpacity={0} />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="4 4" stroke="#E5E5EA" vertical={false} />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#8E8E93', fontSize: 11, fontWeight: 500 }} dy={8} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#8E8E93', fontSize: 11 }} domain={[0, 100]} tickFormatter={(v) => `${v}%`} />
-                    <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#C7C7CC', strokeWidth: 1 }} />
-                    <Area type="monotone" dataKey="presenca" stroke="#007AFF" strokeWidth={2.5} fill="url(#colorPresenca)" />
+                    <CartesianGrid strokeDasharray="4 4" stroke="var(--color-gray-200)" vertical={false} />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: 'var(--color-gray-400)', fontSize: 11, fontWeight: 500 }} dy={8} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fill: 'var(--color-gray-400)', fontSize: 11 }} domain={[0, 100]} tickFormatter={(v) => `${v}%`} />
+                    <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'var(--color-gray-300)', strokeWidth: 1 }} />
+                    <Area type="monotone" dataKey="presenca" stroke="var(--color-primary)" strokeWidth={2.5} fill="url(#colorPresenca)" />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
@@ -295,20 +302,29 @@ export default function DashboardPage() {
 
             {/* Presence by Section */}
             {sectionData.length > 0 && (
-              <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-700 shrink-0">
-                <h4 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">Integrantes por Seção</h4>
+              <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-500 shrink-0">
+                <h4 className="label mb-4">Integrantes por Seção</h4>
                 <div className="space-y-3">
                   {sectionData.map((section) => (
                     <div key={section.nome} className="flex items-center gap-4">
                       <div className="w-28 shrink-0">
                         <p className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">{section.nome}</p>
-                        <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">{section.membros} {section.membros === 1 ? 'integrante' : 'integrantes'}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{section.membros} {section.membros === 1 ? 'integrante' : 'integrantes'}</p>
                       </div>
                       <div className="flex-1 h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-                        <div className={`h-full rounded-full transition-all duration-500 ${section.presenca >= 75 ? 'bg-green-500' : section.presenca >= 50 ? 'bg-amber-500' : 'bg-red-500'}`} style={{ width: `${section.presenca}%` }} />
+                        <div 
+                          className={`h-full rounded-full transition-all duration-500 ${
+                            section.presenca >= 75 ? 'bg-green-500' : 
+                            section.presenca >= 50 ? 'bg-amber-500' : 'bg-red-500'
+                          }`}
+                          style={{ width: `${section.presenca}%` }} 
+                        />
                       </div>
                       <div className="w-10 text-right shrink-0">
-                        <span className={`text-xs font-bold ${section.presenca >= 75 ? 'text-green-600 dark:text-green-400' : section.presenca >= 50 ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400'}`}>
+                        <span className={`text-xs font-bold tabular-nums ${
+                          section.presenca >= 75 ? 'text-green-600 dark:text-green-400' :
+                          section.presenca >= 50 ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400'
+                        }`}>
                           {section.presenca}%
                         </span>
                       </div>
@@ -322,7 +338,7 @@ export default function DashboardPage() {
           {/* Right Column - Alerts & Birthdays */}
           <div className="flex flex-col gap-6 h-full">
             {/* Alerts Card */}
-            <div className="apple-card p-5 flex flex-col flex-1">
+            <div className="card p-5 flex flex-col flex-1">
               <div className="flex items-center justify-between mb-4 shrink-0">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
@@ -333,7 +349,7 @@ export default function DashboardPage() {
                     <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">3+ faltas em {selectedMonthLabel}</p>
                   </div>
                 </div>
-                <Link to="/membros?view=alertas" className="text-xs font-semibold text-[#007AFF] hover:text-[#0062CC] dark:text-blue-400 transition-colors">
+                <Link to="/membros?view=alertas" className="text-xs font-semibold text-primary hover:text-primary-light dark:text-blue-300 transition-colors">
                   Ver todos
                 </Link>
               </div>
@@ -350,7 +366,7 @@ export default function DashboardPage() {
                           <p className="text-sm font-semibold text-gray-900 dark:text-white">{m.nome}</p>
                           <p className="text-xs text-gray-500 dark:text-gray-400">{m.secao || m.instrumento_voz}</p>
                         </div>
-                        <span className="badge-apple bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400">{m.unjustified_absences} faltas</span>
+                        <Badge variant="danger">{m.unjustified_absences} faltas</Badge>
                       </div>
                     ))}
                   </div>
@@ -359,18 +375,18 @@ export default function DashboardPage() {
             </div>
 
             {/* Birthdays Card */}
-            <div className="apple-card p-5 flex flex-col flex-1">
+            <div className="card p-5 flex flex-col flex-1">
               <div className="flex items-center justify-between mb-4 shrink-0">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-pink-100 dark:bg-pink-900/30 flex items-center justify-center">
-                    <Cake size={20} className="text-pink-500 dark:text-pink-400" strokeWidth={2} />
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 dark:bg-blue-900/30 flex items-center justify-center">
+                    <Cake size={20} className="text-primary dark:text-blue-300" strokeWidth={2} />
                   </div>
                   <div>
                     <h3 className="font-semibold text-gray-900 dark:text-white">Aniversariantes</h3>
                     <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Em {selectedMonthLabel}</p>
                   </div>
                 </div>
-                <Link to="/membros?view=lista" className="text-xs font-semibold text-[#007AFF] hover:text-[#0062CC] dark:text-blue-400 transition-colors">
+                <Link to="/membros?view=lista" className="text-xs font-semibold text-primary hover:text-primary-light dark:text-blue-300 transition-colors">
                   Ver todos
                 </Link>
               </div>
@@ -395,13 +411,13 @@ export default function DashboardPage() {
                         }
                       }
                       return (
-                        <div key={m.id} className="flex items-center gap-3 p-3 rounded-xl bg-pink-50 dark:bg-pink-900/10 border border-pink-100 dark:border-pink-800/30">
+                        <div key={m.id} className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-100 dark:border-gray-500">
                           <Avatar name={m.nome} size="sm" />
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-semibold text-gray-900 dark:text-white">{m.nome}</p>
                             <p className="text-xs text-gray-500 dark:text-gray-400">{m.secao || m.instrumento_voz}</p>
                           </div>
-                          <span className="text-sm font-bold text-pink-600 dark:text-pink-400 bg-white dark:bg-gray-800 px-2.5 py-1 rounded-lg border border-pink-100 dark:border-pink-800/50 shadow-sm">
+                          <span className="text-sm font-bold text-primary dark:text-blue-300 bg-white dark:bg-gray-800 px-2.5 py-1 rounded-lg border border-gray-100 dark:border-gray-500 shadow-sm tabular-nums">
                             {String(day).padStart(2, '0')}/{String(month).padStart(2, '0')}
                           </span>
                         </div>

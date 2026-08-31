@@ -18,7 +18,7 @@ export function TabsList({ children, className = '' }) {
   return (
     <TabsPrimitive.List
       className={`
-        flex gap-2 border-b border-slate-200 dark:border-slate-700 mb-10 overflow-x-auto scrollbar-hide
+        flex gap-2 border-b border-gray-200 dark:border-gray-500 mb-10 overflow-x-auto scrollbar-hide
         ${className}
       `}
     >
@@ -33,14 +33,14 @@ export function TabsTrigger({ value, children, badge, icon: Icon, className = ''
       value={value}
       className={`
         relative flex items-center gap-2.5 px-6 py-3 text-sm font-bold transition-colors duration-200 whitespace-nowrap
-        text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50/50 dark:hover:bg-slate-800/50
-        data-[state=active]:text-blue-600 data-[state=active]:dark:text-blue-400
+        text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/50 dark:hover:bg-gray-800/50
+        data-[state=active]:text-primary data-[state=active]:dark:text-blue-300
         data-[state=active]:after:absolute
         data-[state=active]:after:bottom-0
         data-[state=active]:after:left-0
         data-[state=active]:after:right-0
         data-[state=active]:after:h-1
-        data-[state=active]:after:bg-blue-600
+        data-[state=active]:after:bg-primary
         data-[state=active]:after:rounded-t-md
         focus:outline-none
         ${className}

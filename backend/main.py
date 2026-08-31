@@ -46,6 +46,10 @@ from backend.models import (
     ChamadaRead,
     ChamadaUpdate,
     Configuracao,
+    Evento,
+    EventoCreate,
+    EventoRead,
+    EventoUpdate,
     Hino,
     HinoBase,
     HinoCreate,
@@ -534,6 +538,70 @@ def remover_programacao(
     except Exception as e:
         session.rollback()
         raise HTTPException(500, f"Erro ao excluir: {str(e)}")
+
+
+# ═══════════════════════════════════════════════════════════
+# Eventos (cronograma de reuniões especiais)
+# ═══════════════════════════════════════════════════════════
+
+@app.get("/api/eventos", response_model=list[EventoRead])
+def listar_eventos(
+    session: Session = Depends(get_session),
+) -> Sequence[Evento]:
+    return session.exec(select(Evento).order_by(Evento.data)).all()
+
+
+@app.get("/api/eventos/{evento_id}", response_model=EventoRead)
+def obter_evento(
+    evento_id: int,
+    session: Session = Depends(get_session),
+) -> Evento:
+    evento = session.get(Evento, evento_id)
+    if not evento:
+        raise HTTPException(404, "Evento não encontrado")
+    return evento
+
+
+@app.post("/api/eventos", response_model=EventoRead, status_code=201)
+def criar_evento(
+    payload: EventoCreate,
+    session: Session = Depends(get_session),
+) -> Evento:
+    evento = Evento.model_validate(payload, from_attributes=True)
+    session.add(evento)
+    session.commit()
+    session.refresh(evento)
+    return evento
+
+
+@app.patch("/api/eventos/{evento_id}", response_model=EventoRead)
+def atualizar_evento(
+    evento_id: int,
+    payload: EventoUpdate,
+    session: Session = Depends(get_session),
+) -> Evento:
+    evento = session.get(Evento, evento_id)
+    if not evento:
+        raise HTTPException(404, "Evento não encontrado")
+    data = payload.model_dump(exclude_unset=True)
+    for field, value in data.items():
+        setattr(evento, field, value)
+    session.add(evento)
+    session.commit()
+    session.refresh(evento)
+    return evento
+
+
+@app.delete("/api/eventos/{evento_id}", status_code=204)
+def remover_evento(
+    evento_id: int,
+    session: Session = Depends(get_session),
+) -> None:
+    evento = session.get(Evento, evento_id)
+    if not evento:
+        raise HTTPException(404, "Evento não encontrado")
+    session.delete(evento)
+    session.commit()
 
 
 # ═══════════════════════════════════════════════════════════

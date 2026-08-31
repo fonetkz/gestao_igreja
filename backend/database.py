@@ -29,6 +29,7 @@ def init_db() -> None:
     from backend.models import (
         Chamada,
         Configuracao,
+        Evento,
         HinoBase,
         Membro,
         Programacao,

@@ -11,7 +11,7 @@ export default function RadioGroup({
   return (
     <div className={`flex flex-col gap-2 ${className}`}>
       {label && (
-        <span className="label-uppercase dark:text-slate-400">{label}</span>
+        <span className="label">{label}</span>
       )}
       <RadioGroupPrimitive.Root
         value={value}
@@ -23,14 +23,14 @@ export default function RadioGroup({
             <RadioGroupPrimitive.Item
               value={opt.value}
               id={`radio-${opt.value}`}
-              className="w-4 h-4 rounded-full border-2 border-slate-300 dark:border-slate-600
-                         data-[state=checked]:border-primary data-[state=checked]:dark:border-primary-light data-[state=checked]:border-[5px]
-                         transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/20"
+              className="w-4 h-4 rounded-full border-2 border-gray-300 dark:border-gray-500
+                         data-[state=checked]:border-primary data-[state=checked]:dark:border-blue-300 data-[state=checked]:border-[5px]
+                         transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/20 dark:focus:ring-blue-400/40"
             >
             </RadioGroupPrimitive.Item>
             <label
               htmlFor={`radio-${opt.value}`}
-              className="text-sm text-slate-700 dark:text-slate-300 cursor-pointer"
+              className="text-sm text-gray-700 dark:text-gray-300 cursor-pointer"
             >
               {opt.label}
             </label>

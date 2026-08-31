@@ -1,67 +1,17 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Search, Edit2, Plus, ClipboardList, History, Bell, Users2, MessageSquare, Check, X, Cake, CheckCircle, BellRing, Clock, XCircle, Music, ChevronUp, ChevronDown, Trash2, Info } from 'lucide-react'
+import { Search, Edit2, Plus, ClipboardList, History, Bell, Users2, MessageSquare, Check, X, Cake, CheckCircle, BellRing, Clock, XCircle, Music, ChevronUp, ChevronDown, Trash2 } from 'lucide-react'
 import Topbar from '../components/layout/Topbar'
 import Select from '../components/ui/Select'
 import MultiSelect from '../components/ui/MultiSelect'
+import ConfirmModal from '../components/ui/ConfirmModal'
+import Badge from '../components/ui/Badge'
+import Avatar from '../components/ui/Avatar'
+import Modal from '../components/ui/Modal'
 import useMembersStore from '../store/membersStore'
 import useSettingsStore from '../store/settingsStore'
 import useToastStore from '../store/toastStore'
 import useAuthStore from '../store/authStore'
-
-function Badge({ children, variant = 'default' }) {
-  const variants = {
-    blue: 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400',
-    purple: 'bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400',
-    default: 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300',
-    green: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
-    yellow: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400',
-    red: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400',
-  }
-  return <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${variants[variant] || variants.default}`}>{children}</span>
-}
-
-function Avatar({ name, size = 'md' }) {
-  const sizes = { sm: 'w-8 h-8 text-xs', md: 'w-10 h-10 text-sm', lg: 'w-12 h-12 text-base' }
-  const initials = name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || '?'
-  const colors = ['bg-red-500', 'bg-orange-500', 'bg-amber-500', 'bg-yellow-500', 'bg-lime-500', 'bg-green-500', 'bg-emerald-500', 'bg-teal-500', 'bg-cyan-500', 'bg-sky-500', 'bg-blue-500', 'bg-indigo-500', 'bg-violet-500', 'bg-purple-500', 'bg-fuchsia-500', 'bg-pink-500', 'bg-rose-500']
-  const colorIndex = name?.charCodeAt(0) % colors.length
-  return <div className={`${sizes[size]} rounded-full flex items-center justify-center font-semibold text-white ${colors[colorIndex]}`}>{initials}</div>
-}
-
-function Modal({ isOpen, onClose, title, children, size = 'lg' }) {
-  if (!isOpen) return null
-  const sizeClasses = { sm: 'max-w-md', md: 'max-w-lg', lg: 'max-w-2xl', xl: 'max-w-4xl' }
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-gray-900/30 dark:bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className={`relative bg-white dark:bg-[#2C2C2E] rounded-3xl shadow-2xl w-full ${sizeClasses[size]} overflow-hidden`}>
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-[#1C1C1E]">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{title}</h2>
-          <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl"><X size={20} /></button>
-        </div>
-        <div className="p-6 max-h-[70vh] overflow-y-auto">{children}</div>
-      </div>
-    </div>
-  )
-}
-
-const mockMembers = [
-  { id: 1, nome: 'Gustavo Henrique', telefone: '(17) 99123-4567', data_nascimento: '15/04/1990', secao: 'Tenor', instrumento_voz: 'Violino', cargo: 'Músico', status: 'Ativo' },
-  { id: 2, nome: 'Aline Souza', telefone: '(17) 99234-5678', data_nascimento: '22/08/1995', secao: 'Soprano', instrumento_voz: 'Flauta', cargo: 'Músico', status: 'Ativo' },
-  { id: 3, nome: 'Carlos Eduardo', telefone: '(17) 99345-6789', data_nascimento: '03/12/1988', secao: 'Baixo', instrumento_voz: 'Trompete', cargo: 'Músico', status: 'Licença' },
-  { id: 4, nome: 'Mariana Santos', telefone: '(17) 99456-7890', data_nascimento: '10/04/1992', secao: 'Contralto', instrumento_voz: 'Clarinete', cargo: 'Regente', status: 'Ativo' },
-  { id: 5, nome: 'Pedro Oliveira', telefone: '(17) 99567-8901', data_nascimento: '05/11/1985', secao: 'Tenor', instrumento_voz: 'Violão', cargo: 'Músico', status: 'Ativo' },
-  { id: 6, nome: 'Ana Paula', telefone: '(17) 99678-9012', data_nascimento: '30/06/1998', secao: 'Soprano', instrumento_voz: '', cargo: 'Coordenadora', status: 'Ativo' },
-  { id: 7, nome: 'Roberto Alves', telefone: '(17) 99789-0123', data_nascimento: '18/01/1993', secao: '', instrumento_voz: 'Piano', cargo: 'Músico', status: 'Ativo' },
-  { id: 8, nome: 'Juliana Costa', telefone: '(17) 99890-1234', data_nascimento: '25/09/1990', secao: 'Contralto', instrumento_voz: 'Violoncelo', cargo: 'Músico', status: 'Inativo' },
-]
-
-const mockHistorico = [
-  { id: 1, data: '19/04/2026', tipo: 'Culto de Celebração', presentes: 42, ausentes: 6, registros: [{ membro_id: 1, presente: true }, { membro_id: 2, presente: true }, { membro_id: 3, presente: false, justificativa: 'Viajem' }, { membro_id: 4, presente: true }] },
-  { id: 2, data: '12/04/2026', tipo: 'Ensaio Geral', presentes: 38, ausentes: 10, registros: [{ membro_id: 1, presente: false, justificativa: '' }, { membro_id: 2, presente: true }, { membro_id: 3, presente: false, justificativa: 'Problema de saúde' }, { membro_id: 4, presente: true }] },
-  { id: 3, data: '05/04/2026', tipo: 'Culto Dominical', presentes: 45, ausentes: 3, registros: [] },
-]
 
 const normalizeStr = (s) => (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
 
@@ -129,6 +79,8 @@ export default function MembersPage() {
   const [activeMetric, setActiveMetric] = useState(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(20)
+  const [memberDeleteId, setMemberDeleteId] = useState(null)
+  const [chamadaDeleteId, setChamadaDeleteId] = useState(null)
 
   const toggleMetric = (metric) => {
     setActiveMetric(prev => {
@@ -147,6 +99,7 @@ export default function MembersPage() {
   const removeMember = useMembersStore((s) => s.removeMember)
   const deleteCall = useMembersStore((s) => s.deleteCall)
   const updateAttendance = useMembersStore((s) => s.updateAttendance)
+  const showToast = useToastStore((s) => s.showToast)
 
   const voices = useSettingsStore((s) => s.voices) || []
   const instruments = useSettingsStore((s) => s.instruments) || []
@@ -272,10 +225,10 @@ export default function MembersPage() {
   }
 
   const getStatusVariant = (status) => {
-    if (status === 'Ativo') return 'green'
-    if (status === 'Licença') return 'yellow'
-    if (status === 'Inativo') return 'red'
-    return 'default'
+    if (status === 'Ativo') return 'success'
+    if (status === 'Licença') return 'warning'
+    if (status === 'Inativo') return 'danger'
+    return 'neutral'
   }
 
   const handleSaveJustificativa = async (alertaId, justificativasObj) => {
@@ -294,7 +247,7 @@ export default function MembersPage() {
       setJustifyingAlert(null)
     } catch (err) {
       console.error('Erro ao salvar justificativas:', err)
-      alert('Ocorreu um erro ao salvar as justificativas.')
+      showToast('Ocorreu um erro ao salvar as justificativas.', 'error')
     }
   }
 
@@ -315,36 +268,31 @@ export default function MembersPage() {
     aniversariantes: storeMembers.filter(m => isAniversarioMes(m.data_nascimento)).length
   }
 
-  if (storeMembers.length > 0) {
-    const debug = storeMembers.slice(0, 3).map(m => `${m.nome}: instrumento=${m.instrumento_voz}, isOrq=${isOrquestra(m)}`)
-    console.log('MembersPage - storeMembers:', storeMembers.length, debug)
-  }
-
   return (
-    <div className="min-h-screen pb-12 bg-[#F5F5F7] dark:bg-[#1C1C1E]">
+    <div className="min-h-screen pb-12">
       <Topbar title="Gestão Igreja" />
       <div className="px-8 max-w-7xl mx-auto mt-8">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-semibold text-gray-900 dark:text-white">Integrantes</h1>
+            <h1 className="heading-1">Integrantes</h1>
             <p className="text-gray-500 dark:text-gray-400 mt-1">Gerencie o corpo musical e coralistas.</p>
           </div>
           {activeTab === 'lista' && (
-            <button onClick={() => setShowDrawer(true)} className="btn-apple-primary">
+            <button onClick={() => setShowDrawer(true)} className="flex items-center gap-2 bg-primary text-white px-5 py-2.5 rounded-xl font-medium hover:bg-primary-dark transition-colors">
               <Plus size={18} /> Novo Integrante
             </button>
           )}
         </div>
 
         <div className="flex gap-1 mb-6 bg-gray-100 dark:bg-gray-800 p-1 rounded-xl w-fit">
-          <button onClick={() => handleTabChange('lista')} className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'lista' ? 'bg-white dark:bg-[#2C2C2E] text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}>
-            <Users2 size={16} className="inline mr-2" />Lista
+          <button onClick={() => handleTabChange('lista')} className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'lista' ? 'bg-white dark:bg-[#2C2C2E] text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}>
+            <Users2 size={16} />Lista
           </button>
-          <button onClick={() => handleTabChange('chamada')} className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'chamada' ? 'bg-white dark:bg-[#2C2C2E] text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}>
-            <ClipboardList size={16} className="inline mr-2" />Chamada
+          <button onClick={() => handleTabChange('chamada')} className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'chamada' ? 'bg-white dark:bg-[#2C2C2E] text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}>
+            <ClipboardList size={16} />Chamada
           </button>
-          <button onClick={() => handleTabChange('historico')} className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'historico' ? 'bg-white dark:bg-[#2C2C2E] text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}>
-            <History size={16} className="inline mr-2" />Histórico
+          <button onClick={() => handleTabChange('historico')} className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'historico' ? 'bg-white dark:bg-[#2C2C2E] text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}>
+            <History size={16} />Histórico
           </button>
           <button
             onClick={() => handleTabChange('alertas')}
@@ -375,12 +323,12 @@ export default function MembersPage() {
               ].map(({ key, label, value, icon, color }) => {
                 const isActive = activeMetric === key
                 const colorMap = {
-                  blue: { icon: 'bg-blue-100   dark:bg-blue-900/30   text-blue-600   dark:text-blue-400', ring: 'ring-2 ring-blue-400   dark:ring-blue-500' },
-                  green: { icon: 'bg-green-100  dark:bg-green-900/30  text-green-600  dark:text-green-400', ring: 'ring-2 ring-green-400  dark:ring-green-500' },
-                  amber: { icon: 'bg-amber-100  dark:bg-amber-900/30  text-amber-600  dark:text-amber-400', ring: 'ring-2 ring-amber-400  dark:ring-amber-500' },
-                  red: { icon: 'bg-red-100    dark:bg-red-900/30    text-red-600    dark:text-red-400', ring: 'ring-2 ring-red-400    dark:ring-red-500' },
-                  purple: { icon: 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400', ring: 'ring-2 ring-purple-400 dark:ring-purple-500' },
-                  pink: { icon: 'bg-pink-100   dark:bg-pink-900/30   text-pink-600   dark:text-pink-400', ring: 'ring-2 ring-pink-400   dark:ring-pink-500' },
+                  blue: { icon: 'bg-gray-100 dark:bg-gray-800 text-primary dark:text-blue-300', ring: 'ring-2 ring-primary/30' },
+                  green: { icon: 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400', ring: 'ring-2 ring-green-400 dark:ring-green-500' },
+                  amber: { icon: 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400', ring: 'ring-2 ring-amber-400 dark:ring-amber-500' },
+                  red: { icon: 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400', ring: 'ring-2 ring-red-400 dark:ring-red-500' },
+                  purple: { icon: 'bg-gray-100 dark:bg-gray-800 text-primary dark:text-blue-300', ring: 'ring-2 ring-primary/30' },
+                  pink: { icon: 'bg-gray-100 dark:bg-gray-800 text-primary dark:text-blue-300', ring: 'ring-2 ring-primary/30' },
                 }
                 const c = colorMap[color]
                 return (
@@ -394,7 +342,7 @@ export default function MembersPage() {
                         {icon}
                       </div>
                     </div>
-                    <p className="text-4xl font-bold text-gray-900 dark:text-white">{value}</p>
+                    <p className="text-4xl font-bold text-gray-900 dark:text-white tabular-nums">{value}</p>
                     <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mt-1">{label}</p>
                   </div>
                 )
@@ -406,13 +354,13 @@ export default function MembersPage() {
               const hasActiveFilters = searchText || vozFilter || instrumentoFilter || funcaoFilter || statusFilter
               const clearFilters = () => { setSearchText(''); setVozFilter(''); setInstrumentoFilter(''); setFuncaoFilter(''); setStatusFilter('') }
               return (
-                <div className="bg-white dark:bg-[#2C2C2E] rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
-                  <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-700">
+                <div className="bg-white dark:bg-[#2C2C2E] rounded-2xl border border-gray-100 dark:border-gray-500 shadow-sm overflow-hidden">
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-500">
                     <div className="flex items-center gap-2 text-sm font-medium text-gray-500 dark:text-gray-400">
                       <Search size={14} />
                       Filtros
                       {hasActiveFilters && (
-                        <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-500 text-white text-xs font-bold">
+                        <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary text-white text-xs font-bold">
                           {[searchText, vozFilter, instrumentoFilter, funcaoFilter, statusFilter].filter(Boolean).length}
                         </span>
                       )}
@@ -430,14 +378,14 @@ export default function MembersPage() {
                   <div className="p-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
                       <div>
-                        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Buscar</label>
+                        <label className="label mb-1.5">Buscar</label>
                         <div className="relative">
                           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                          <input type="text" placeholder="Nome ou telefone..." value={searchText} onChange={(e) => setSearchText(e.target.value)} className="input-apple pl-8 text-sm" />
+                          <input type="text" placeholder="Nome ou telefone..." value={searchText} onChange={(e) => setSearchText(e.target.value)} className="input pl-8 text-sm" />
                         </div>
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Voz / Naipe</label>
+                        <label className="label mb-1.5">Voz / Naipe</label>
                         <Select
                           options={[{ value: '', label: 'Todas' }, ...voices.map(v => ({ value: v.label, label: v.label }))]}
                           value={vozFilter}
@@ -446,7 +394,7 @@ export default function MembersPage() {
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Instrumento</label>
+                        <label className="label mb-1.5">Instrumento</label>
                         <Select
                           options={[{ value: '', label: 'Todos' }, ...instruments.map(v => ({ value: v.label, label: v.label }))]}
                           value={instrumentoFilter}
@@ -455,7 +403,7 @@ export default function MembersPage() {
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Função</label>
+                        <label className="label mb-1.5">Função</label>
                         <Select
                           options={[{ value: '', label: 'Todas' }, ...positions.map(v => ({ value: v.label, label: v.label }))]}
                           value={funcaoFilter}
@@ -464,7 +412,7 @@ export default function MembersPage() {
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Status</label>
+                        <label className="label mb-1.5">Status</label>
                         <Select
                           options={[{ value: '', label: 'Todos' }, ...statuses.map(v => ({ value: v.label, label: v.label }))]}
                           value={statusFilter}
@@ -478,9 +426,9 @@ export default function MembersPage() {
               )
             })()}
 
-            <div className="bg-white dark:bg-[#2C2C2E] rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
+            <div className="bg-white dark:bg-[#2C2C2E] rounded-2xl border border-gray-100 dark:border-gray-500 shadow-sm overflow-hidden">
               <table className="w-full">
-                <thead className="bg-gray-50 dark:bg-[#1C1C1E] border-b border-gray-100 dark:border-gray-700">
+                <thead className="bg-gray-50 dark:bg-[#1C1C1E] border-b border-gray-100 dark:border-gray-500">
                   <tr>
                     <th className="text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase px-4 py-3 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors select-none w-80" onClick={() => handleSort('nome')}>
                       <div className="flex items-center gap-1">Integrante {sortConfig.key === 'nome' && (sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />)}</div>
@@ -530,11 +478,11 @@ export default function MembersPage() {
                           </div>
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{formatarDataNascimento(member.data_nascimento)}</td>
-                        <td className="px-4 py-3">{member.secao ? <Badge variant="blue">{toTitleCase(member.secao)}</Badge> : <span className="text-gray-400">—</span>}</td>
+                        <td className="px-4 py-3">{member.secao ? <Badge variant="primary">{toTitleCase(member.secao)}</Badge> : <span className="text-gray-400">—</span>}</td>
                         <td className="px-4 py-3">
-                          {member.instrumento_voz && member.instrumento_voz.split(', ').filter(i => i !== member.secao).sort((a, b) => a.localeCompare(b, 'pt-BR')).join(', ') ? <Badge variant="purple">{toTitleCase(member.instrumento_voz.split(', ').filter(i => i !== member.secao).sort((a, b) => a.localeCompare(b, 'pt-BR')).join(', '))}</Badge> : <span className="text-gray-400">—</span>}
+                          {member.instrumento_voz && member.instrumento_voz.split(', ').filter(i => i !== member.secao).sort((a, b) => a.localeCompare(b, 'pt-BR')).join(', ') ? <Badge variant="primary">{toTitleCase(member.instrumento_voz.split(', ').filter(i => i !== member.secao).sort((a, b) => a.localeCompare(b, 'pt-BR')).join(', '))}</Badge> : <span className="text-gray-400">—</span>}
                         </td>
-                        <td className="px-4 py-3">{member.cargo ? <Badge variant="default">{toTitleCase(member.cargo.split(', ').sort((a, b) => a.localeCompare(b, 'pt-BR')).join(', '))}</Badge> : <span className="text-gray-400">—</span>}</td>
+                        <td className="px-4 py-3">{member.cargo ? <Badge variant="neutral">{toTitleCase(member.cargo.split(', ').sort((a, b) => a.localeCompare(b, 'pt-BR')).join(', '))}</Badge> : <span className="text-gray-400">—</span>}</td>
                         <td className="px-4 py-3"><Badge variant={getStatusVariant(member.status)}>{toTitleCase(member.status)}</Badge></td>
                         <td className="px-4 py-3 text-right">
                           <button onClick={() => {
@@ -552,7 +500,7 @@ export default function MembersPage() {
                 </tbody>
               </table>
               {filteredMembers.length > 0 && (
-                <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 dark:border-gray-700">
+                <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 dark:border-gray-500">
                   <div className="flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
                     <span>Mostrando</span>
                     <span className="font-semibold text-gray-900 dark:text-white">
@@ -565,7 +513,7 @@ export default function MembersPage() {
                     <select
                       value={itemsPerPage}
                       onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1) }}
-                      className="text-sm border-0 bg-gray-50 dark:bg-[#3A3A3C] rounded-lg px-2 py-1.5 text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-blue-500/30 cursor-pointer"
+                      className="text-sm border-0 bg-gray-50 dark:bg-[#3A3A3C] rounded-lg px-2 py-1.5 text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-primary/30 dark:focus:ring-blue-400/40 cursor-pointer"
                     >
                       <option value={5}>5</option>
                       <option value={10}>10</option>
@@ -595,7 +543,7 @@ export default function MembersPage() {
                           <button
                             key={pageNum}
                             onClick={() => setCurrentPage(pageNum)}
-                            className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${currentPage === pageNum ? 'bg-blue-500 text-white' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
+                            className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${currentPage === pageNum ? 'bg-primary text-white' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
                           >
                             {pageNum}
                           </button>
@@ -620,11 +568,11 @@ export default function MembersPage() {
 
         {activeTab === 'historico' && (
           <>
-            <div className="bg-white dark:bg-[#2C2C2E] rounded-2xl border border-gray-100 dark:border-gray-700 p-4 shadow-sm">
+            <div className="bg-white dark:bg-[#2C2C2E] rounded-2xl border border-gray-100 dark:border-gray-500 p-4 shadow-sm">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Histórico de Chamadas</h3>
               <div className="flex flex-wrap items-end gap-4">
                 <div className="relative flex-1 min-w-[200px]">
-                  <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Buscar</label>
+                  <label className="label mb-2">Buscar</label>
                   <div className="relative">
                     <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                     <input
@@ -632,12 +580,12 @@ export default function MembersPage() {
                       placeholder="Buscar por nome..."
                       value={historicoNameFilter}
                       onChange={(e) => { setHistoricoNameFilter(e.target.value); setHistoricoPage(1) }}
-                      className="input-apple pl-10 w-full"
+                      className="input pl-10 w-full"
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Contexto</label>
+                  <label className="label mb-2">Contexto</label>
                   <Select
                     options={[{ value: '', label: 'Todos os contextos' }, ...attendanceContexts.map(ctx => ({ value: ctx.label, label: ctx.label }))]}
                     value={historicoFilter}
@@ -646,17 +594,17 @@ export default function MembersPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Mês</label>
+                  <label className="label mb-2">Mês</label>
                   <input
                     type="month"
                     value={historicoDateFilter}
                     onChange={(e) => { setHistoricoDateFilter(e.target.value); setHistoricoPage(1) }}
-                    className="input-apple w-auto min-w-[140px]"
+                    className="input w-auto min-w-[140px]"
                   />
                 </div>
               </div>
             </div>
-            <div className="bg-white dark:bg-[#2C2C2E] rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden mt-4">
+            <div className="bg-white dark:bg-[#2C2C2E] rounded-2xl border border-gray-100 dark:border-gray-500 shadow-sm overflow-hidden mt-4">
               {(() => {
                 const filtered = storeAttendance.filter(item => {
                     if (historicoFilter && !normalizeStr(item.contexto).toLowerCase().includes(normalizeStr(historicoFilter).toLowerCase())) return false
@@ -722,31 +670,31 @@ export default function MembersPage() {
                           <div key={item.id} className="p-4 hover:bg-gray-50 dark:hover:bg-[#3A3A3C] transition-colors">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
+                                <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-primary dark:text-blue-300 shrink-0">
                                   <History size={18} />
                                 </div>
                                 <div>
                                   <p className="font-semibold text-gray-900 dark:text-white">{dataFormatada}</p>
-                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 mt-0.5">
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium badge-neutral mt-0.5">
                                     {item.contexto}
                                   </span>
                                 </div>
                               </div>
                               <div className="flex items-center gap-6">
                                 <div className="text-center">
-                                  <p className="text-xl font-bold text-green-600">{presentes}</p>
+                                  <p className="text-xl font-bold text-green-600 tabular-nums">{presentes}</p>
                                   <p className="text-xs text-gray-400 dark:text-gray-500">presentes</p>
                                 </div>
                                 <div className="text-center">
-                                  <p className="text-xl font-bold text-red-500">{ausentes}</p>
+                                  <p className="text-xl font-bold text-red-500 tabular-nums">{ausentes}</p>
                                   <p className="text-xs text-gray-400 dark:text-gray-500">ausentes</p>
                                 </div>
                                 <div className="text-center">
-                                  <p className={`text-xl font-bold ${percentClass}`}>{attendancePercent}%</p>
+                                  <p className={`text-xl font-bold tabular-nums ${percentClass}`}>{attendancePercent}%</p>
                                   <p className="text-xs text-gray-400 dark:text-gray-500">presença</p>
                                 </div>
-                                <button onClick={() => setEditingChamada(item)} className="px-3 py-1.5 text-sm font-medium text-[#007AFF] border border-dashed border-[#007AFF]/30 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors flex items-center gap-2">
-                                  <Edit2 size={16} /> Editar
+                                <button onClick={() => setEditingChamada(item)} title="Editar chamada" className="p-2.5 rounded-xl text-gray-400 hover:text-primary dark:hover:text-blue-300 hover:bg-primary/5 dark:hover:bg-primary/10 transition-colors">
+                                  <Edit2 size={18} />
                                 </button>
                               </div>
                             </div>
@@ -754,7 +702,7 @@ export default function MembersPage() {
                         )
                       })}
                     </div>
-                    <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 dark:border-gray-700">
+                    <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 dark:border-gray-500">
                       <div className="flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
                         <span>Mostrando</span>
                         <span className="font-semibold text-gray-900 dark:text-white">
@@ -767,7 +715,7 @@ export default function MembersPage() {
                         <select
                           value={historicoItemsPerPage}
                           onChange={(e) => { setHistoricoItemsPerPage(Number(e.target.value)); setHistoricoPage(1) }}
-                          className="text-sm border-0 bg-gray-50 dark:bg-[#3A3A3C] rounded-lg px-2 py-1.5 text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-blue-500/30 cursor-pointer"
+                          className="text-sm border-0 bg-gray-50 dark:bg-[#3A3A3C] rounded-lg px-2 py-1.5 text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-primary/30 dark:focus:ring-blue-400/40 cursor-pointer"
                         >
                           <option value={5}>5</option>
                           <option value={10}>10</option>
@@ -797,7 +745,7 @@ export default function MembersPage() {
                               <button
                                 key={pageNum}
                                 onClick={() => setHistoricoPage(pageNum)}
-                                className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${historicoPage === pageNum ? 'bg-blue-500 text-white' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
+                                className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${historicoPage === pageNum ? 'bg-primary text-white' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
                               >
                                 {pageNum}
                               </button>
@@ -825,18 +773,13 @@ export default function MembersPage() {
         {
           activeTab === 'alertas' && (
             <>
-              <div className="bg-white dark:bg-[#2C2C2E] rounded-2xl border border-gray-100 dark:border-gray-700 p-4 shadow-sm">
+              <div className="bg-white dark:bg-[#2C2C2E] rounded-2xl border border-gray-100 dark:border-gray-500 p-4 shadow-sm">
                 <div className="flex items-center gap-1.5 mb-4">
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Alertas de Frequência</h3>
-                  <Info
-                    size={16}
-                    className="text-gray-400 cursor-help transition-colors hover:text-gray-600 dark:hover:text-gray-300"
-                    title="Membros ativos com 3 ou mais faltas não justificadas no mês selecionado."
-                  />
                 </div>
                 <div className="flex flex-wrap items-end gap-4">
                   <div className="relative flex-1 min-w-[200px]">
-                    <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Buscar</label>
+                    <label className="label mb-2">Buscar</label>
                     <div className="relative">
                       <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                       <input
@@ -844,27 +787,27 @@ export default function MembersPage() {
                         placeholder="Buscar por nome..."
                         value={alertSearch}
                         onChange={(e) => setAlertSearch(e.target.value)}
-                        className="input-apple pl-10 w-full"
+                        className="input pl-10 w-full"
                       />
                     </div>
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Mês</label>
+                    <label className="label mb-2">Mês</label>
                     <input
                       type="month"
                       value={alertMonth}
                       onChange={(e) => setAlertMonth(e.target.value)}
-                      className="input-apple w-auto min-w-[140px]"
+                      className="input w-auto min-w-[140px]"
                     />
                   </div>
                 </div>
               </div>
 
-              <div className="bg-white dark:bg-[#2C2C2E] rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm mt-4">
-                <div className="flex border-b border-gray-100 dark:border-gray-700 px-4">
+              <div className="bg-white dark:bg-[#2C2C2E] rounded-2xl border border-gray-100 dark:border-gray-500 shadow-sm mt-4">
+                <div className="flex border-b border-gray-100 dark:border-gray-500 px-4">
                   <button
                     onClick={() => setAlertSubTab('pendentes')}
-                    className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors -mb-px ${alertSubTab === 'pendentes' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
+                    className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors -mb-px ${alertSubTab === 'pendentes' ? 'border-primary text-primary dark:text-blue-300' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
                   >
                     <div className="relative flex items-center justify-center">
                       <BellRing size={14} />
@@ -872,19 +815,19 @@ export default function MembersPage() {
                     </div>
                     Pendentes
                     {pendingAlerts.length > 0 && (
-                      <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${alertSubTab === 'pendentes' ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400' : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'}`}>
+                      <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${alertSubTab === 'pendentes' ? 'bg-primary/10 text-primary dark:text-blue-300' : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'}`}>
                         {pendingAlerts.length}
                       </span>
                     )}
                   </button>
                   <button
                     onClick={() => setAlertSubTab('justificadas')}
-                    className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors -mb-px ${alertSubTab === 'justificadas' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
+                    className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors -mb-px ${alertSubTab === 'justificadas' ? 'border-primary text-primary dark:text-blue-300' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
                   >
                     <CheckCircle size={14} />
                     Justificadas
                     {justifiedAlerts.length > 0 && (
-                      <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${alertSubTab === 'justificadas' ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400' : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'}`}>
+                      <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${alertSubTab === 'justificadas' ? 'bg-primary/10 text-primary dark:text-blue-300' : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'}`}>
                         {justifiedAlerts.length}
                       </span>
                     )}
@@ -926,7 +869,7 @@ export default function MembersPage() {
                             </div>
                             <div className="flex items-center gap-3 shrink-0">
                               <div className="text-right hidden sm:block">
-                                <p className="text-2xl font-bold text-red-500 leading-none">{member.unjustified_absences}</p>
+                                <p className="text-2xl font-bold text-red-500 leading-none tabular-nums">{member.unjustified_absences}</p>
                                 <p className="text-[10px] text-gray-400 mt-0.5 uppercase tracking-wide">faltas</p>
                               </div>
                               <button
@@ -967,7 +910,7 @@ export default function MembersPage() {
                                   </div>
                                   <button
                                     onClick={() => setJustifyingAlert({ member, mode: 'justificadas' })}
-                                    className="px-3 py-1.5 text-xs font-medium border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors whitespace-nowrap shrink-0"
+                                    className="px-3 py-1.5 text-xs font-medium border border-gray-200 dark:border-gray-500 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors whitespace-nowrap shrink-0"
                                   >
                                     Editar
                                   </button>
@@ -1024,16 +967,7 @@ export default function MembersPage() {
           }}
           onCancel={() => { setShowDrawer(false); setEditingMember(null); }}
           onDelete={async (id) => {
-            if (window.confirm('Tem certeza que deseja excluir este integrante? O histórico dele nas chamadas passadas será preservado de forma segura.')) {
-              try {
-                await removeMember(id)
-                setShowDrawer(false)
-                setEditingMember(null)
-              } catch (err) {
-                console.error('Erro ao excluir integrante:', err)
-                alert('Ocorreu um erro ao excluir o integrante.')
-              }
-            }
+            setMemberDeleteId(id)
           }}
         />
       </Modal>
@@ -1047,13 +981,50 @@ export default function MembersPage() {
         </div>
       </Modal>
 
+      <ConfirmModal
+        isOpen={!!memberDeleteId}
+        onClose={() => setMemberDeleteId(null)}
+        onConfirm={async () => {
+          try {
+            await removeMember(memberDeleteId)
+            setShowDrawer(false)
+            setEditingMember(null)
+            setMemberDeleteId(null)
+          } catch (err) {
+            console.error('Erro ao excluir integrante:', err)
+          }
+        }}
+        title="Excluir Integrante"
+        description="O integrante será removido, mas o histórico de presenças nas chamadas passadas será preservado."
+        confirmLabel="Sim, excluir integrante"
+        danger
+      />
+
+      <ConfirmModal
+        isOpen={!!chamadaDeleteId}
+        onClose={() => setChamadaDeleteId(null)}
+        onConfirm={async () => {
+          try {
+            await deleteCall(chamadaDeleteId)
+            setChamadaDeleteId(null)
+            setEditingChamada(null)
+          } catch (err) {
+            console.error('Erro ao excluir chamada:', err)
+          }
+        }}
+        title="Excluir Chamada"
+        description="Todos os registros de presença desta chamada serão removidos permanentemente."
+        confirmLabel="Sim, excluir chamada"
+        danger
+      />
+
       {
         editingChamada && (
           <EdicaoDrawer
             chamada={editingChamada}
             members={storeMembers.filter(m => m.status === 'Ativo')}
             onSave={handleSaveEdicaoChamada}
-            onDelete={deleteCall}
+            onDelete={(id) => setChamadaDeleteId(id)}
             onClose={() => setEditingChamada(null)}
           />
         )
@@ -1089,11 +1060,11 @@ function ChamadaTab({ members, isEditing = false, chamada = null, onSaveEdit = n
     return {}
   })
   const [searchChamada, setSearchChamada] = useState('')
-  const [filtroGrupo, setFiltroGrupo] = useState(defaultContexto.toLowerCase().includes('orquestra') ? 'orquestra' : 'todos')
-  const [currentPage, setCurrentPage] = useState(1)
-  const [itemsPerPage, setItemsPerPage] = useState(20)
+  const [motivoAbertoId, setMotivoAbertoId] = useState(null)
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [secoesColapsadas, setSecoesColapsadas] = useState({})
+  const toggleSecao = (chave) => setSecoesColapsadas(prev => ({ ...prev, [chave]: !prev[chave] }))
 
   const SECOES_VOCAIS = ['soprano', 'contralto', 'tenor', 'baixo', 'alto', 'mezzo', 'mezzo-soprano', 'barítono', 'baritono']
   const isOrquestra = (m) => {
@@ -1101,18 +1072,47 @@ function ChamadaTab({ members, isEditing = false, chamada = null, onSaveEdit = n
     return instrumento !== '' && !SECOES_VOCAIS.includes(instrumento)
   }
 
+  const grupoAtual = contextoChamada.toLowerCase().includes('orquestra') ? 'orquestra' : 'todos'
   const membersDoGrupo = members
-    .filter(m => filtroGrupo === 'orquestra' ? isOrquestra(m) : true)
+    .filter(m => grupoAtual === 'orquestra' ? isOrquestra(m) : true)
   const filteredMembers = membersDoGrupo
     .filter(m => !searchChamada || normalizeStr(m.nome).toLowerCase().includes(normalizeStr(searchChamada).toLowerCase()))
     .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
-  const totalPages = Math.ceil(filteredMembers.length / itemsPerPage)
-  const paginatedMembers = filteredMembers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
-  const total = filteredMembers.length
-  const presentes = filteredMembers.filter(m => presencas[m.id] !== false && presencas[m.id] !== undefined).length || (total > 0 && Object.keys(presencas).length === 0 ? total : filteredMembers.filter(m => presencas[m.id] !== false).length)
-  const ausentes = filteredMembers.filter(m => presencas[m.id] === false).length
 
-  const togglePresenca = (id) => setPresencas(p => ({ ...p, [id]: p[id] === false ? true : false }))
+  const gruposOrdenados = (() => {
+    const grupos = new Map()
+    for (const m of filteredMembers) {
+      let chave, ordem
+      if (grupoAtual === 'orquestra') {
+        // Ensaio de orquestra: agrupa por instrumento, já que a chamada é sobre os naipes instrumentais.
+        chave = m.instrumento_voz || 'Outros'
+        ordem = `2-${chave}`
+      } else if (m.secao) {
+        // Regra geral: agrupa por voz/naipe, mesmo quem também toca instrumento —
+        // é a informação que a secretaria usa pra fazer a chamada do coral.
+        chave = m.secao
+        ordem = `1-${chave}`
+      } else if (isOrquestra(m)) {
+        // Sem voz cadastrada, mas toca instrumento: agrupa por instrumento como alternativa.
+        chave = `Orquestra · ${m.instrumento_voz || 'Outros'}`
+        ordem = `2-${chave}`
+      } else {
+        // Sem voz e sem instrumento: cai num grupo à parte, sempre por último.
+        chave = 'Sem seção'
+        ordem = `9-${chave}`
+      }
+      if (!grupos.has(chave)) grupos.set(chave, { chave, ordem, membros: [] })
+      grupos.get(chave).membros.push(m)
+    }
+    return [...grupos.values()].sort((a, b) => a.ordem.localeCompare(b.ordem, 'pt-BR'))
+  })()
+
+  const total = filteredMembers.length
+  const ausentes = filteredMembers.filter(m => presencas[m.id] === false).length
+  const presentes = total - ausentes
+  const faltasSemJustificativa = filteredMembers.filter(m => presencas[m.id] === false && !(justificativas[m.id] || '').trim()).length
+
+  const setPresenca = (id, valor) => setPresencas(p => ({ ...p, [id]: valor }))
 
   const updateJustificativa = (id, text) => setJustificativas(prev => ({ ...prev, [id]: text }))
 
@@ -1128,7 +1128,6 @@ function ChamadaTab({ members, isEditing = false, chamada = null, onSaveEdit = n
     } else {
       setLoading(true)
       try {
-        console.log('Salvando chamada:', { dataChamada, contextoChamada, registros })
         await saveAttendance(dataChamada, contextoChamada, registros)
         showToast('Chamada salva com sucesso!', 'success')
         setSuccess(true)
@@ -1148,168 +1147,176 @@ function ChamadaTab({ members, isEditing = false, chamada = null, onSaveEdit = n
 
   return (
     <div className="space-y-6">
-      <div className="bg-white dark:bg-[#2C2C2E] rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-4">
+      <div className="bg-white dark:bg-[#2C2C2E] rounded-2xl shadow-sm border border-gray-100 dark:border-gray-500 p-4">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Chamada</h3>
         <div className="flex flex-wrap items-end gap-4">
           <div>
-            <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Data</label>
-            <input type="date" value={dataChamada} onChange={(e) => setDataChamada(e.target.value)} className="input-apple w-auto" />
+            <label className="label mb-2">Data</label>
+            <input type="date" value={dataChamada} onChange={(e) => setDataChamada(e.target.value)} className="input w-auto" />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Contexto</label>
+            <label className="label mb-2">Contexto</label>
             <Select
               options={attendanceContexts.map(ctx => ({ value: ctx.label, label: ctx.label }))}
               value={contextoChamada}
-              onChange={(val) => { setContextoChamada(val); setFiltroGrupo(val.toLowerCase().includes('orquestra') ? 'orquestra' : 'todos'); setCurrentPage(1) }}
+              onChange={(val) => setContextoChamada(val)}
               size="sm"
             />
           </div>
           <div className="flex-1 min-w-[200px]">
-            <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Buscar</label>
+            <label className="label mb-2">Buscar</label>
             <div className="relative">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input type="text" placeholder="Buscar integrante..." value={searchChamada} onChange={(e) => { setSearchChamada(e.target.value); setCurrentPage(1) }} className="input-apple pl-10 w-full" />
+              <input type="text" placeholder="Buscar integrante..." aria-label="Buscar integrante" value={searchChamada} onChange={(e) => setSearchChamada(e.target.value)} className="input pl-10 w-full" />
             </div>
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Grupo</label>
-            <Select
-              options={[{ value: 'todos', label: 'Todos' }, { value: 'orquestra', label: 'Orquestra' }]}
-              value={filtroGrupo}
-              onChange={(val) => { setFiltroGrupo(val); setCurrentPage(1) }}
-              size="sm"
-            />
           </div>
         </div>
       </div>
 
-      <div className="bg-white dark:bg-[#2C2C2E] rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+      <div className="bg-white dark:bg-[#2C2C2E] rounded-2xl shadow-sm border border-gray-100 dark:border-gray-500 overflow-hidden">
         <div className="divide-y divide-gray-100 dark:divide-gray-700">
           {filteredMembers.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <ClipboardList size={40} className="text-gray-300 mb-3" />
-              <p className="text-base font-semibold text-gray-700 dark:text-gray-300">Nenhuma chamada registrada ainda</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Adicione membros ativos para começar a registrar chamadas.</p>
+              <p className="text-base font-semibold text-gray-700 dark:text-gray-300">Nenhum integrante encontrado</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{members.length === 0 ? 'Adicione membros ativos para começar a registrar chamadas.' : 'Ajuste a busca para encontrar quem procura.'}</p>
             </div>
           ) : (
-            paginatedMembers.map(member => {
-              const presente = presencas[member.id] !== false
-              const showJustificativa = presencas[member.id] === false
+            gruposOrdenados.map(grupo => {
+              const colapsado = !!secoesColapsadas[grupo.chave]
               return (
-                <div key={member.id} className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Avatar name={member.nome} size="sm" />
-                      <div>
-                        <p className="font-medium">{member.nome}</p>
-                        <p className="text-xs text-gray-500">{filtroGrupo === 'orquestra' ? (member.instrumento_voz || 'Orquestra') : (member.secao || member.instrumento_voz || 'Músico')}</p>
+              <div key={grupo.chave}>
+                {gruposOrdenados.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => toggleSecao(grupo.chave)}
+                    aria-expanded={!colapsado}
+                    className="w-full flex items-center justify-between gap-2 px-4 pt-3 pb-1 bg-gray-50/70 dark:bg-[#232325] hover:bg-gray-100 dark:hover:bg-[#2A2A2C] transition-colors"
+                  >
+                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{grupo.chave} · {grupo.membros.length}</p>
+                    <ChevronDown size={14} className={`text-gray-400 shrink-0 transition-transform duration-200 ${colapsado ? '-rotate-90' : ''}`} />
+                  </button>
+                )}
+                {!colapsado && (
+                <>
+                {grupo.membros.map(member => {
+                  const ausente = presencas[member.id] === false
+                  const motivoAberto = motivoAbertoId === member.id
+                  const temJustificativa = (justificativas[member.id] || '').trim() !== ''
+                  return (
+                    <div key={member.id} className={`p-3 sm:p-4 transition-colors ${ausente ? 'bg-red-50/60 dark:bg-red-900/10' : ''}`}>
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <Avatar name={member.nome} size="sm" />
+                          <div className="min-w-0">
+                            <p className={`font-medium truncate ${ausente ? 'text-gray-500 line-through decoration-red-300' : ''}`}>{member.nome}</p>
+                            <p className="text-xs text-gray-500 truncate">{grupoAtual === 'orquestra' ? (member.instrumento_voz || 'Orquestra') : (member.secao || member.instrumento_voz || 'Músico')}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          {!ausente ? (
+                            <button
+                              onClick={() => setPresenca(member.id, false)}
+                              aria-pressed={false}
+                              aria-label={`${member.nome}: marcar falta`}
+                              title="Marcar falta"
+                              className="h-10 px-4 rounded-full font-semibold text-sm transition-all bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-red-500 hover:text-white"
+                            >
+                              Falta
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => { setPresenca(member.id, true); setMotivoAbertoId(null) }}
+                              aria-pressed={true}
+                              aria-label={`${member.nome}: faltou, tocar para desfazer`}
+                              title="Desfazer falta"
+                              className="h-10 px-4 rounded-full font-semibold text-sm transition-all bg-red-500 text-white hover:bg-red-600"
+                            >
+                              Faltou
+                            </button>
+                          )}
+                        </div>
                       </div>
+                      {ausente && (
+                        motivoAberto || temJustificativa ? (
+                          <div className="mt-3 pl-11 flex items-center gap-2">
+                            <input
+                              type="text"
+                              placeholder="Motivo da falta (opcional)"
+                              aria-label={`Motivo da falta de ${member.nome}`}
+                              value={justificativas[member.id] || ''}
+                              onChange={(e) => updateJustificativa(member.id, e.target.value)}
+                              className="input text-sm flex-1"
+                            />
+                            {(justificativas[member.id] || '') !== '' && (
+                              <button
+                                onClick={() => updateJustificativa(member.id, '')}
+                                className="w-10 h-10 flex items-center justify-center rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors shrink-0"
+                                title="Apagar Justificativa"
+                                aria-label={`Apagar justificativa de ${member.nome}`}
+                              >
+                                <X size={18} />
+                              </button>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="mt-2 pl-11">
+                            <button
+                              onClick={() => setMotivoAbertoId(member.id)}
+                              className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full text-xs font-medium add-affordance transition-colors"
+                            >
+                              + motivo
+                            </button>
+                          </div>
+                        )
+                      )}
                     </div>
-                    <div className="flex items-center gap-2">
-                      <button onClick={() => togglePresenca(member.id)} className={`w-10 h-10 rounded-full font-semibold text-sm transition-all ${presente ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-400 hover:bg-green-100 hover:text-green-600'}`}>P</button>
-                      <button onClick={() => togglePresenca(member.id)} className={`w-10 h-10 rounded-full font-semibold text-sm transition-all ${!presente ? 'bg-red-500 text-white' : 'bg-gray-100 text-gray-400 hover:bg-green-100 hover:text-green-600'}`}>F</button>
-                    </div>
-                  </div>
-                  {showJustificativa && (
-                    <div className="mt-3 pl-11 flex items-center gap-2">
-                      <input
-                        type="text"
-                        placeholder="Adicionar motivo da falta (opcional)"
-                        value={justificativas[member.id] || ''}
-                        onChange={(e) => updateJustificativa(member.id, e.target.value)}
-                        className="input-apple text-sm flex-1"
-                      />
-                      <button
-                        onClick={() => updateJustificativa(member.id, '')}
-                        className="w-10 h-10 flex items-center justify-center rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors shrink-0"
-                        title="Apagar Justificativa"
-                      >
-                        <X size={18} />
-                      </button>
-                    </div>
-                  )}
-                </div>
+                  )
+                })}
+                </>
+                )}
+              </div>
               )
-            }))}
-          {filteredMembers.length > 0 && (
-            <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 dark:border-gray-700">
-              <div className="flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
-                <span>Mostrando</span>
-                <span className="font-semibold text-gray-900 dark:text-white">
-                  {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, filteredMembers.length)}
-                </span>
-                <span>de</span>
-                <span className="font-semibold text-gray-900 dark:text-white">{filteredMembers.length}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <select
-                  value={itemsPerPage}
-                  onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1) }}
-                  className="text-sm border-0 bg-gray-50 dark:bg-[#3A3A3C] rounded-lg px-2 py-1.5 text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-blue-500/30 cursor-pointer"
-                >
-                  <option value={5}>5</option>
-                  <option value={10}>10</option>
-                  <option value={20}>20</option>
-                  <option value={50}>50</option>
-                </select>
-                <div className="flex items-center gap-1 ml-2">
-                  <button
-                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                    disabled={currentPage === 1}
-                    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
-                  >
-                    <ChevronUp className="rotate-[-90deg]" size={18} />
-                  </button>
-                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                    let pageNum
-                    if (totalPages <= 5) {
-                      pageNum = i + 1
-                    } else if (currentPage <= 3) {
-                      pageNum = i + 1
-                    } else if (currentPage >= totalPages - 2) {
-                      pageNum = totalPages - 4 + i
-                    } else {
-                      pageNum = currentPage - 2 + i
-                    }
-                    return (
-                      <button
-                        key={pageNum}
-                        onClick={() => setCurrentPage(pageNum)}
-                        className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${currentPage === pageNum ? 'bg-blue-500 text-white' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
-                      >
-                        {pageNum}
-                      </button>
-                    )
-                  })}
-                  <button
-                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                    disabled={currentPage === totalPages}
-                    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
-                  >
-                    <ChevronUp className="rotate-[90deg]" size={18} />
-                  </button>
-                </div>
-              </div>
+            })
+          )}
+          {filteredMembers.length > 0 && total > 0 && (
+            <div className="px-4 py-3 border-t border-gray-100 dark:border-gray-500">
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {total} integrantes{searchChamada ? ' encontrados' : ''}
+              </p>
             </div>
           )}
         </div>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-[#1C1C1E]/80 backdrop-blur-md border-t border-gray-200 dark:border-gray-700 z-50">
-        <div className="max-w-7xl mx-auto px-8 py-4 flex justify-between items-center w-full">
-          <div className="flex gap-6">
-            <span className="font-bold text-gray-900 dark:text-white">{presentes} Presentes</span>
-            <span className="font-bold text-gray-900 dark:text-white">{ausentes} Ausentes</span>
+      <div className="fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-[#1C1C1E]/80 backdrop-blur-md border-t border-gray-200 dark:border-gray-500 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-8 py-3 flex justify-between items-center gap-3 w-full">
+          <div className="flex items-center gap-4 sm:gap-6 min-w-0">
+            <span className="font-bold text-gray-900 dark:text-white whitespace-nowrap">{presentes} presentes</span>
+            <span className={`font-bold whitespace-nowrap ${ausentes > 0 ? 'text-red-500' : 'text-gray-900 dark:text-white'}`}>{ausentes} {ausentes === 1 ? 'falta' : 'faltas'}</span>
+            {faltasSemJustificativa > 0 && (
+              <span className="hidden md:inline text-xs font-medium text-amber-600 dark:text-amber-400 truncate">{faltasSemJustificativa} sem motivo</span>
+            )}
           </div>
           {isEditing ? (
             <div className="flex gap-3">
-              <button onClick={onCancelEdit} className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-xl font-medium hover:bg-gray-200 dark:hover:bg-gray-600">Cancelar</button>
-              <button onClick={handleSave} className="bg-[#007AFF] text-white px-6 py-2 rounded-xl font-medium hover:bg-blue-600">Salvar Alterações</button>
+              <Button variant="secondary" onClick={onCancelEdit}>Cancelar</Button>
+              <button onClick={handleSave} className="bg-primary text-white px-6 py-2 rounded-xl font-medium hover:bg-primary-dark">Salvar Alterações</button>
             </div>
           ) : (
-            <button onClick={handleSave} disabled={loading || success} className="bg-[#007AFF] text-white px-6 py-2 rounded-xl font-medium hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
-              {loading ? 'Salvando...' : success ? 'Salvo com sucesso!' : 'Salvar Chamada'}
-            </button>
+            <div className="flex items-center gap-2 sm:gap-3">
+              {ausentes > 0 && (
+                <button
+                  onClick={() => { setPresencas({}); setJustificativas({}); setMotivoAbertoId(null) }}
+                  className="h-10 px-4 rounded-xl text-sm font-medium text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+                >
+                  Limpar
+                </button>
+              )}
+              <button onClick={handleSave} disabled={loading || success} className="bg-primary text-white px-6 py-2.5 rounded-xl font-medium hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed transition-all">
+                {loading ? 'Salvando...' : success ? 'Salvo com sucesso!' : 'Salvar chamada'}
+              </button>
+            </div>
           )}
         </div>
       </div>
@@ -1371,11 +1378,11 @@ function EdicaoChamadaForm({ chamada, members, onSave, onCancel }) {
     <div className="space-y-4">
       <div className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-[#3A3A3C] rounded-xl">
         <div className="text-center">
-          <p className="text-2xl font-bold text-green-600">{presentes}</p>
+          <p className="text-2xl font-bold text-green-600 tabular-nums">{presentes}</p>
           <p className="text-xs text-gray-500 dark:text-gray-400">Presentes</p>
         </div>
         <div className="text-center">
-          <p className="text-2xl font-bold text-red-500">{ausentes}</p>
+          <p className="text-2xl font-bold text-red-500 tabular-nums">{ausentes}</p>
           <p className="text-xs text-gray-500 dark:text-gray-400">Ausentes</p>
         </div>
       </div>
@@ -1388,7 +1395,7 @@ function EdicaoChamadaForm({ chamada, members, onSave, onCancel }) {
             placeholder="Buscar integrante..."
             value={searchEditar}
             onChange={(e) => { setSearchEditar(e.target.value); setCurrentPage(1) }}
-            className="input-apple pl-9 w-full text-sm"
+            className="input pl-9 w-full text-sm"
           />
         </div>
         <div>
@@ -1401,7 +1408,7 @@ function EdicaoChamadaForm({ chamada, members, onSave, onCancel }) {
         </div>
       </div>
 
-      <div className="border border-gray-100 dark:border-gray-700 rounded-xl overflow-hidden">
+      <div className="border border-gray-100 dark:border-gray-500 rounded-xl overflow-hidden">
         <div className="divide-y divide-gray-100 dark:divide-gray-700">
           {paginatedRegistros.map(reg => (
             <div key={reg.membro_id} className="flex items-center justify-between p-3 hover:bg-gray-50 dark:hover:bg-[#3A3A3C] transition-colors">
@@ -1430,7 +1437,7 @@ function EdicaoChamadaForm({ chamada, members, onSave, onCancel }) {
           ))}
         </div>
         {filteredRegistros.length > 0 && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 dark:border-gray-700">
+          <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 dark:border-gray-500">
             <div className="flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
               <span>Mostrando</span>
               <span className="font-semibold text-gray-900 dark:text-white">
@@ -1443,7 +1450,7 @@ function EdicaoChamadaForm({ chamada, members, onSave, onCancel }) {
               <select
                 value={itemsPerPage}
                 onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1) }}
-                className="text-sm border-0 bg-gray-50 dark:bg-[#3A3A3C] rounded-lg px-2 py-1.5 text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-blue-500/30 cursor-pointer"
+                className="text-sm border-0 bg-gray-50 dark:bg-[#3A3A3C] rounded-lg px-2 py-1.5 text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-primary/30 dark:focus:ring-blue-400/40 cursor-pointer"
               >
                 <option value={5}>5</option>
                 <option value={10}>10</option>
@@ -1468,7 +1475,7 @@ function EdicaoChamadaForm({ chamada, members, onSave, onCancel }) {
                     <button
                       key={pageNum}
                       onClick={() => setCurrentPage(pageNum)}
-                      className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${currentPage === pageNum ? 'bg-blue-500 text-white' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
+                      className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${currentPage === pageNum ? 'bg-primary text-white' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
                     >
                       {pageNum}
                     </button>
@@ -1487,8 +1494,8 @@ function EdicaoChamadaForm({ chamada, members, onSave, onCancel }) {
         )}
       </div>
 
-      <div className="flex gap-3 pt-4 border-t border-gray-100 dark:border-gray-700">
-        <button onClick={() => onSave(chamada.id, registros)} className="flex-1 bg-[#007AFF] text-white py-3 rounded-xl font-medium hover:bg-blue-600">
+      <div className="flex gap-3 pt-4 border-t border-gray-100 dark:border-gray-500">
+        <button onClick={() => onSave(chamada.id, registros)} className="flex-1 bg-primary text-white py-3 rounded-xl font-medium hover:bg-primary-dark">
           Salvar Alterações
         </button>
         <button onClick={onCancel} className="flex-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-3 rounded-xl font-medium hover:bg-gray-200 dark:hover:bg-gray-600">
@@ -1525,18 +1532,18 @@ function MemberForm({ member, onSave, onCancel, onDelete }) {
     <div className="space-y-6">
       <div className="grid grid-cols-3 gap-4">
         <div className="col-span-2">
-          <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Nome</label>
-          <input type="text" value={form.nome || ''} onChange={(e) => setForm(f => ({ ...f, nome: e.target.value }))} className="input-apple w-full" placeholder="Nome completo" />
+          <label className="label mb-2">Nome</label>
+          <input type="text" value={form.nome || ''} onChange={(e) => setForm(f => ({ ...f, nome: e.target.value }))} className="input w-full" placeholder="Nome completo" />
         </div>
         <div>
-          <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Nascimento</label>
-          <input type="date" value={form.data_nascimento || ''} onChange={(e) => setForm(f => ({ ...f, data_nascimento: e.target.value }))} className="input-apple w-full" />
+          <label className="label mb-2">Nascimento</label>
+          <input type="date" value={form.data_nascimento || ''} onChange={(e) => setForm(f => ({ ...f, data_nascimento: e.target.value }))} className="input w-full" />
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Telefone</label>
+          <label className="label mb-2">Telefone</label>
           <input type="text" value={form.telefone || ''} onChange={(e) => {
             let val = e.target.value.replace(/\D/g, '')
             if (val.length > 11) val = val.slice(0, 11)
@@ -1549,10 +1556,10 @@ function MemberForm({ member, onSave, onCancel, onDelete }) {
               formatted = `(${val.slice(0, 2)}) ${val.slice(2, 7)}-${val.slice(7)}`
             }
             setForm(f => ({ ...f, telefone: formatted }))
-          }} className="input-apple w-full" placeholder="(00) 00000-0000" />
+          }} className="input w-full" placeholder="(00) 00000-0000" />
         </div>
         <div>
-          <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Voz</label>
+          <label className="label mb-2">Voz</label>
           <Select
             options={[{ value: '', label: 'Selecionar...' }, ...voices.map(v => ({ value: v.label, label: v.label }))]}
             value={form.secao || ''}
@@ -1563,17 +1570,16 @@ function MemberForm({ member, onSave, onCancel, onDelete }) {
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Instrumentos</label>
+          <label className="label mb-2">Instrumentos</label>
           <MultiSelect
             options={instrumentOptions}
             values={form.instrumentos || []}
             onChange={(vals) => setForm(f => ({ ...f, instrumentos: vals }))}
             placeholder="Selecionar..."
-            color="purple"
           />
         </div>
         <div>
-          <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Funções</label>
+          <label className="label mb-2">Funções</label>
           <MultiSelect
             options={cargoOptions}
             values={form.cargos || []}
@@ -1584,7 +1590,7 @@ function MemberForm({ member, onSave, onCancel, onDelete }) {
       </div>
 
       <div>
-        <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Status</label>
+        <label className="label mb-2">Status</label>
         <Select
           options={statuses.map(s => ({ value: s.label, label: s.label }))}
           value={form.status || 'Ativo'}
@@ -1592,14 +1598,14 @@ function MemberForm({ member, onSave, onCancel, onDelete }) {
         />
       </div>
 
-      <div className="flex gap-3 pt-4 border-t border-gray-100 dark:border-gray-700">
+      <div className="flex gap-3 pt-4 border-t border-gray-100 dark:border-gray-500">
         {member && onDelete && (
           <button type="button" onClick={() => onDelete(member.id)} className="flex items-center justify-center bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 px-4 py-3 rounded-xl font-medium hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors" title="Excluir Integrante">
             <Trash2 size={20} />
           </button>
         )}
         <button onClick={onCancel} className="flex-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-3 rounded-xl font-medium hover:bg-gray-200 dark:hover:bg-gray-600">Cancelar</button>
-        <button onClick={() => onSave(form)} className="flex-1 bg-[#007AFF] text-white py-3 rounded-xl font-medium hover:bg-blue-600">{member ? 'Salvar Alterações' : 'Cadastrar'}</button>
+        <button onClick={() => onSave(form)} className="flex-1 bg-primary text-white py-3 rounded-xl font-medium hover:bg-primary-dark">{member ? 'Salvar Alterações' : 'Cadastrar'}</button>
       </div>
     </div>
   )
@@ -1639,7 +1645,7 @@ function JustificativasList({ alert, onSave, onCancel }) {
   return (
     <div className="space-y-3">
       {faltas.map(falta => (
-        <div key={falta.call.id} className="bg-gray-50 dark:bg-[#3A3A3C] rounded-xl p-3 border border-gray-100 dark:border-gray-700">
+        <div key={falta.call.id} className="bg-gray-50 dark:bg-[#3A3A3C] rounded-xl p-3 border border-gray-100 dark:border-gray-500">
           <div className="flex items-center gap-2 mb-2">
             <span className="font-semibold text-gray-700 dark:text-gray-300 text-sm">{formatarData(falta.call.data)}</span>
             <span className="text-xs text-gray-500 dark:text-gray-400">- {falta.call.contexto || falta.call.tipo}</span>
@@ -1651,7 +1657,7 @@ function JustificativasList({ alert, onSave, onCancel }) {
               value={justificativas[falta.call.id] || ''}
               onChange={(e) => updateJustificativa(falta.call.id, e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') handleSalvar() }}
-              className="input-apple text-sm flex-1"
+              className="input text-sm flex-1"
             />
             <button
               onClick={() => updateJustificativa(falta.call.id, '')}
@@ -1667,7 +1673,7 @@ function JustificativasList({ alert, onSave, onCancel }) {
         <button onClick={onCancel} className="flex-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-3 rounded-xl font-medium hover:bg-gray-200 dark:hover:bg-gray-600">
           Cancelar
         </button>
-        <button onClick={handleSalvar} className="flex-1 bg-[#007AFF] text-white py-3 rounded-xl font-medium hover:bg-blue-600">
+        <button onClick={handleSalvar} className="flex-1 bg-primary text-white py-3 rounded-xl font-medium hover:bg-primary-dark">
           {mode === 'justificadas' ? 'Salvar Alterações' : 'Salvar Justificativas'}
         </button>
       </div>
@@ -1676,8 +1682,6 @@ function JustificativasList({ alert, onSave, onCancel }) {
 }
 
 function EdicaoDrawer({ chamada, members, onSave, onDelete, onClose }) {
-  console.log('EdicaoDrawer received:', { chamada: { id: chamada?.id, data: chamada?.data, registros: chamada?.registros_json }, membersCount: members?.length })
-
   const attendanceContexts = useSettingsStore((s) => s.attendanceContexts) || []
   const registrosChamada = chamada?.registros_json || chamada?.registros || []
   const temRegistros = registrosChamada && registrosChamada.length > 0
@@ -1720,7 +1724,7 @@ function EdicaoDrawer({ chamada, members, onSave, onDelete, onClose }) {
   const presentes = membersDoGrupo.filter(m => presenteKey(m)).length
   const ausentes = membersDoGrupo.filter(m => ausenteKey(m)).length
 
-  const togglePresenca = (id) => setPresencas(p => ({ ...p, [id]: p[id] === false ? true : false }))
+  const setPresenca = (id, valor) => setPresencas(p => ({ ...p, [id]: valor }))
   const updateJustificativa = (id, text) => setJustificativas(prev => ({ ...prev, [id]: text }))
 
   const handleSalvar = async () => {
@@ -1729,7 +1733,6 @@ function EdicaoDrawer({ chamada, members, onSave, onDelete, onClose }) {
       presente: presencas[m.id] !== false,
       justificativa: justificativas[m.id] || ''
     }))
-    console.log('Salvando chamada:', { chamadaId: chamada.id, registros, contexto })
     try {
       await onSave(chamada.id, registros, contexto)
       onClose()
@@ -1752,7 +1755,7 @@ function EdicaoDrawer({ chamada, members, onSave, onDelete, onClose }) {
   const titulo = `Editando Chamada - ${formatarDataEdicao(chamada.data)}`
 
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 flex items-center justify-center p-4">
       <div className="w-full max-w-4xl bg-white dark:bg-[#1C1C1E] rounded-2xl shadow-2xl flex flex-col max-h-[85vh] overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100 dark:border-[#3A3A3C] flex justify-between items-center bg-white dark:bg-[#1C1C1E]">
           <h2 className="text-xl font-bold text-gray-900 dark:text-white">{titulo}</h2>
@@ -1761,7 +1764,7 @@ function EdicaoDrawer({ chamada, members, onSave, onDelete, onClose }) {
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6 bg-[#F5F5F7] dark:bg-[#000000]">
+        <div className="flex-1 overflow-y-auto p-6 bg-[#F5F5F7] dark:bg-[#1C1C1E]">
           <div className="bg-white dark:bg-[#2C2C2E] rounded-xl shadow-sm p-3 mb-3 flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -1770,7 +1773,7 @@ function EdicaoDrawer({ chamada, members, onSave, onDelete, onClose }) {
                 placeholder="Buscar integrante..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="input-apple pl-10 w-full"
+                className="input pl-10 w-full"
               />
             </div>
             <Select
@@ -1801,8 +1804,8 @@ function EdicaoDrawer({ chamada, members, onSave, onDelete, onClose }) {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <button onClick={() => togglePresenca(member.id)} className={`w-10 h-10 rounded-full font-semibold text-sm transition-all ${presente ? 'bg-green-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-400 hover:bg-green-100 dark:hover:bg-green-900/30 hover:text-green-600'}`}>P</button>
-                    <button onClick={() => togglePresenca(member.id)} className={`w-10 h-10 rounded-full font-semibold text-sm transition-all ${!presente ? 'bg-red-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-400 hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-600'}`}>F</button>
+                    <button onClick={() => setPresenca(member.id, true)} aria-pressed={presente} aria-label={`${member.nome}: presente`} className={`w-10 h-10 rounded-full font-semibold text-sm transition-all ${presente ? 'bg-green-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-400 hover:bg-green-100 dark:hover:bg-green-900/30 hover:text-green-600'}`}>P</button>
+                    <button onClick={() => setPresenca(member.id, false)} aria-pressed={!presente} aria-label={`${member.nome}: falta`} className={`w-10 h-10 rounded-full font-semibold text-sm transition-all ${!presente ? 'bg-red-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-400 hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-600'}`}>F</button>
                   </div>
                 </div>
                 {showJustificativa && (
@@ -1812,7 +1815,7 @@ function EdicaoDrawer({ chamada, members, onSave, onDelete, onClose }) {
                       placeholder="Adicionar motivo da falta (opcional)"
                       value={justificativas[member.id] || ''}
                       onChange={(e) => updateJustificativa(member.id, e.target.value)}
-                      className="input-apple text-sm flex-1"
+                      className="input text-sm flex-1"
                     />
                     <button
                       onClick={() => updateJustificativa(member.id, '')}
@@ -1828,15 +1831,15 @@ function EdicaoDrawer({ chamada, members, onSave, onDelete, onClose }) {
           })}
         </div>
 
-        <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-700 bg-white dark:bg-[#1C1C1E] flex justify-between items-center">
+        <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-500 bg-white dark:bg-[#1C1C1E] flex justify-between items-center">
           <div className="flex gap-6">
             <span className="font-bold text-gray-900 dark:text-white">{presentes} Presentes</span>
             <span className="font-bold text-gray-900 dark:text-white">{ausentes} Ausentes</span>
           </div>
           <div className="flex gap-3">
-            <button onClick={() => { if (confirm('Tem certeza que deseja excluir esta chamada?')) { onDelete(chamada.id).then(onClose).catch(console.error) } }} className="px-4 py-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl font-medium hover:bg-red-100 dark:hover:bg-red-900/30">Excluir</button>
+            <button onClick={() => onDelete(chamada.id)} className="px-4 py-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl font-medium hover:bg-red-100 dark:hover:bg-red-900/30">Excluir</button>
             <button onClick={onClose} className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-xl font-medium hover:bg-gray-200 dark:hover:bg-gray-600">Cancelar</button>
-            <button onClick={handleSalvar} className="px-6 py-2 bg-[#007AFF] text-white rounded-xl font-medium hover:bg-blue-600">Salvar Alterações</button>
+            <button onClick={handleSalvar} className="px-6 py-2 bg-primary text-white rounded-xl font-medium hover:bg-primary-dark">Salvar Alterações</button>
           </div>
         </div>
       </div>

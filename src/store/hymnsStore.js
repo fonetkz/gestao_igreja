@@ -241,6 +241,7 @@ const useHymnsStore = create(
           await get().updateHymn(hymnId, { data_ultima_apresentacao: data_culto })
         }
       }
+      return data
     } catch (error) {
       console.error('Erro ao confirmar programação', error)
       throw error
@@ -317,8 +318,10 @@ const useHymnsStore = create(
             : p
         )
       }))
+      return true
     } catch (error) {
       console.error('Erro ao salvar layout de impressão', error)
+      return false
     }
   },
 

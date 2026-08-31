@@ -10,12 +10,14 @@ export default function Toast() {
     return (
         <div className="fixed top-[72px] right-4 z-[300] pointer-events-none">
             <div
+                role={isError ? 'alert' : 'status'}
+                aria-live={isError ? 'assertive' : 'polite'}
                 style={{
                     animation: isExiting
                         ? 'toastOut 0.25s cubic-bezier(0.4, 0, 1, 1) forwards'
                         : 'toastIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards'
                 }}
-                className="pointer-events-auto bg-white dark:bg-[#2C2C2E] border border-gray-200 dark:border-gray-700 shadow-xl rounded-2xl px-4 py-3 flex items-center gap-3 min-w-[220px] max-w-sm"
+                className="pointer-events-auto card shadow-high px-4 py-3 flex items-center gap-3 min-w-[220px] max-w-sm"
             >
                 <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${isError ? 'bg-red-100 dark:bg-red-900/30 text-red-500' : 'bg-green-100 dark:bg-green-900/30 text-green-600'}`}>
                     {isError ? (

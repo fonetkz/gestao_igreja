@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowRight, Shield, Globe, Sun, Moon, Eye, EyeOff } from 'lucide-react'
 import useAuthStore from '../store/authStore'
+import useTheme from '../hooks/useTheme'
 import api from '../services/api'
 
 export default function LoginPage() {
@@ -21,31 +22,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [showNewPassword, setShowNewPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    try {
-      if (typeof window !== 'undefined') {
-        if ('gestao_igreja_theme' in localStorage) {
-          return localStorage.getItem('gestao_igreja_theme') === 'dark'
-        }
-        return false
-      }
-    } catch (e) {
-      return false
-    }
-    return false
-  })
-
-  // Sincroniza o tema na montagem e sempre que isDarkMode mudar
-  useEffect(() => {
-    const root = window.document.documentElement
-    if (isDarkMode) {
-      root.classList.add('dark')
-      localStorage.setItem('gestao_igreja_theme', 'dark')
-    } else {
-      root.classList.remove('dark')
-      localStorage.setItem('gestao_igreja_theme', 'light')
-    }
-  }, [isDarkMode])
+  const [isDarkMode, toggleDarkMode] = useTheme()
 
   const login = useAuthStore((s) => s.login)
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
@@ -187,8 +164,8 @@ export default function LoginPage() {
         }}
       >
         {/* Animated Glowing Orbs */}
-        <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-blue-600/30 mix-blend-screen filter blur-[120px] animate-pulse" style={{ animationDuration: '4s' }} />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[400px] h-[400px] rounded-full bg-purple-600/20 mix-blend-screen filter blur-[120px] animate-pulse" style={{ animationDuration: '5s', animationDelay: '1s' }} />
+        <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-primary/30 mix-blend-screen filter blur-[120px] animate-pulse" style={{ animationDuration: '4s' }} />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[400px] h-[400px] rounded-full bg-primary-light/20 mix-blend-screen filter blur-[120px] animate-pulse" style={{ animationDuration: '5s', animationDelay: '1s' }} />
 
         {/* Background architectural pattern */}
         <div className="absolute inset-0 opacity-10">
@@ -231,7 +208,7 @@ export default function LoginPage() {
             <h1 className="text-5xl font-bold text-white leading-tight mb-6">
               Gestão Igreja
             </h1>
-            <p className="text-blue-200 text-base leading-relaxed">
+            <p className="text-blue-100/80 text-base leading-relaxed">
               Gerencie membros, programações e chamadas de forma simples, moderna e eficiente.
             </p>
           </div>
@@ -241,13 +218,13 @@ export default function LoginPage() {
       {/* ===== Right Panel — 40% ===== */}
       <div className="flex-1 lg:w-[40%] bg-slate-50 dark:bg-[#0a0f1c] relative flex flex-col transition-colors duration-300 overflow-hidden">
         {/* Subtle Dotted Grid */}
-        <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at center, #94a3b8 1px, transparent 1px)', backgroundSize: '24px 24px', opacity: 0.1 }} />
+        <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at center, #9CA3AF 1px, transparent 1px)', backgroundSize: '24px 24px', opacity: 0.1 }} />
 
         <div className="flex-1 flex items-center justify-center px-8 py-12 relative z-10">
           <div className="w-full max-w-sm">
             {/* Card */}
             <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-3xl shadow-2xl shadow-slate-200/50 dark:shadow-black/80 border border-white/40 dark:border-slate-700/50 p-10 transition-all duration-300 relative overflow-hidden">
-              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-indigo-500 opacity-80" />
+              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-primary-light to-primary opacity-80" />
               <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight mb-2">
                 {isForgotPasswordMode ? 'Recuperar Senha' : 'Bem-vindo de volta'}
               </h2>
@@ -262,7 +239,7 @@ export default function LoginPage() {
                   !isCodeValidated ? (
                     <form onSubmit={handleValidateCode} className="space-y-6">
                       <div>
-                        <label className="label-uppercase" htmlFor="reset-token">
+                        <label className="label" htmlFor="reset-token">
                           Código de Verificação
                         </label>
                         <input
@@ -271,7 +248,7 @@ export default function LoginPage() {
                           value={resetToken}
                           onChange={(e) => setResetToken(e.target.value.toUpperCase())}
                           placeholder="Ex: A1B2C3D4"
-                          className="input-base mt-1 font-mono uppercase tracking-widest dark:bg-slate-900 dark:border-slate-700 dark:text-white"
+                          className="input mt-1 font-mono uppercase tracking-widest dark:bg-slate-900 dark:border-slate-700 dark:text-white"
                           autoComplete="off"
                           disabled={loading}
                           maxLength={8}
@@ -295,7 +272,7 @@ export default function LoginPage() {
                         <button
                           type="submit"
                           disabled={loading}
-                          className="w-full bg-slate-900 dark:bg-blue-600 hover:bg-slate-800 dark:hover:bg-blue-500 text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-slate-900/20 dark:shadow-blue-900/20 hover:shadow-xl hover:-translate-y-0.5 active:scale-[0.98]"
+                          className="w-full bg-primary hover:bg-primary-dark text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-primary/25 hover:shadow-xl hover:-translate-y-0.5 active:scale-[0.98]"
                         >
                           {loading ? (
                             <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
@@ -328,7 +305,7 @@ export default function LoginPage() {
                   ) : (
                     <form onSubmit={handleResetPassword} className="space-y-6">
                       <div>
-                        <label className="label-uppercase" htmlFor="new-password">
+                        <label className="label" htmlFor="new-password">
                           Nova Senha
                         </label>
                         <div className="relative">
@@ -338,7 +315,7 @@ export default function LoginPage() {
                             value={newPassword}
                             onChange={(e) => setNewPassword(e.target.value)}
                             placeholder="••••••••"
-                            className="input-base mt-1 pr-10 dark:bg-slate-900 dark:border-slate-700 dark:text-white w-full"
+                            className="input mt-1 pr-10 dark:bg-slate-900 dark:border-slate-700 dark:text-white w-full"
                             autoComplete="new-password"
                             disabled={loading}
                           />
@@ -352,7 +329,7 @@ export default function LoginPage() {
                         </div>
                       </div>
                       <div>
-                        <label className="label-uppercase" htmlFor="confirm-password">
+                        <label className="label" htmlFor="confirm-password">
                           Confirmar Nova Senha
                         </label>
                         <div className="relative">
@@ -362,7 +339,7 @@ export default function LoginPage() {
                             value={confirmPassword}
                             onChange={(e) => setConfirmPassword(e.target.value)}
                             placeholder="••••••••"
-                            className="input-base mt-1 pr-10 dark:bg-slate-900 dark:border-slate-700 dark:text-white w-full"
+                            className="input mt-1 pr-10 dark:bg-slate-900 dark:border-slate-700 dark:text-white w-full"
                             autoComplete="new-password"
                             disabled={loading}
                           />
@@ -393,7 +370,7 @@ export default function LoginPage() {
                         <button
                           type="submit"
                           disabled={loading}
-                          className="w-full bg-slate-900 dark:bg-blue-600 hover:bg-slate-800 dark:hover:bg-blue-500 text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-slate-900/20 dark:shadow-blue-900/20 hover:shadow-xl hover:-translate-y-0.5 active:scale-[0.98]"
+                          className="w-full bg-primary hover:bg-primary-dark text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-primary/25 hover:shadow-xl hover:-translate-y-0.5 active:scale-[0.98]"
                         >
                           {loading ? (
                             <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
@@ -428,7 +405,7 @@ export default function LoginPage() {
                   <form onSubmit={handleForgotPassword} className="space-y-6">
                     {/* Recovery Email */}
                     <div>
-                      <label className="label-uppercase" htmlFor="recovery-email">
+                      <label className="label" htmlFor="recovery-email">
                         Endereço de E-mail
                       </label>
                       <input
@@ -437,7 +414,7 @@ export default function LoginPage() {
                         value={recoveryEmail}
                         onChange={(e) => setRecoveryEmail(e.target.value)}
                         placeholder="admin@igreja.com"
-                        className="input-base mt-1 dark:bg-slate-900 dark:border-slate-700 dark:text-white"
+                        className="input mt-1 dark:bg-slate-900 dark:border-slate-700 dark:text-white"
                         autoComplete="off"
                         disabled={loading}
                       />
@@ -460,7 +437,7 @@ export default function LoginPage() {
                       <button
                         type="submit"
                         disabled={loading}
-                        className="w-full bg-slate-900 dark:bg-blue-600 hover:bg-slate-800 dark:hover:bg-blue-500 text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-slate-900/20 dark:shadow-blue-900/20 hover:shadow-xl hover:-translate-y-0.5 active:scale-[0.98]"
+                        className="w-full bg-primary hover:bg-primary-dark text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-primary/25 hover:shadow-xl hover:-translate-y-0.5 active:scale-[0.98]"
                       >
                         {loading ? (
                           <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
@@ -490,7 +467,7 @@ export default function LoginPage() {
                 <form onSubmit={handleSubmit} className="space-y-6">
                   {/* Email */}
                   <div>
-                    <label className="label-uppercase" htmlFor="login-email">
+                    <label className="label" htmlFor="login-email">
                       Endereço de E-mail
                     </label>
                     <input
@@ -499,7 +476,7 @@ export default function LoginPage() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="admin@igreja.com"
-                      className="input-base mt-1 dark:bg-slate-900 dark:border-slate-700 dark:text-white"
+                      className="input mt-1 dark:bg-slate-900 dark:border-slate-700 dark:text-white"
                       autoComplete="off"
                       disabled={loading}
                     />
@@ -507,7 +484,7 @@ export default function LoginPage() {
 
                   {/* Password */}
                   <div>
-                    <label className="label-uppercase" htmlFor="login-password">
+                    <label className="label" htmlFor="login-password">
                       Senha
                     </label>
                     <div className="relative">
@@ -517,7 +494,7 @@ export default function LoginPage() {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="••••••••"
-                        className="input-base mt-1 pr-10 dark:bg-slate-900 dark:border-slate-700 dark:text-white w-full"
+                        className="input mt-1 pr-10 dark:bg-slate-900 dark:border-slate-700 dark:text-white w-full"
                         autoComplete="new-password"
                         disabled={loading}
                       />
@@ -550,7 +527,7 @@ export default function LoginPage() {
                           setError('')
                           setMessage('')
                         }}
-                        className="text-[10px] font-bold uppercase tracking-wider text-[#007AFF] hover:text-[#0062CC] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="text-[10px] font-bold uppercase tracking-wider text-primary dark:text-blue-300 hover:text-primary-light dark:hover:text-blue-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         Esqueceu?
                       </button>
@@ -575,10 +552,10 @@ export default function LoginPage() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full bg-slate-900 dark:bg-blue-600 hover:bg-slate-800 dark:hover:bg-blue-500 text-white font-bold py-3.5 rounded-xl
+                    className="w-full bg-primary hover:bg-primary-dark text-white font-bold py-3.5 rounded-xl
                              flex items-center justify-center gap-2 transition-all duration-200
                              disabled:opacity-50 disabled:cursor-not-allowed
-                             shadow-lg shadow-slate-900/20 dark:shadow-blue-900/20 hover:shadow-xl hover:-translate-y-0.5 active:scale-[0.98]"
+                             shadow-lg shadow-primary/25 hover:shadow-xl hover:-translate-y-0.5 active:scale-[0.98]"
                   >
                     {loading ? (
                       <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
@@ -603,7 +580,7 @@ export default function LoginPage() {
                     href="https://wa.me/5517991825818?text=Olá%20gostaria%20de%20solicitar%20meu%20acesso"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="font-semibold text-gray-900 dark:text-white hover:text-[#007AFF] dark:hover:text-blue-400 transition-colors inline-block"
+                    className="font-semibold text-gray-900 dark:text-white hover:text-primary-light dark:hover:text-blue-300 transition-colors inline-block"
                   >
                     Solicitar Acesso
                   </a>
@@ -621,7 +598,7 @@ export default function LoginPage() {
           <div className="flex items-center gap-3">
             <button
               type="button"
-              onClick={() => setIsDarkMode(!isDarkMode)}
+              onClick={toggleDarkMode}
               className="p-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-slate-800 transition-colors text-gray-500 dark:text-slate-400"
               title="Alternar Tema"
             >

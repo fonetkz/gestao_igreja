@@ -216,6 +216,46 @@ class ProgramacaoUpdate(SQLModel):
 
 
 # ═══════════════════════════════════════════════════════════
+# Eventos (Cronograma de reuniões especiais)
+# ═══════════════════════════════════════════════════════════
+
+class EventoBase(SQLModel):
+    titulo: str = Field(max_length=160, index=True)
+    data: str = Field(max_length=10, index=True)
+    hora_inicio: Optional[str] = Field(default=None, max_length=5)
+    local: Optional[str] = Field(default=None, max_length=200)
+    observacoes: Optional[str] = Field(default=None)
+
+    @field_validator('titulo')
+    @classmethod
+    def validate_titulo(cls, v):
+        if not v or not v.strip():
+            raise ValueError('Título não pode estar vazio')
+        return v.strip()
+
+
+class Evento(EventoBase, table=True):
+    __tablename__ = "eventos"
+    id: Optional[int] = Field(default=None, primary_key=True)
+
+
+class EventoCreate(EventoBase):
+    pass
+
+
+class EventoRead(EventoBase):
+    id: int
+
+
+class EventoUpdate(SQLModel):
+    titulo: Optional[str] = None
+    data: Optional[str] = None
+    hora_inicio: Optional[str] = None
+    local: Optional[str] = None
+    observacoes: Optional[str] = None
+
+
+# ═══════════════════════════════════════════════════════════
 # Configurações (Settings KV store)
 # ═══════════════════════════════════════════════════════════
 

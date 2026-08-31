@@ -7,7 +7,6 @@ import MembersPage from './pages/MembersPage'
 import ProgrammingPage from './pages/ProgrammingPage'
 import HymnPrintPage from './pages/HymnPrintPage'
 import SettingsPage from './pages/SettingsPage'
-import AccountSettingsPage from './pages/AccountSettingsPage'
 import ResetPasswordPage from './pages/ResetPasswordPage'
 import Toast from './components/ui/Toast'
 
@@ -24,7 +23,6 @@ export default function App() {
           <Route path="/programacao" element={<ProgrammingPage />} />
           <Route path="/impressao" element={<HymnPrintPage />} />
           <Route path="/configuracoes" element={<SettingsPage />} />
-          <Route path="/conta" element={<AccountSettingsPage />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/dashboard" replace />} />

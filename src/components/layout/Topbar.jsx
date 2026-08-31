@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { Bell, LayoutDashboard, Search, ChevronDown, Users, Music, LogOut, Pencil, Settings, Sun, Moon } from 'lucide-react'
+import { Bell, LayoutDashboard, Search, ChevronDown, Users, Music, LogOut, Pencil, Settings, Sun, Moon, WifiOff } from 'lucide-react'
 import Avatar from '../ui/Avatar'
 import useAuthStore from '../../store/authStore'
 import useMembersStore from '../../store/membersStore'
+import useOnlineStatus from '../../hooks/useOnlineStatus'
+import useTheme from '../../hooks/useTheme'
 
 const pageItems = [
   { to: '/dashboard', label: 'Painel', icon: LayoutDashboard },
@@ -22,28 +24,9 @@ export default function Topbar({ title = 'Gestão Igreja', searchPlaceholder, on
   const menuRef = useRef(null)
   const [logoError, setLogoError] = useState(false)
   const location = useLocation()
+  const isOnline = useOnlineStatus()
 
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    try {
-      return localStorage.getItem('gestao_igreja_theme') === 'dark'
-    } catch { return false }
-  })
-
-  // Sincroniza o tema na montagem e sempre que isDarkMode mudar
-  useEffect(() => {
-    const root = document.documentElement
-    if (isDarkMode) {
-      root.classList.add('dark')
-      localStorage.setItem('gestao_igreja_theme', 'dark')
-    } else {
-      root.classList.remove('dark')
-      localStorage.setItem('gestao_igreja_theme', 'light')
-    }
-  }, [isDarkMode])
-
-  const toggleDarkMode = () => {
-    setIsDarkMode(prev => !prev)
-  }
+  const [isDarkMode, toggleDarkMode] = useTheme()
 
   const hasAlerts = useMemo(() => {
     if (!members.length || !attendance.length) return false
@@ -91,6 +74,7 @@ export default function Topbar({ title = 'Gestão Igreja', searchPlaceholder, on
   }
 
   return (
+    <>
     <header className="sticky top-0 z-[200] glass">
       <div className="max-w-7xl mx-auto px-6 py-3">
         <div className="flex items-center justify-between">
@@ -104,7 +88,7 @@ export default function Topbar({ title = 'Gestão Igreja', searchPlaceholder, on
                 onError={() => setLogoError(true)}
               />
             ) : (
-              <div className="w-8 h-8 rounded-xl bg-[#007AFF] flex items-center justify-center shadow-lg shadow-blue-500/20">
+              <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-blue-500/20">
                 <Music size={16} className="text-white" />
               </div>
             )}
@@ -141,6 +125,7 @@ export default function Topbar({ title = 'Gestão Igreja', searchPlaceholder, on
                 <input
                   type="text"
                   placeholder={searchPlaceholder}
+                  aria-label="Buscar"
                   onChange={(e) => onSearch?.(e.target.value)}
                   className="w-64 pl-9 pr-4 py-2 bg-gray-100 dark:bg-[#3A3A3C] border-0 rounded-xl text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 focus:bg-white dark:focus:bg-[#48484A] focus:ring-2 focus:ring-blue-500/30 focus:outline-none transition-all"
                 />
@@ -150,6 +135,7 @@ export default function Topbar({ title = 'Gestão Igreja', searchPlaceholder, on
             {/* Dark Mode Toggle */}
             <button
               onClick={toggleDarkMode}
+              aria-label={isDarkMode ? 'Ativar modo claro' : 'Ativar modo escuro'}
               className="p-2.5 rounded-xl text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-all duration-200"
               title={isDarkMode ? 'Modo Claro' : 'Modo Escuro'}
             >
@@ -159,6 +145,7 @@ export default function Topbar({ title = 'Gestão Igreja', searchPlaceholder, on
             {/* Notifications */}
             <Link
               to="/membros?view=alertas"
+              aria-label="Alertas de faltas não justificadas"
               className="relative p-2.5 rounded-xl text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-all duration-200"
               title="Membros ativos com 3 ou mais faltas não justificadas no mês selecionado."
             >
@@ -174,6 +161,8 @@ export default function Topbar({ title = 'Gestão Igreja', searchPlaceholder, on
             <div className="relative" ref={menuRef}>
               <button
                 onClick={() => setMenuOpen(!menuOpen)}
+                aria-label="Menu do usuário"
+                aria-expanded={menuOpen}
                 className="flex items-center gap-2 p-1.5 pr-3 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-all duration-200"
               >
                 <Avatar name={user?.nome || user?.name || 'Admin'} size="sm" />
@@ -185,7 +174,7 @@ export default function Topbar({ title = 'Gestão Igreja', searchPlaceholder, on
 
               {/* Dropdown */}
               {menuOpen && (
-                <div className="absolute right-0 mt-2 w-56 bg-white/95 dark:bg-[#2C2C2E]/95 backdrop-blur-xl rounded-2xl border border-gray-100 dark:border-gray-700/50 shadow-lg overflow-hidden animate-slide-down">
+                <div className="absolute right-0 mt-2 w-56 bg-white/95 dark:bg-[#2C2C2E]/95 backdrop-blur-xl rounded-2xl border border-gray-100 dark:border-gray-500/50 shadow-lg overflow-hidden animate-slide-down">
                   <div className="p-2 flex flex-col gap-1">
                     <Link
                       to="/configuracoes?section=perfil"
@@ -219,5 +208,12 @@ export default function Topbar({ title = 'Gestão Igreja', searchPlaceholder, on
         </div>
       </div>
     </header>
+    {!isOnline && (
+      <div className="bg-amber-50 dark:bg-amber-900/20 border-b border-amber-200 dark:border-amber-800/30 px-4 py-1.5 flex items-center justify-center gap-2 text-xs font-medium text-amber-700 dark:text-amber-300 animate-fade-in">
+        <WifiOff size={13} />
+        <span>Sem conexão — os dados salvos continuam disponíveis</span>
+      </div>
+    )}
+    </>
   )
 }

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import Button from '../components/ui/Button'
 import { useSearchParams } from 'react-router-dom'
 import { Plus, Trash2, Check, User, Lock, Eye, EyeOff, Save, Shield, ChevronDown, Music, Users, Calendar, Award, Edit2, X, Loader2, Mail, AlertTriangle, CheckCircle } from 'lucide-react'
 import Topbar from '../components/layout/Topbar'
@@ -37,14 +38,14 @@ function AccordionItem({ listName, title, icon: Icon }) {
   }
 
   return (
-    <div className="apple-card overflow-hidden">
+    <div className="card overflow-hidden">
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors"
       >
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-            <Icon size={20} className="text-blue-600 dark:text-blue-400" />
+          <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+            <Icon size={20} className="text-primary dark:text-blue-300" />
           </div>
           <div className="text-left">
             <h4 className="font-semibold text-gray-900 dark:text-white">{title}</h4>
@@ -55,7 +56,7 @@ function AccordionItem({ listName, title, icon: Icon }) {
       </button>
 
       {isOpen && (
-        <div className="px-4 pb-4 border-t border-gray-100 dark:border-gray-700 animate-fade-in">
+        <div className="px-4 pb-4 border-t border-gray-100 dark:border-gray-500 animate-fade-in">
           <div className="py-3 space-y-2">
             {items.length === 0 && (
               <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-3">Nenhum item cadastrado</p>
@@ -68,7 +69,7 @@ function AccordionItem({ listName, title, icon: Icon }) {
                     value={editLabel}
                     onChange={(e) => setEditLabel(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSaveEdit(item.id)}
-                    className="flex-1 bg-white dark:bg-gray-600 border border-blue-400 rounded-lg px-2 py-1 text-sm text-gray-900 dark:text-white focus:outline-none"
+                    className="flex-1 bg-white dark:bg-gray-600 border border-primary/40 rounded-lg px-2 py-1 text-sm text-gray-900 dark:text-white focus:outline-none"
                   />
                 ) : (
                   <span className="text-sm font-medium text-gray-700 dark:text-gray-200">{item.label}</span>
@@ -79,7 +80,7 @@ function AccordionItem({ listName, title, icon: Icon }) {
                       <Check size={14} />
                     </button>
                   ) : (
-                    <button onClick={() => handleStartEdit(item)} className="p-1.5 text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg">
+                    <button onClick={() => handleStartEdit(item)} className="p-1.5 text-gray-400 hover:text-primary dark:hover:text-blue-300 hover:bg-primary/5 rounded-lg">
                       <Edit2 size={14} />
                     </button>
                   )}
@@ -96,12 +97,12 @@ function AccordionItem({ listName, title, icon: Icon }) {
               value={newLabel}
               onChange={(e) => setNewLabel(e.target.value)}
               placeholder="Novo item..."
-              className="input-apple flex-1"
+              className="input flex-1"
               onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
             />
-            <button onClick={handleAdd} className="btn-apple-primary px-3">
+            <Button onClick={handleAdd} variant="primary" className="px-3">
               <Plus size={16} />
-            </button>
+            </Button>
           </div>
         </div>
       )}
@@ -176,7 +177,7 @@ export default function SettingsPage() {
         setEmailCodeError('')
       } catch (err) {
         console.error(err)
-        alert('Erro ao solicitar troca de e-mail.')
+        setProfileError('Erro ao solicitar troca de e-mail.')
       } finally {
         setIsEmailLoading(false)
       }
@@ -270,13 +271,13 @@ export default function SettingsPage() {
   }, [isAdmin, activeSection])
 
   return (
-    <div className="min-h-screen pb-12 bg-[#F5F5F7] dark:bg-[#1C1C1E]">
+    <div className="min-h-screen pb-12">
       <Topbar title="Gestão Igreja" />
 
       <div className="px-8 max-w-7xl mx-auto mt-8">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-semibold text-gray-900 dark:text-white">Configurações</h1>
+            <h1 className="heading-1">Configurações</h1>
             <p className="text-gray-500 dark:text-gray-400 mt-1">Gerencie suas informações e preferências do sistema.</p>
           </div>
         </div>
@@ -284,7 +285,7 @@ export default function SettingsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Sidebar */}
           <div className="lg:col-span-1">
-            <div className="apple-card p-2 flex flex-col gap-1">
+            <div className="card p-2 flex flex-col gap-1">
               {sidebarItems.map((item) => {
                 const Icon = item.icon
                 const isActive = activeSection === item.id
@@ -310,32 +311,32 @@ export default function SettingsPage() {
 
             {/* ── Perfil ── */}
             {activeSection === 'perfil' && (
-              <div className="apple-card p-6">
+              <div className="card p-6">
                 <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">Dados Pessoais</h2>
                 <div className="space-y-4">
                   <div>
-                    <label className="label-uppercase mb-2 block">Nome Completo</label>
+                    <label className="label mb-2 block">Nome Completo</label>
                     <div className="relative">
                       <User size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                       <input
                         type="text"
                         value={localName}
                         onChange={(e) => setLocalName(e.target.value)}
-                        className="input-apple pl-10"
+                        className="input pl-10"
                         placeholder="Seu nome completo"
                         disabled={showEmailCodeInput}
                       />
                     </div>
                   </div>
                   <div>
-                    <label className="label-uppercase mb-2 block">E-mail de Acesso</label>
+                    <label className="label mb-2 block">E-mail de Acesso</label>
                     <div className="relative">
                       <Mail size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                       <input
                         type="email"
                         value={localEmail}
                         onChange={(e) => setLocalEmail(e.target.value)}
-                        className="input-apple pl-10 pr-28"
+                        className="input pl-10 pr-28"
                         placeholder="seu@email.com"
                         disabled={showEmailCodeInput}
                       />
@@ -359,11 +360,11 @@ export default function SettingsPage() {
                   </div>
 
                   {showEmailCodeInput && (
-                    <div className="p-5 bg-blue-50/50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800/50 rounded-2xl mt-6 animate-slide-up relative overflow-hidden">
-                      <div className="absolute top-0 left-0 w-1 h-full bg-[#007AFF]"></div>
+                    <div className="p-5 bg-primary/5 border border-primary/20 dark:border-primary/30 rounded-2xl mt-6 animate-slide-up relative overflow-hidden">
+                      <div className="absolute top-0 left-0 w-1 h-full bg-primary"></div>
                       <div className="flex flex-col sm:flex-row items-start gap-4">
-                        <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center shrink-0 hidden sm:flex">
-                          <Mail size={20} className="text-[#007AFF] dark:text-blue-400" />
+                        <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center shrink-0 hidden sm:flex">
+                          <Mail size={20} className="text-primary dark:text-blue-300" />
                         </div>
                         <div className="flex-1 w-full">
                           <h4 className="text-base font-bold text-gray-900 dark:text-white mb-1">
@@ -379,20 +380,20 @@ export default function SettingsPage() {
                               placeholder="Ex: A1B2C3D4"
                               value={emailCode}
                               onChange={(e) => setEmailCode(e.target.value.toUpperCase())}
-                              className="input-apple flex-1 uppercase tracking-[0.2em] font-mono text-center sm:text-left text-lg py-2.5"
+                              className="input flex-1 uppercase tracking-[0.2em] font-mono text-center sm:text-left text-lg py-2.5"
                               maxLength={8}
                               autoComplete="one-time-code"
                               name="email-verification-code"
                               autoCorrect="off"
                               spellCheck={false}
                             />
-                            <button
+                            <Button
                               onClick={handleConfirmEmailChange}
                               disabled={isEmailLoading}
-                              className="btn-apple-primary px-8 py-2.5 whitespace-nowrap flex justify-center items-center"
+                              variant="primary" className="px-8 py-2.5 whitespace-nowrap flex justify-center items-center"
                             >
                               {isEmailLoading ? <><Loader2 size={18} className="animate-spin mr-2" /> Verificando</> : 'Confirmar Código'}
-                            </button>
+                            </Button>
                           </div>
                           {emailCodeError && (
                             <div className="mt-3 text-sm text-red-500 flex items-center gap-1.5 font-medium animate-fade-in">
@@ -406,7 +407,7 @@ export default function SettingsPage() {
                               setEmailCodeError('')
                               setEmailCode('')
                             }}
-                            className="text-sm text-[#007AFF] dark:text-blue-400 mt-4 font-semibold hover:underline"
+                            className="text-sm text-primary dark:text-blue-300 mt-4 font-semibold hover:underline"
                           >
                             Cancelar e manter e-mail atual
                           </button>
@@ -416,29 +417,29 @@ export default function SettingsPage() {
                   )}
 
                   <div>
-                    <label className="label-uppercase mb-2 block">Nível de Acesso</label>
+                    <label className="label mb-2 block">Nível de Acesso</label>
                     <div className="relative">
                       <Shield size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                       <input
                         type="text"
                         value={user?.papel === 'admin' ? 'Administrador' : 'Responsável'}
                         disabled
-                        className="input-apple pl-10 opacity-60 cursor-not-allowed bg-gray-50 dark:bg-gray-800"
+                        className="input pl-10 opacity-60 cursor-not-allowed bg-gray-50 dark:bg-gray-800"
                       />
                     </div>
                   </div>
                 </div>
                 {!showEmailCodeInput && (
-                  <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-700">
+                  <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-500">
                     {profileError && (
                       <div className="mb-4 text-sm text-red-500 flex items-center gap-1.5 font-medium bg-red-50 dark:bg-red-900/10 p-3 rounded-xl border border-red-100 dark:border-red-800/30 animate-fade-in">
                         <AlertTriangle size={16} /> {profileError}
                       </div>
                     )}
                     <div className="flex justify-end">
-                      <button onClick={handleSaveProfile} disabled={isEmailLoading} className="btn-apple-primary">
+                      <Button onClick={handleSaveProfile} disabled={isEmailLoading} variant="primary">
                         {isEmailLoading ? <><Loader2 size={16} className="animate-spin" /> Processando...</> : profileSaved ? <><Check size={16} /> Salvo!</> : <><Save size={16} /> Salvar Alterações</>}
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 )}
@@ -447,10 +448,10 @@ export default function SettingsPage() {
 
             {/* ── Segurança ── */}
             {activeSection === 'seguranca' && (
-              <div className="apple-card p-6">
+              <div className="card p-6">
                 <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 rounded-xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
-                    <Lock size={20} className="text-red-600 dark:text-red-400" />
+                    <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                      <Lock size={20} className="text-primary dark:text-blue-300" />
                   </div>
                   <div>
                     <h2 className="text-xl font-bold text-gray-900 dark:text-white">Segurança da Conta</h2>
@@ -462,8 +463,8 @@ export default function SettingsPage() {
                   {!isForgotPwdMode ? (
                     <div>
                       <div className="flex items-center justify-between mb-2">
-                        <label className="label-uppercase block">Senha Atual</label>
-                        <button onClick={handleRequestPwdReset} disabled={isPwdLoading} className="text-xs font-bold text-[#007AFF] dark:text-blue-400 hover:underline">
+                        <label className="label block">Senha Atual</label>
+                        <button onClick={handleRequestPwdReset} disabled={isPwdLoading} className="text-xs font-bold text-primary dark:text-blue-300 hover:underline">
                           {isPwdLoading ? 'Aguarde...' : 'Esqueci a senha atual'}
                         </button>
                       </div>
@@ -473,7 +474,7 @@ export default function SettingsPage() {
                           type={showCurrentPwd ? 'text' : 'password'}
                           value={currentPassword}
                           onChange={(e) => setCurrentPassword(e.target.value)}
-                          className="input-apple pl-10 pr-10"
+                          className="input pl-10 pr-10"
                           placeholder="••••••••"
                           disabled={isPwdLoading}
                           autoComplete="current-password"
@@ -484,11 +485,11 @@ export default function SettingsPage() {
                       </div>
                     </div>
                   ) : (
-                    <div className="p-5 bg-blue-50/50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800/50 rounded-2xl animate-slide-up relative overflow-hidden">
-                      <div className="absolute top-0 left-0 w-1 h-full bg-[#007AFF]"></div>
+                    <div className="p-5 bg-primary/5 border border-primary/20 dark:border-primary/30 rounded-2xl animate-slide-up relative overflow-hidden">
+                      <div className="absolute top-0 left-0 w-1 h-full bg-primary"></div>
                       <div className="flex flex-col sm:flex-row items-start gap-4">
-                        <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center shrink-0 hidden sm:flex">
-                          <Shield size={20} className="text-[#007AFF] dark:text-blue-400" />
+                        <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center shrink-0 hidden sm:flex">
+                          <Shield size={20} className="text-primary dark:text-blue-300" />
                         </div>
                         <div className="flex-1 w-full">
                           <h4 className="text-base font-bold text-gray-900 dark:text-white mb-1">Recuperação Autorizada</h4>
@@ -500,7 +501,7 @@ export default function SettingsPage() {
                             placeholder="EX: A1B2C3D4"
                             value={pwdResetCode}
                             onChange={(e) => setPwdResetCode(e.target.value.toUpperCase())}
-                            className="input-apple uppercase tracking-[0.2em] font-mono text-center text-lg py-2.5 mb-2 w-full sm:max-w-[250px]"
+                            className="input uppercase tracking-[0.2em] font-mono text-center text-lg py-2.5 mb-2 w-full sm:max-w-[250px]"
                             maxLength={8}
                             disabled={isPwdLoading}
                             autoComplete="one-time-code"
@@ -508,7 +509,7 @@ export default function SettingsPage() {
                             autoCorrect="off"
                             spellCheck={false}
                           />
-                          <button onClick={() => { setIsForgotPwdMode(false); setPwdError(''); setPwdResetCode('') }} className="block text-sm text-[#007AFF] dark:text-blue-400 mt-2 font-semibold hover:underline">
+                          <button onClick={() => { setIsForgotPwdMode(false); setPwdError(''); setPwdResetCode('') }} className="block text-sm text-primary dark:text-blue-300 mt-2 font-semibold hover:underline">
                             Lembrei minha senha atual
                           </button>
                         </div>
@@ -518,14 +519,14 @@ export default function SettingsPage() {
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 pt-2">
                     <div>
-                      <label className="label-uppercase mb-2 block">Nova Senha</label>
+                      <label className="label mb-2 block">Nova Senha</label>
                       <div className="relative">
                         <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                         <input
                           type={showNewPwd ? 'text' : 'password'}
                           value={newPassword}
                           onChange={(e) => setNewPassword(e.target.value)}
-                          className="input-apple pl-10 pr-10"
+                          className="input pl-10 pr-10"
                           placeholder="••••••••"
                           disabled={isPwdLoading}
                           autoComplete="new-password"
@@ -536,14 +537,14 @@ export default function SettingsPage() {
                       </div>
                     </div>
                     <div>
-                      <label className="label-uppercase mb-2 block">Confirmar Nova Senha</label>
+                      <label className="label mb-2 block">Confirmar Nova Senha</label>
                       <div className="relative">
                         <CheckCircle size={18} className={`absolute left-3 top-1/2 -translate-y-1/2 ${newPassword && newPassword === confirmPassword ? 'text-green-500' : 'text-gray-400'}`} />
                         <input
                           type={showConfirmPwd ? 'text' : 'password'}
                           value={confirmPassword}
                           onChange={(e) => setConfirmPassword(e.target.value)}
-                          className="input-apple pl-10 pr-10"
+                          className="input pl-10 pr-10"
                           placeholder="••••••••"
                           disabled={isPwdLoading}
                           autoComplete="new-password"
@@ -562,14 +563,14 @@ export default function SettingsPage() {
                   </div>
                 )}
 
-                <div className="mt-8 flex items-center justify-between pt-6 border-t border-gray-100 dark:border-gray-700">
+                <div className="mt-8 flex items-center justify-between pt-6 border-t border-gray-100 dark:border-gray-500">
                   <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
                     <Shield size={14} />
                     Criptografia PBKDF2 aplicada
                   </div>
-                  <button onClick={handleSavePassword} disabled={isPwdLoading || pwdSaved} className="btn-apple-primary px-8 py-2.5">
+                  <Button onClick={handleSavePassword} disabled={isPwdLoading || pwdSaved} variant="primary" className="px-8 py-2.5">
                     {isPwdLoading ? <><Loader2 size={16} className="animate-spin mr-2" /> Processando...</> : pwdSaved ? <><Check size={16} className="mr-2" /> Salvo!</> : <><Save size={16} className="mr-2" /> Atualizar Senha</>}
-                  </button>
+                  </Button>
                 </div>
               </div>
             )}

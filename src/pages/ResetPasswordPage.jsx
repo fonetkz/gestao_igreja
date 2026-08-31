@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { ArrowRight, CheckCircle, Shield, Globe, Eye, EyeOff } from 'lucide-react'
+import Button from '../components/ui/Button'
+import { ArrowRight, CheckCircle, Shield, Globe, Eye, EyeOff, Sun, Moon } from 'lucide-react'
+import useTheme from '../hooks/useTheme'
 import api from '../services/api'
 
 export default function ResetPasswordPage() {
@@ -12,6 +14,7 @@ export default function ResetPasswordPage() {
 
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [isDarkMode, toggleDarkMode] = useTheme()
 
   const [searchParams] = useSearchParams()
   const token = searchParams.get('token')
@@ -72,6 +75,10 @@ export default function ResetPasswordPage() {
           background: 'linear-gradient(135deg, #0f1647 0%, #1E2A78 40%, #2E3E9A 100%)',
         }}
       >
+        {/* Animated Glowing Orbs */}
+        <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-primary/30 mix-blend-screen filter blur-[120px] animate-pulse" style={{ animationDuration: '4s' }} />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[400px] h-[400px] rounded-full bg-primary-light/20 mix-blend-screen filter blur-[120px] animate-pulse" style={{ animationDuration: '5s', animationDelay: '1s' }} />
+
         <div className="absolute inset-0 opacity-10">
           <div
             className="absolute inset-0"
@@ -93,7 +100,7 @@ export default function ResetPasswordPage() {
             <h1 className="text-5xl font-bold text-white leading-tight mb-6">
               Nova Senha
             </h1>
-            <p className="text-blue-200 text-base leading-relaxed mb-16">
+            <p className="text-blue-100/80 text-base leading-relaxed mb-16">
               Crie uma senha forte e segura para proteger as informações da sua organização.
             </p>
           </div>
@@ -101,36 +108,40 @@ export default function ResetPasswordPage() {
       </div>
 
       {/* ===== Right Panel — 40% ===== */}
-      <div className="flex-1 lg:w-[40%] bg-[#F5F5F7] dark:bg-[#1C1C1E] flex flex-col transition-colors duration-300">
-        <div className="flex-1 flex items-center justify-center px-8 py-12">
+      <div className="flex-1 lg:w-[40%] bg-slate-50 dark:bg-[#0a0f1c] relative flex flex-col transition-colors duration-300 overflow-hidden">
+        {/* Subtle Dotted Grid */}
+        <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at center, #9CA3AF 1px, transparent 1px)', backgroundSize: '24px 24px', opacity: 0.1 }} />
+
+        <div className="flex-1 flex items-center justify-center px-8 py-12 relative z-10">
           <div className="w-full max-w-sm">
-            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700 p-8 transition-colors duration-300">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">Redefinir Senha</h2>
-              <p className="text-sm text-gray-500 dark:text-slate-400 mb-8">
+            <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-3xl shadow-2xl shadow-slate-200/50 dark:shadow-black/80 border border-white/40 dark:border-slate-700/50 p-10 transition-all duration-300 relative overflow-hidden">
+              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-primary-light to-primary opacity-80" />
+              <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight mb-2">Redefinir Senha</h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mb-8 leading-relaxed">
                 Digite sua nova senha de acesso
               </p>
 
               {success ? (
                 <div className="text-center py-6 animate-fade-in">
-                  <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-emerald-100 mb-6">
-                    <CheckCircle className="h-8 w-8 text-emerald-600" />
+                  <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-emerald-100 dark:bg-emerald-900/30 mb-6">
+                    <CheckCircle className="h-8 w-8 text-emerald-600 dark:text-emerald-400" />
                   </div>
-                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Senha alterada!</h3>
-                  <p className="text-sm text-gray-500 dark:text-slate-400 mb-6">
+                  <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Senha alterada!</h3>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
                     Sua senha foi redefinida com sucesso. Redirecionando para o login...
                   </p>
-                  <button
+                  <Button
                     onClick={() => navigate('/login')}
-                    className="btn-apple-primary w-full"
+                    variant="primary" fullWidth
                   >
                     Fazer Login Agora
-                  </button>
+                  </Button>
                 </div>
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-6">
                   {/* Nova Senha */}
                   <div>
-                    <label className="label-uppercase" htmlFor="new-password">
+                    <label className="label" htmlFor="new-password">
                       Nova Senha
                     </label>
                     <div className="relative">
@@ -140,7 +151,7 @@ export default function ResetPasswordPage() {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="••••••••"
-                        className="input-base mt-1 pr-10 dark:bg-slate-900 dark:border-slate-700 dark:text-white w-full"
+                        className="input mt-1 pr-10 dark:bg-slate-900 dark:border-slate-700 dark:text-white w-full"
                         autoComplete="new-password"
                         disabled={loading || !token}
                       />
@@ -156,7 +167,7 @@ export default function ResetPasswordPage() {
 
                   {/* Confirmar Nova Senha */}
                   <div>
-                    <label className="label-uppercase" htmlFor="confirm-password">
+                    <label className="label" htmlFor="confirm-password">
                       Confirmar Nova Senha
                     </label>
                     <div className="relative">
@@ -166,7 +177,7 @@ export default function ResetPasswordPage() {
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         placeholder="••••••••"
-                        className="input-base mt-1 pr-10 dark:bg-slate-900 dark:border-slate-700 dark:text-white w-full"
+                        className="input mt-1 pr-10 dark:bg-slate-900 dark:border-slate-700 dark:text-white w-full"
                         autoComplete="new-password"
                         disabled={loading || !token}
                       />
@@ -191,10 +202,10 @@ export default function ResetPasswordPage() {
                   <button
                     type="submit"
                     disabled={loading || !token}
-                    className="w-full bg-slate-900 dark:bg-blue-600 hover:bg-slate-800 dark:hover:bg-blue-500 text-white font-bold py-3.5 rounded-xl
+                    className="w-full bg-primary hover:bg-primary-dark text-white font-bold py-3.5 rounded-xl
                                flex items-center justify-center gap-2 transition-all duration-200
                                disabled:opacity-50 disabled:cursor-not-allowed
-                               shadow-lg shadow-slate-900/20 dark:shadow-blue-900/20 hover:shadow-xl hover:-translate-y-0.5 active:scale-[0.98]"
+                               shadow-lg shadow-primary/25 hover:shadow-xl hover:-translate-y-0.5 active:scale-[0.98]"
                   >
                     {loading ? (
                       <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
@@ -220,6 +231,14 @@ export default function ResetPasswordPage() {
             © 2026 Gestão Igreja
           </span>
           <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={toggleDarkMode}
+              className="p-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-slate-800 transition-colors text-gray-500 dark:text-slate-400"
+              title="Alternar Tema"
+            >
+              {isDarkMode ? <Moon size={16} /> : <Sun size={16} />}
+            </button>
             <Shield size={16} className="text-gray-400 dark:text-slate-600" />
             <Globe size={16} className="text-gray-400 dark:text-slate-600" />
           </div>
