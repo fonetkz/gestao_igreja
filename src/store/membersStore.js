@@ -122,7 +122,8 @@ const useMembersStore = create((set, get) => ({
     try {
       const payload = {
         registros_json: JSON.stringify(updates.registros_json),
-        contexto: updates.contexto
+        contexto: updates.contexto,
+        ...(updates.data ? { data: updates.data } : {})
       }
       const { data } = await api.patch(`/api/chamadas/${chamadaId}`, payload)
 

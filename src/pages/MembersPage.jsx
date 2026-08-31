@@ -215,12 +215,23 @@ export default function MembersPage() {
   const justifiedAlerts = membersWithAbsencesData.filter(m => m.justified_absences > 0 && (!alertSearch || normalizeStr(m.nome).toLowerCase().includes(alertSearchNorm)))
   const hasPendingAlerts = membersWithAbsencesData.some(m => m.unjustified_absences >= 3)
 
-  const handleSaveEdicaoChamada = async (chamadaId, novosRegistros, novoContexto) => {
+  const formatarDataEdicaoTitulo = (data) => {
+    if (!data) return 'Data inválida'
+    const dataStr = data.includes('/') ? data.split('/').reverse().join('-') : data
+    const dateObj = new Date(`${dataStr}T12:00:00`)
+    if (isNaN(dateObj.getTime())) return data
+    const formatado = dateObj.toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+    return formatado.charAt(0).toUpperCase() + formatado.slice(1)
+  }
+
+  const handleSaveEdicaoChamada = async (chamadaId, novosRegistros, novoContexto, novaData) => {
     try {
-      await updateAttendance(chamadaId, { registros_json: novosRegistros, contexto: novoContexto })
+      await updateAttendance(chamadaId, { registros_json: novosRegistros, contexto: novoContexto, data: novaData })
       setEditingChamada(null)
+      showToast('Chamada atualizada com sucesso!')
     } catch (err) {
       console.error('Erro ao salvar edição:', err)
+      showToast('Erro ao salvar as alterações.', 'error')
     }
   }
 
@@ -1020,41 +1031,56 @@ export default function MembersPage() {
 
       {
         editingChamada && (
-          <EdicaoDrawer
-            chamada={editingChamada}
-            members={storeMembers.filter(m => m.status === 'Ativo')}
-            onSave={handleSaveEdicaoChamada}
-            onDelete={(id) => setChamadaDeleteId(id)}
-            onClose={() => setEditingChamada(null)}
-          />
+          <div className="fixed inset-0 z-40 bg-[#F5F5F7] dark:bg-[#1C1C1E] overflow-y-auto">
+            <div className="sticky top-0 z-10 bg-white/80 dark:bg-[#1C1C1E]/80 backdrop-blur-md border-b border-gray-100 dark:border-gray-500 px-4 sm:px-8 py-4 flex items-center justify-between">
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white">Editando Chamada — {formatarDataEdicaoTitulo(editingChamada.data)}</h2>
+              <button onClick={() => setEditingChamada(null)} className="p-2 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="max-w-7xl mx-auto px-4 sm:px-8 py-6">
+              <ChamadaTab
+                members={storeMembers.filter(m => m.status === 'Ativo')}
+                isEditing
+                chamada={editingChamada}
+                onSaveEdit={handleSaveEdicaoChamada}
+                onCancelEdit={() => setEditingChamada(null)}
+                onDeleteEdit={(id) => setChamadaDeleteId(id)}
+              />
+            </div>
+          </div>
         )
       }
     </div >
   )
 }
 
-function ChamadaTab({ members, isEditing = false, chamada = null, onSaveEdit = null, onCancelEdit = null }) {
+function ChamadaTab({ members, isEditing = false, chamada = null, onSaveEdit = null, onCancelEdit = null, onDeleteEdit = null }) {
   const attendanceContexts = useSettingsStore((s) => s.attendanceContexts) || []
   const saveAttendance = useMembersStore((s) => s.saveAttendance)
   const showToast = useToastStore((s) => s.showToast)
   const currentUser = useAuthStore((s) => s.user)
 
-  const defaultContexto = chamada?.tipo || currentUser?.contexto_padrao || attendanceContexts[0]?.label || 'Ensaio Geral'
+  const registrosChamada = chamada?.registros_json || chamada?.registros || null
+  const defaultContexto = chamada?.contexto || chamada?.tipo || currentUser?.contexto_padrao || attendanceContexts[0]?.label || 'Ensaio Geral'
 
-  const [dataChamada, setDataChamada] = useState(chamada?.data ? chamada.data.split('/').reverse().join('-') : new Date().toISOString().split('T')[0])
+  const [dataChamada, setDataChamada] = useState(() => {
+    if (!chamada?.data) return new Date().toISOString().split('T')[0]
+    return chamada.data.includes('/') ? chamada.data.split('/').reverse().join('-') : chamada.data
+  })
   const [contextoChamada, setContextoChamada] = useState(defaultContexto)
   const [presencas, setPresencas] = useState(() => {
-    if (chamada?.registros) {
+    if (registrosChamada) {
       const map = {}
-      chamada.registros.forEach(r => { map[r.membro_id] = r.presente })
+      registrosChamada.forEach(r => { map[r.membro_id] = r.presente })
       return map
     }
     return {}
   })
   const [justificativas, setJustificativas] = useState(() => {
-    if (chamada?.registros) {
+    if (registrosChamada) {
       const map = {}
-      chamada.registros.forEach(r => { map[r.membro_id] = r.justificativa || '' })
+      registrosChamada.forEach(r => { map[r.membro_id] = r.justificativa || '' })
       return map
     }
     return {}
@@ -1124,7 +1150,7 @@ function ChamadaTab({ members, isEditing = false, chamada = null, onSaveEdit = n
     }))
 
     if (onSaveEdit) {
-      onSaveEdit(chamada.id, registros)
+      onSaveEdit(chamada.id, registros, contextoChamada, dataChamada)
     } else {
       setLoading(true)
       try {
@@ -1300,6 +1326,9 @@ function ChamadaTab({ members, isEditing = false, chamada = null, onSaveEdit = n
           </div>
           {isEditing ? (
             <div className="flex gap-3">
+              {onDeleteEdit && (
+                <button onClick={() => onDeleteEdit(chamada.id)} className="px-4 py-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl font-medium hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors">Excluir</button>
+              )}
               <Button variant="secondary" onClick={onCancelEdit}>Cancelar</Button>
               <button onClick={handleSave} className="bg-primary text-white px-6 py-2 rounded-xl font-medium hover:bg-primary-dark">Salvar Alterações</button>
             </div>
@@ -1321,187 +1350,6 @@ function ChamadaTab({ members, isEditing = false, chamada = null, onSaveEdit = n
         </div>
       </div>
       <div className="h-20" />
-    </div>
-  )
-}
-
-function EdicaoChamadaForm({ chamada, members, onSave, onCancel }) {
-  const membrosOrdenados = [...members].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
-  const [registros, setRegistros] = useState(() => {
-    if (!chamada?.registros || chamada.registros.length === 0) {
-      return membrosOrdenados.map(m => ({ membro_id: m.id, presente: true, justificativa: '' }))
-    }
-    return membrosOrdenados.map(m => {
-      const existente = chamada.registros.find(r => r.membro_id === m.id)
-      return existente || { membro_id: m.id, presente: true, justificativa: '' }
-    })
-  })
-  const [searchEditar, setSearchEditar] = useState('')
-  const [filtroGrupoEditar, setFiltroGrupoEditar] = useState(() =>
-    (chamada?.tipo || chamada?.contexto || '').toLowerCase().includes('orquestra') ? 'orquestra' : 'todos'
-  )
-  const [currentPage, setCurrentPage] = useState(1)
-  const [itemsPerPage, setItemsPerPage] = useState(20)
-
-  const SECOES_VOCAIS = ['soprano', 'contralto', 'tenor', 'baixo', 'alto', 'mezzo', 'mezzo-soprano', 'barítono', 'baritono']
-  const isOrquestra = (m) => {
-    const instrumento = (m?.instrumento_voz || '').trim().toLowerCase()
-    return instrumento !== '' && !SECOES_VOCAIS.includes(instrumento)
-  }
-
-  const getMember = (id) => members.find(m => m.id === id)
-  const getMemberName = (id) => getMember(id)?.nome || 'Desconhecido'
-  const getMemberRole = (id) => {
-    const m = getMember(id)
-    if (!m) return 'Músico'
-    return filtroGrupoEditar === 'orquestra' ? (m.instrumento_voz || 'Orquestra') : (m.secao || m.instrumento_voz || 'Músico')
-  }
-
-  const updateRegistro = (membroId, updates) => {
-    setRegistros(prev => prev.map(r => r.membro_id === membroId ? { ...r, ...updates } : r))
-  }
-
-  const filteredRegistros = registros.filter(reg => {
-    const m = getMember(reg.membro_id)
-    if (!m) return false
-    if (filtroGrupoEditar === 'orquestra' && !isOrquestra(m)) return false
-    if (searchEditar && !normalizeStr(m.nome).toLowerCase().includes(normalizeStr(searchEditar).toLowerCase())) return false
-    return true
-  })
-  const totalPages = Math.ceil(filteredRegistros.length / itemsPerPage)
-  const paginatedRegistros = filteredRegistros.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
-
-  const presentes = registros.filter(r => r.presente).length
-  const ausentes = registros.filter(r => !r.presente).length
-
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-[#3A3A3C] rounded-xl">
-        <div className="text-center">
-          <p className="text-2xl font-bold text-green-600 tabular-nums">{presentes}</p>
-          <p className="text-xs text-gray-500 dark:text-gray-400">Presentes</p>
-        </div>
-        <div className="text-center">
-          <p className="text-2xl font-bold text-red-500 tabular-nums">{ausentes}</p>
-          <p className="text-xs text-gray-500 dark:text-gray-400">Ausentes</p>
-        </div>
-      </div>
-
-      <div className="flex gap-3">
-        <div className="relative flex-1">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Buscar integrante..."
-            value={searchEditar}
-            onChange={(e) => { setSearchEditar(e.target.value); setCurrentPage(1) }}
-            className="input pl-9 w-full text-sm"
-          />
-        </div>
-        <div>
-          <Select
-            options={[{ value: 'todos', label: 'Todos' }, { value: 'orquestra', label: 'Orquestra' }]}
-            value={filtroGrupoEditar}
-            onChange={(val) => { setFiltroGrupoEditar(val); setCurrentPage(1) }}
-            size="sm"
-          />
-        </div>
-      </div>
-
-      <div className="border border-gray-100 dark:border-gray-500 rounded-xl overflow-hidden">
-        <div className="divide-y divide-gray-100 dark:divide-gray-700">
-          {paginatedRegistros.map(reg => (
-            <div key={reg.membro_id} className="flex items-center justify-between p-3 hover:bg-gray-50 dark:hover:bg-[#3A3A3C] transition-colors">
-              <div className="flex items-center gap-3">
-                <Avatar name={getMemberName(reg.membro_id)} size="sm" />
-                <div>
-                  <p className="font-medium text-gray-900 dark:text-white">{getMemberName(reg.membro_id)}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">{getMemberRole(reg.membro_id)}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => updateRegistro(reg.membro_id, { presente: true, justificativa: '' })}
-                  className={`w-12 h-8 rounded-lg font-semibold text-sm transition-all ${reg.presente ? 'bg-green-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-400 hover:bg-green-50 dark:hover:bg-green-900/30 hover:text-green-600'}`}
-                >
-                  P
-                </button>
-                <button
-                  onClick={() => updateRegistro(reg.membro_id, { presente: false })}
-                  className={`w-12 h-8 rounded-lg font-semibold text-sm transition-all ${!reg.presente ? 'bg-red-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-400 hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-600'}`}
-                >
-                  F
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-        {filteredRegistros.length > 0 && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 dark:border-gray-500">
-            <div className="flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
-              <span>Mostrando</span>
-              <span className="font-semibold text-gray-900 dark:text-white">
-                {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, filteredRegistros.length)}
-              </span>
-              <span>de</span>
-              <span className="font-semibold text-gray-900 dark:text-white">{filteredRegistros.length}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <select
-                value={itemsPerPage}
-                onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1) }}
-                className="text-sm border-0 bg-gray-50 dark:bg-[#3A3A3C] rounded-lg px-2 py-1.5 text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-primary/30 dark:focus:ring-blue-400/40 cursor-pointer"
-              >
-                <option value={5}>5</option>
-                <option value={10}>10</option>
-                <option value={20}>20</option>
-                <option value={50}>50</option>
-              </select>
-              <div className="flex items-center gap-1 ml-2">
-                <button
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                  className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
-                >
-                  <ChevronUp className="rotate-[-90deg]" size={18} />
-                </button>
-                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                  let pageNum
-                  if (totalPages <= 5) pageNum = i + 1
-                  else if (currentPage <= 3) pageNum = i + 1
-                  else if (currentPage >= totalPages - 2) pageNum = totalPages - 4 + i
-                  else pageNum = currentPage - 2 + i
-                  return (
-                    <button
-                      key={pageNum}
-                      onClick={() => setCurrentPage(pageNum)}
-                      className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${currentPage === pageNum ? 'bg-primary text-white' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
-                    >
-                      {pageNum}
-                    </button>
-                  )
-                })}
-                <button
-                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
-                  className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
-                >
-                  <ChevronUp className="rotate-[90deg]" size={18} />
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      <div className="flex gap-3 pt-4 border-t border-gray-100 dark:border-gray-500">
-        <button onClick={() => onSave(chamada.id, registros)} className="flex-1 bg-primary text-white py-3 rounded-xl font-medium hover:bg-primary-dark">
-          Salvar Alterações
-        </button>
-        <button onClick={onCancel} className="flex-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-3 rounded-xl font-medium hover:bg-gray-200 dark:hover:bg-gray-600">
-          Cancelar
-        </button>
-      </div>
     </div>
   )
 }
@@ -1681,168 +1529,3 @@ function JustificativasList({ alert, onSave, onCancel }) {
   )
 }
 
-function EdicaoDrawer({ chamada, members, onSave, onDelete, onClose }) {
-  const attendanceContexts = useSettingsStore((s) => s.attendanceContexts) || []
-  const registrosChamada = chamada?.registros_json || chamada?.registros || []
-  const temRegistros = registrosChamada && registrosChamada.length > 0
-
-  const [presencas, setPresencas] = useState(() => {
-    const map = {}
-    if (temRegistros) {
-      registrosChamada.forEach(r => { map[r.membro_id] = r.presente })
-    }
-    return map
-  })
-  const [justificativas, setJustificativas] = useState(() => {
-    const map = {}
-    if (temRegistros) {
-      registrosChamada.forEach(r => { map[r.membro_id] = r.justificativa || '' })
-    }
-    return map
-  })
-  const [search, setSearch] = useState('')
-  const [contexto, setContexto] = useState(chamada?.contexto || chamada?.tipo || 'Ensaio Geral')
-  const [filtroGrupo, setFiltroGrupo] = useState(() =>
-    (chamada?.contexto || chamada?.tipo || '').toLowerCase().includes('orquestra') ? 'orquestra' : 'todos'
-  )
-
-  const SECOES_VOCAIS = ['soprano', 'contralto', 'tenor', 'baixo', 'alto', 'mezzo', 'mezzo-soprano', 'barítono', 'baritono']
-  const isOrquestra = (m) => {
-    const instrumento = (m?.instrumento_voz || '').trim().toLowerCase()
-    return instrumento !== '' && !SECOES_VOCAIS.includes(instrumento)
-  }
-
-  const membersDoGrupo = members
-    .filter(m => filtroGrupo === 'orquestra' ? isOrquestra(m) : true)
-  const filteredMembers = membersDoGrupo
-    .filter(m => !search || m.nome.toLowerCase().includes(search.toLowerCase()))
-    .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
-
-  const presenteKey = temRegistros ? (m) => presencas[m.id] !== false : () => true
-  const ausenteKey = temRegistros ? (m) => presencas[m.id] === false : () => false
-
-  const presentes = membersDoGrupo.filter(m => presenteKey(m)).length
-  const ausentes = membersDoGrupo.filter(m => ausenteKey(m)).length
-
-  const setPresenca = (id, valor) => setPresencas(p => ({ ...p, [id]: valor }))
-  const updateJustificativa = (id, text) => setJustificativas(prev => ({ ...prev, [id]: text }))
-
-  const handleSalvar = async () => {
-    const registros = membersDoGrupo.map(m => ({
-      membro_id: m.id,
-      presente: presencas[m.id] !== false,
-      justificativa: justificativas[m.id] || ''
-    }))
-    try {
-      await onSave(chamada.id, registros, contexto)
-      onClose()
-    } catch (err) {
-      console.error('Erro ao salvar:', err)
-    }
-  }
-
-  const formatarDataEdicao = (data) => {
-    if (!data) return 'Data inválida'
-    if (data.includes('/')) {
-      const [dia, mes, ano] = data.split('/')
-      return `${dia}/${mes}/${ano}`
-    }
-    const dateObj = new Date(data)
-    if (isNaN(dateObj.getTime())) return data
-    return dateObj.toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
-  }
-
-  const titulo = `Editando Chamada - ${formatarDataEdicao(chamada.data)}`
-
-  return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 flex items-center justify-center p-4">
-      <div className="w-full max-w-4xl bg-white dark:bg-[#1C1C1E] rounded-2xl shadow-2xl flex flex-col max-h-[85vh] overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-100 dark:border-[#3A3A3C] flex justify-between items-center bg-white dark:bg-[#1C1C1E]">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white">{titulo}</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-700 bg-gray-100 dark:bg-[#3A3A3C] hover:bg-gray-200 dark:hover:bg-[#48484A] rounded-full p-2 transition-colors">
-            <X size={20} />
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-6 bg-[#F5F5F7] dark:bg-[#1C1C1E]">
-          <div className="bg-white dark:bg-[#2C2C2E] rounded-xl shadow-sm p-3 mb-3 flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1">
-              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Buscar integrante..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="input pl-10 w-full"
-              />
-            </div>
-            <Select
-              options={attendanceContexts.map(ctx => ({ value: ctx.label, label: ctx.label }))}
-              value={contexto}
-              onChange={(val) => { setContexto(val); setFiltroGrupo(val.toLowerCase().includes('orquestra') ? 'orquestra' : 'todos') }}
-              size="sm"
-            />
-            <Select
-              options={[{ value: 'todos', label: 'Todos' }, { value: 'orquestra', label: 'Orquestra' }]}
-              value={filtroGrupo}
-              onChange={(val) => setFiltroGrupo(val)}
-              size="sm"
-            />
-          </div>
-
-          {filteredMembers.map(member => {
-            const presente = presencas[member.id] !== false
-            const showJustificativa = presencas[member.id] === false
-            return (
-              <div key={member.id} className="bg-white dark:bg-[#2C2C2E] rounded-xl shadow-sm p-3 mb-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Avatar name={member.nome} size="sm" />
-                    <div>
-                      <p className="font-medium text-gray-900 dark:text-white">{member.nome}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">{filtroGrupo === 'orquestra' ? (member.instrumento_voz || 'Orquestra') : (member.secao || member.instrumento_voz || 'Músico')}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button onClick={() => setPresenca(member.id, true)} aria-pressed={presente} aria-label={`${member.nome}: presente`} className={`w-10 h-10 rounded-full font-semibold text-sm transition-all ${presente ? 'bg-green-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-400 hover:bg-green-100 dark:hover:bg-green-900/30 hover:text-green-600'}`}>P</button>
-                    <button onClick={() => setPresenca(member.id, false)} aria-pressed={!presente} aria-label={`${member.nome}: falta`} className={`w-10 h-10 rounded-full font-semibold text-sm transition-all ${!presente ? 'bg-red-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-400 hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-600'}`}>F</button>
-                  </div>
-                </div>
-                {showJustificativa && (
-                  <div className="mt-3 flex items-center gap-2">
-                    <input
-                      type="text"
-                      placeholder="Adicionar motivo da falta (opcional)"
-                      value={justificativas[member.id] || ''}
-                      onChange={(e) => updateJustificativa(member.id, e.target.value)}
-                      className="input text-sm flex-1"
-                    />
-                    <button
-                      onClick={() => updateJustificativa(member.id, '')}
-                      className="w-10 h-10 flex items-center justify-center rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors shrink-0"
-                      title="Apagar Justificativa"
-                    >
-                      <X size={18} />
-                    </button>
-                  </div>
-                )}
-              </div>
-            )
-          })}
-        </div>
-
-        <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-500 bg-white dark:bg-[#1C1C1E] flex justify-between items-center">
-          <div className="flex gap-6">
-            <span className="font-bold text-gray-900 dark:text-white">{presentes} Presentes</span>
-            <span className="font-bold text-gray-900 dark:text-white">{ausentes} Ausentes</span>
-          </div>
-          <div className="flex gap-3">
-            <button onClick={() => onDelete(chamada.id)} className="px-4 py-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl font-medium hover:bg-red-100 dark:hover:bg-red-900/30">Excluir</button>
-            <button onClick={onClose} className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-xl font-medium hover:bg-gray-200 dark:hover:bg-gray-600">Cancelar</button>
-            <button onClick={handleSalvar} className="px-6 py-2 bg-primary text-white rounded-xl font-medium hover:bg-primary-dark">Salvar Alterações</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
